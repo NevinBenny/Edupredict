@@ -8,7 +8,7 @@ import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 import AuthLayout from './pages/auth/AuthLayout'
 import DashboardLayout from './pages/dashboard/DashboardLayout'
 import DashboardHome from './pages/dashboard/DashboardHome'
-import StudentTable from './pages/dashboard/StudentTable'
+import StudentsPage from './pages/dashboard/StudentsPage'
 import AIRiskPrediction from './pages/dashboard/AIRiskPrediction'
 import Reports from './pages/dashboard/Reports'
 import UserAccount from './pages/UserAccount'
@@ -74,7 +74,7 @@ function App() {
           }
         >
           <Route index element={<DashboardHome />} />
-          <Route path="students" element={<StudentTable students={[]} />} /> {/* Placeholder to be replaced by a proper page if needed */}
+          <Route path="students" element={<StudentsPage />} />
           <Route path="ai-risk" element={<AIRiskPrediction />} />
           <Route path="interventions" element={<Reports />} /> {/* Placeholder for now */}
           <Route path="reports" element={<Reports />} />
