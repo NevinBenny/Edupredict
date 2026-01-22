@@ -4,6 +4,7 @@ import MetricCard from './MetricCard';
 import StatDonutChart from './StatDonutChart';
 import StudentTable from './StudentTable';
 import AddStudentModal from './AddStudentModal';
+import RiskDrillDownModal from './RiskDrillDownModal';
 import { Users, Clock, GraduationCap, AlertTriangle, UserPlus, Play, FileUp } from 'lucide-react';
 
 const DashboardHome = () => {
@@ -12,6 +13,7 @@ const DashboardHome = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [selectedRiskLevel, setSelectedRiskLevel] = useState(null);
 
   const fetchData = async () => {
     try {
@@ -116,8 +118,12 @@ const DashboardHome = () => {
             <h3>Risk Distribution</h3>
           </div>
           <div className="risk-chart-box">
-            <StatDonutChart data={distribution || []} centerText={`${summary?.high_risk_students}`} />
-            <p className="chart-sub">Students in high-risk category</p>
+            <StatDonutChart
+              data={distribution || []}
+              centerText={`${summary?.total_students}`}
+              onSegmentClick={(level) => setSelectedRiskLevel(level)}
+            />
+            <p className="chart-sub">Click a segment to view students</p>
           </div>
         </div>
       </div>
@@ -126,6 +132,14 @@ const DashboardHome = () => {
         <AddStudentModal
           onClose={() => setShowAddModal(false)}
           onStudentAdded={fetchData}
+        />
+      )}
+
+      {selectedRiskLevel && (
+        <RiskDrillDownModal
+          riskLevel={selectedRiskLevel}
+          students={students}
+          onClose={() => setSelectedRiskLevel(null)}
         />
       )}
     </div>
