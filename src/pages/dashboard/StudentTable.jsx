@@ -51,7 +51,7 @@ const StudentTable = ({ students }) => {
                             <th>Department</th>
                             <th>Sem</th>
                             <th>Attendance</th>
-                            <th>SGPA</th>
+                            <th>GPA</th>
                             <th>Backlogs</th>
                             <th>Risk Level</th>
                         </tr>

@@ -11,7 +11,7 @@
 /* --- Hero Section (Educational Theme) --- */
 .hero-side {
   position: relative;
-  background: linear-gradient(135deg, #60a5fa 0%, #93c5fd 100%);
+  background: linear-gradient(135deg, #196ae5 0%, #60a5fa 100%);
   /* Much lighter, soft blue */
   overflow: hidden;
   border-right: 1px solid rgba(255, 255, 255, 0.1);
@@ -107,8 +107,8 @@
   text-transform: uppercase;
   font-weight: 700;
   padding: 8px 16px;
-  border: 2px solid #3b82f6;
-  color: #3b82f6;
+  border: 2px solid #196ae5;
+  color: #196ae5;
   border-radius: 8px;
   transition: all 0.2s ease;
   text-decoration: none;
@@ -116,7 +116,7 @@
 }
 
 .admin-chip a:hover {
-  background: #3b82f6;
+  background: #196ae5;
   color: #ffffff;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
@@ -159,7 +159,7 @@
 .brand-name {
   font-weight: 800;
   font-size: 20px;
-  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  background: linear-gradient(135deg, #1e3a8a 0%, #196ae5 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -174,7 +174,7 @@
   font-size: 28px;
   font-weight: 800;
   margin-bottom: 8px;
-  color: #1e3a8a;
+  color: #196ae5;
   letter-spacing: -0.5px;
 }
 
@@ -222,7 +222,7 @@
 }
 
 .form-field input:focus {
-  border-color: #3b82f6;
+  border-color: #196ae5;
   background: #ffffff;
   box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
 }
@@ -255,7 +255,7 @@
 .primary-btn {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #196ae5 0%, #1455b8 100%);
   color: #ffffff;
   border: none;
   border-radius: 10px;

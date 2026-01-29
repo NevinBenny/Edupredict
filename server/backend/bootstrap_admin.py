@@ -1,5 +1,5 @@
 """
-One-time admin user bootstrap function for EcoGrow Flask backend.
+One-time admin user bootstrap function for EduPredict Flask backend.
 
 This module provides a function to insert the first admin user into the users table.
 It includes safeguards to prevent duplicate admin insertion.

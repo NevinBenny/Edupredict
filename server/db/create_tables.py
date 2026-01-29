@@ -1,5 +1,5 @@
 """
-Script to create missing database tables for EcoGrow
+Script to create missing database tables for EduPredict
 """
 import sys
 import os

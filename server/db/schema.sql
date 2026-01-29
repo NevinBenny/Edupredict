@@ -30,3 +30,20 @@ CREATE TABLE IF NOT EXISTS password_resets (
   INDEX idx_token_hash (token_hash),
   INDEX idx_expires_at (expires_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS students (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  student_id VARCHAR(50) NOT NULL UNIQUE,
+  name VARCHAR(120) NOT NULL,
+  department VARCHAR(100),
+  semester VARCHAR(20),
+  attendance_percentage DECIMAL(5,2) DEFAULT 0.00,
+  internal_marks DECIMAL(5,2) DEFAULT 0.00,
+  assignment_score DECIMAL(5,2) DEFAULT 0.00,
+  sgpa DECIMAL(4,2) DEFAULT 0.00,
+  backlogs INT DEFAULT 0,
+  risk_score DECIMAL(5,2) DEFAULT 0.00,
+  risk_level ENUM('Low', 'Medium', 'High') DEFAULT 'Low',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

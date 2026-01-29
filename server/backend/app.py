@@ -1,5 +1,5 @@
 """
-Flask signup service for EcoGrow.
+Flask signup service for EduPredict.
 
 Security highlights:
 - Passwords arrive in plaintext over HTTPS and are hashed ONLY here with bcrypt.
@@ -153,7 +153,7 @@ def send_reset_email(to_email: str, reset_link: str):
     raise RuntimeError("SMTP is not configured (SMTP_HOST/USER/PASS)")
 
   msg = EmailMessage()
-  msg["Subject"] = "Reset your EcoGrow password"
+  msg["Subject"] = "Reset your EduPredict password"
   msg["From"] = SMTP_FROM
   msg["To"] = to_email
   msg.set_content(f"Click the link to reset your password: {reset_link}\nIf you did not request this, you can ignore it.")
@@ -254,7 +254,14 @@ def login_user():
     session["email"] = email
     session["role"] = role
 
-    return jsonify({"message": "Login successful.", "role": role}), 200
+    return jsonify({
+      "message": "Login successful.",
+      "user": {
+        "id": user_id,
+        "email": email,
+        "role": role
+      }
+    }), 200
   except Exception:
     return jsonify({"message": "Unable to process login right now."}), 500
   finally:
@@ -461,7 +468,7 @@ def google_callback():
 
   # Redirect to frontend dashboard after successful Google auth
   origin = os.environ.get("CORS_ORIGIN", "http://localhost:5173").split(",")[0].strip()
-  target = f"{origin}/dashboard"
+  target = f"{origin}/welcome"
   return redirect(target)
 
 

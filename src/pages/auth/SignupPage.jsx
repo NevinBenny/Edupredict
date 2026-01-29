@@ -39,6 +39,7 @@ const SignupPage = () => {
             await handleSignup({
                 email: form.email,
                 password: form.password,
+                confirmPassword: form.confirmPassword,
             })
             setStatus({ type: 'success', message: 'Account created! Redirecting to login...' })
             setTimeout(() => navigate('/auth/login'), 2000)

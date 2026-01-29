@@ -5,30 +5,27 @@
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Palette - Industrial Nature */
-  --c-bg-app: #f2f4f1;
-  /* Light concrete/clay */
+  /* Palette - Blue & White Professional */
+  --c-bg-app: #f8faff;
   --c-surface: #ffffff;
-  --c-surface-muted: #f7f9f7;
+  --c-surface-muted: #f1f4f9;
 
-  --c-border-strong: #a0a6a0;
-  /* Structural steel */
-  --c-border-subtle: #daddd9;
+  --c-border-strong: #d1d9e6;
+  --c-border-subtle: #e2e8f0;
 
-  --c-text-primary: #1a1d1a;
-  --c-text-secondary: #5a605a;
-  --c-text-tertiary: #8a908a;
+  --c-text-primary: #1e293b;
+  --c-text-secondary: #475569;
+  --c-text-tertiary: #94a3b8;
 
-  --c-accent-primary: #2d5a27;
-  /* Deep industrial green */
-  --c-accent-hover: #1e3e1a;
+  --c-accent-primary: #196ae5;
+  --c-accent-hover: #1455b8;
 
-  --c-status-safe: #2d5a27;
-  --c-status-safe-bg: #e6f0e4;
-  --c-status-warn: #8a6d0b;
-  --c-status-warn-bg: #fbf5e0;
-  --c-status-danger: #8a1c1c;
-  --c-status-danger-bg: #fbeaea;
+  --c-status-safe: #10b981;
+  --c-status-safe-bg: #ecfdf5;
+  --c-status-warn: #f59e0b;
+  --c-status-warn-bg: #fffbeb;
+  --c-status-danger: #ef4444;
+  --c-status-danger-bg: #fef2f2;
 
   /* Spacing & Layout */
   --grid-gap: 16px;

@@ -6,7 +6,7 @@ ai_bp = Blueprint('ai_bp', __name__)
 @ai_bp.route('/api/ai/predict', methods=['GET'])
 def predict_risk():
     """
-    Simulates an AI model prediction for crop risk analysis.
+    Simulates an AI model prediction for student academic risk analysis.
     In the future, this will connect to a real ML model.
     """
     # Mock data simulation
@@ -16,15 +16,15 @@ def predict_risk():
     confidence = random.randint(70, 99)
     
     analysis_text = {
-        "Low": "Conditions are optimal. Soil moisture and nutrient levels are within the desired range for the current crop cycle.",
-        "Moderate": "Minor fluctuations in soil moisture detected. Monitor irrigation schedules closely to prevent stress.",
-        "High": "Critical warning: Potential pest infestation detected based on recent visual patterns. immediate inspection recommended."
+        "Low": "Student performance is stable. Attendance and internal assessment scores are within the expected range for the current semester.",
+        "Moderate": "Slight decline in attendance or internal marks detected. Early intervention suggested to prevent further academic slide.",
+        "High": "Critical warning: High probability of academic failure detected based on low attendance and poor performance in recent assessments."
     }
     
     recommendations = {
-        "Low": ["Continue current irrigation schedule", "Routine visual check recommended next week"],
-        "Moderate": ["Increase water frequency by 10%", "Check soil sensors for calibration"],
-        "High": ["Inspect Sector 4 for pests", "Apply organic neem oil solution if confirmed", "Reduce nitrogen fertilizer temporarily"]
+        "Low": ["Continue current study habits", "Participate in enrichment programs"],
+        "Moderate": ["Schedule a meeting with the academic advisor", "Join peer tutoring sessions for challenging subjects"],
+        "High": ["Mandatory counseling session", "Intensive remedial classes", "Peer mentorship assignment"]
     }
 
     return jsonify({

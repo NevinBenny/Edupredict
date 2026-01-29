@@ -12,13 +12,13 @@ export const AuthProvider = ({ children }) => {
 
   // Initialize from localStorage on component mount
   useEffect(() => {
-    const storedUser = localStorage.getItem('ecogrow_user')
+    const storedUser = localStorage.getItem('edupredict_user')
     if (storedUser) {
       try {
         setUser(JSON.parse(storedUser))
       } catch (error) {
         console.error('Failed to parse stored user:', error)
-        localStorage.removeItem('ecogrow_user')
+        localStorage.removeItem('edupredict_user')
       }
     }
     setLoading(false)
@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }) => {
       role: userData.role?.toUpperCase() || 'USER',
     }
     setUser(user)
-    localStorage.setItem('ecogrow_user', JSON.stringify(user))
+    localStorage.setItem('edupredict_user', JSON.stringify(user))
   }
 
   /**
@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }) => {
    */
   const logout = () => {
     setUser(null)
-    localStorage.removeItem('ecogrow_user')
+    localStorage.removeItem('edupredict_user')
   }
 
   /**

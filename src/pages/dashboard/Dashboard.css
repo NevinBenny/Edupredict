@@ -21,7 +21,7 @@ p {
 
 /* --- Sidebar --- */
 .dashboard-sidebar {
-  background: #1e201e;
+  background: #ffffff;
   color: #e0e2e0;
   border-right: 1px solid #000;
   display: flex;
@@ -80,7 +80,7 @@ p {
   align-items: center;
   padding: 8px 12px;
   text-decoration: none;
-  color: #a0a6a0;
+  color: #94a3b8;
   font-size: 13px;
   border-radius: var(--radius-sm);
   transition: all 0.1s;
@@ -88,7 +88,7 @@ p {
 }
 
 .nav-link:hover {
-  background: #2a2d2a;
+  background: #334155;
   color: white;
 }
 
@@ -390,13 +390,13 @@ p {
 
 .ai-box {
   padding: 16px;
-  border-left: 4px solid #6366f1;
+  border-left: 4px solid #196ae5;
   /* distinct AI color */
 }
 
 .ai-status {
   font-weight: 700;
-  color: #4338ca;
+  color: #196ae5;
   font-size: 14px;
   margin-bottom: 4px;
 }

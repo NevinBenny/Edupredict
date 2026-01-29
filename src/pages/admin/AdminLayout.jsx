@@ -30,17 +30,18 @@ const AdminLayout = () => {
       ],
     },
     {
-      title: 'Management',
+      title: 'Academic Management',
       links: [
-        { label: 'Users', to: '/admin/users', icon: '👥' },
-        { label: 'Devices', to: '/admin/devices', icon: '📱' },
-        { label: 'Alerts', to: '/admin/alerts', icon: '🔔' },
+        { label: 'Manage Users', to: '/admin/users', icon: '👥' },
+        { label: 'Manage Students', to: '/admin/students', icon: '🎓' },
+        { label: 'Departments', to: '/admin/departments', icon: '🏫' },
+        { label: 'Courses', to: '/admin/courses', icon: '📚' },
       ],
     },
     {
-      title: 'Configuration',
+      title: 'System',
       links: [
-        { label: 'Settings', to: '/admin/settings', icon: '⚙️' },
+        { label: 'Global Settings', to: '/admin/settings', icon: '⚙️' },
       ],
     },
   ]
@@ -50,9 +51,9 @@ const AdminLayout = () => {
       {/* Sidebar Navigation */}
       <aside className="admin-sidebar">
         <div className="sidebar-brand">
-          <img src={icon} alt="EcoGrow" style={{ width: '24px', height: '24px' }} />
+          <img src={icon} alt="EduPredict" style={{ width: '24px', height: '24px' }} />
           <div>
-            <p className="brand-title">EcoGrow</p>
+            <p className="brand-title">EduPredict</p>
             <p className="brand-sub">Admin Panel</p>
           </div>
         </div>
