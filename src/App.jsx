@@ -12,6 +12,7 @@ import DashboardHome from './pages/dashboard/DashboardHome'
 import StudentsPage from './pages/dashboard/StudentsPage'
 import AIRiskPrediction from './pages/dashboard/AIRiskPrediction'
 import Reports from './pages/dashboard/Reports'
+import Interventions from './pages/dashboard/Interventions'
 import UserAccount from './pages/UserAccount'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -83,7 +84,7 @@ function App() {
           <Route index element={<DashboardHome />} />
           <Route path="students" element={<StudentsPage />} />
           <Route path="ai-risk" element={<AIRiskPrediction />} />
-          <Route path="interventions" element={<Reports />} /> {/* Placeholder for now */}
+          <Route path="interventions" element={<Interventions />} />
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Reports />} /> {/* Placeholder for now */}
           <Route path="account" element={<UserAccount />} />

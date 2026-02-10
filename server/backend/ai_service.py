@@ -6,31 +6,84 @@ ai_bp = Blueprint('ai_bp', __name__)
 @ai_bp.route('/api/ai/predict', methods=['GET'])
 def predict_risk():
     """
-    Simulates an AI model prediction for student academic risk analysis.
-    In the future, this will connect to a real ML model.
+    Analyzes real student data to provide risk assessment and insights.
     """
-    # Mock data simulation
-    risks = ["Low", "Moderate", "High"]
-    selected_risk = random.choice(risks)
-    
-    confidence = random.randint(70, 99)
-    
-    analysis_text = {
-        "Low": "Student performance is stable. Attendance and internal assessment scores are within the expected range for the current semester.",
-        "Moderate": "Slight decline in attendance or internal marks detected. Early intervention suggested to prevent further academic slide.",
-        "High": "Critical warning: High probability of academic failure detected based on low attendance and poor performance in recent assessments."
-    }
-    
-    recommendations = {
-        "Low": ["Continue current study habits", "Participate in enrichment programs"],
-        "Moderate": ["Schedule a meeting with the academic advisor", "Join peer tutoring sessions for challenging subjects"],
-        "High": ["Mandatory counseling session", "Intensive remedial classes", "Peer mentorship assignment"]
-    }
+    conn = None
+    try:
+        from db_connect import get_connection
+        import mysql.connector
+        
+        conn = get_connection()
+        cur = conn.cursor(dictionary=True)
+        
+        # Fetch all students
+        cur.execute("SELECT * FROM students")
+        students = cur.fetchall()
+        
+        if not students:
+             return jsonify({
+                "summary": {"total_students": 0, "high_risk_count": 0, "avg_risk_score": 0},
+                "distribution": [],
+                "insights": ["No student data available for analysis."],
+                "high_risk_students": []
+            })
 
-    return jsonify({
-        "risk_level": selected_risk,
-        "confidence_score": confidence,
-        "analysis": analysis_text[selected_risk],
-        "recommendations": recommendations[selected_risk],
-        "timestamp": "2024-10-27T10:00:00Z" # Mock static timestamp or dynamic
-    })
+        total_students = len(students)
+        high_risk_students = [s for s in students if s['risk_level'] == 'High']
+        high_risk_count = len(high_risk_students)
+        
+        total_risk_score = sum(s['risk_score'] for s in students)
+        avg_risk_score = round(total_risk_score / total_students, 1) if total_students > 0 else 0
+        
+        # Calculate Distribution
+        risk_counts = {"Low": 0, "Medium": 0, "High": 0}
+        for s in students:
+            level = s['risk_level']
+            if level in risk_counts:
+                risk_counts[level] += 1
+                
+        distribution = [
+            {"name": "Low Risk", "value": risk_counts["Low"], "color": "#10B981"},
+            {"name": "Medium Risk", "value": risk_counts["Medium"], "color": "#F59E0B"},
+            {"name": "High Risk", "value": risk_counts["High"], "color": "#EF4444"}
+        ]
+        
+        # Generate Insights based on aggregate data
+        insights = []
+        
+        # Attendance Factor
+        avg_attendance = sum(s['attendance_percentage'] for s in students) / total_students
+        if avg_attendance < 75:
+            insights.append("Overall class attendance is below 75%. This is a primary contributor to academic risk.")
+        elif avg_attendance > 90:
+            insights.append("High attendance rates are positively checking risk levels.")
+            
+        # Academic Factor
+        avg_internal = sum(s['internal_marks'] for s in students) / total_students
+        if avg_internal < 15: # Assuming out of 25 or similar
+            insights.append("Internal assessment scores are trending low. Remedial sessions recommended.")
+            
+        # Risk Factor
+        if high_risk_count > (total_students * 0.2):
+            insights.append(f"Critical Alert: {round((high_risk_count/total_students)*100)}% of students are in the High Risk category.")
+        else:
+            insights.append("Risk levels are within manageable limits for the majority of the cohort.")
+
+        cur.close()
+
+        return jsonify({
+            "summary": {
+                "total_students": total_students,
+                "high_risk_count": high_risk_count,
+                "avg_risk_score": avg_risk_score
+            },
+            "distribution": distribution,
+            "insights": insights,
+            "high_risk_students": high_risk_students  # Send full list for table
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
