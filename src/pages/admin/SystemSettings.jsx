@@ -12,12 +12,10 @@ import FormField from '../../components/admin/FormField'
 const SystemSettings = () => {
   // Mock settings data - Replace with API calls in production
   const [settings, setSettings] = useState({
-    // Alert Thresholds
-    tempHighThreshold: 35,
-    tempLowThreshold: 10,
-    humidityHighThreshold: 85,
-    humidityLowThreshold: 40,
-    soilMoistureThreshold: 30,
+    // Academic Thresholds
+    lowAttendanceThreshold: 75,
+    lowSGPAThreshold: 6.0,
+    highRiskScoreThreshold: 70,
 
     // Notifications
     emailNotifications: true,
@@ -55,7 +53,7 @@ const SystemSettings = () => {
       <section className="page-header">
         <div className="header-content">
           <h2>System Settings</h2>
-          <p className="header-subtitle">Configure alert thresholds, notifications, and system preferences</p>
+          <p className="header-subtitle">Configure academic thresholds, notifications, and system preferences</p>
         </div>
       </section>
 
@@ -64,56 +62,45 @@ const SystemSettings = () => {
 
       {/* Settings Form */}
       <div className="settings-grid">
-        {/* Alert Thresholds Section */}
+        {/* Academic Thresholds Section */}
         <section className="settings-section">
-          <h3>Alert Thresholds</h3>
-          <p className="section-description">Configure default thresholds for system alerts</p>
+          <h3>Academic Thresholds</h3>
+          <p className="section-description">Configure definitions for at-risk students</p>
 
           <div className="settings-subsection">
-            <h4>Temperature Monitoring</h4>
+            <h4>Attendance Criteria</h4>
             <FormField
-              label="High Temperature Alert (°C)"
+              label="Low Attendance Warning (%)"
               type="number"
-              name="tempHighThreshold"
-              value={settings.tempHighThreshold}
-              onChange={(e) => handleSettingChange('tempHighThreshold', Number(e.target.value))}
+              name="lowAttendanceThreshold"
+              value={settings.lowAttendanceThreshold}
+              onChange={(e) => handleSettingChange('lowAttendanceThreshold', Number(e.target.value))}
             />
-            <FormField
-              label="Low Temperature Alert (°C)"
-              type="number"
-              name="tempLowThreshold"
-              value={settings.tempLowThreshold}
-              onChange={(e) => handleSettingChange('tempLowThreshold', Number(e.target.value))}
-            />
+            <p className="setting-help">Students below this attendance are flagged</p>
           </div>
 
           <div className="settings-subsection">
-            <h4>Humidity Monitoring</h4>
+            <h4>Performance Criteria</h4>
             <FormField
-              label="High Humidity Alert (%)"
+              label="Minimum SGPA Threshold"
               type="number"
-              name="humidityHighThreshold"
-              value={settings.humidityHighThreshold}
-              onChange={(e) => handleSettingChange('humidityHighThreshold', Number(e.target.value))}
+              name="lowSGPAThreshold"
+              value={settings.lowSGPAThreshold}
+              onChange={(e) => handleSettingChange('lowSGPAThreshold', Number(e.target.value))}
             />
-            <FormField
-              label="Low Humidity Alert (%)"
-              type="number"
-              name="humidityLowThreshold"
-              value={settings.humidityLowThreshold}
-              onChange={(e) => handleSettingChange('humidityLowThreshold', Number(e.target.value))}
-            />
+            <p className="setting-help">Students below this SGPA are flagged</p>
           </div>
 
           <div className="settings-subsection">
-            <h4>Soil Moisture Monitoring</h4>
+            <h4>Risk Assessment</h4>
             <FormField
-              label="Soil Moisture Alert (%)"
+              label="High Risk Score Threshold"
               type="number"
-              name="soilMoistureThreshold"
-              value={settings.soilMoistureThreshold}
-              onChange={(e) => handleSettingChange('soilMoistureThreshold', Number(e.target.value))}
+              name="highRiskScoreThreshold"
+              value={settings.highRiskScoreThreshold}
+              onChange={(e) => handleSettingChange('highRiskScoreThreshold', Number(e.target.value))}
             />
+            <p className="setting-help">Composite score above this is considered 'High Risk'</p>
           </div>
         </section>
 

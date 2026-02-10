@@ -29,6 +29,7 @@ from user_account import account_bp
 from ai_service import ai_bp
 from dashboard_service import dashboard_bp
 from validators import validate_email, validate_password
+from admin_service import admin_bp
 
 load_dotenv()
 
@@ -49,6 +50,7 @@ app = Flask(__name__)
 app.register_blueprint(account_bp)
 app.register_blueprint(ai_bp)
 app.register_blueprint(dashboard_bp)
+app.register_blueprint(admin_bp)
 CORS(app, origins=get_cors_origins(), supports_credentials=True)
 app.secret_key = os.environ.get("FLASK_SECRET", "dev-secret-change")
 # Session cookie settings optimized for OAuth flow
@@ -79,11 +81,31 @@ def email_exists(conn, email: str) -> bool:
   return exists
 
 
+
+def get_role_for_email(conn, email: str) -> str:
+  """
+  Determine role based on email.
+  1. Specific Admin email -> ADMIN
+  2. Exists in faculties table -> FACULTY
+  3. Default -> USER
+  """
+  if email == "nevinbenny2028@mca.ajce.in":
+    return "ADMIN"
+    
+  cur = conn.cursor()
+  cur.execute("SELECT 1 FROM faculties WHERE email=%s LIMIT 1", (email,))
+  is_faculty = cur.fetchone() is not None
+  cur.close()
+  
+  return "FACULTY" if is_faculty else "USER"
+
+
 def insert_user(conn, email: str, password_hash: str):
   cur = conn.cursor()
+  role = get_role_for_email(conn, email)
   cur.execute(
     "INSERT INTO users (email, password_hash, provider, role) VALUES (%s, %s, %s, %s)",
-    (email, password_hash, "password", "USER"),
+    (email, password_hash, "password", role),
   )
   conn.commit()
   cur.close()
@@ -93,17 +115,30 @@ def upsert_google_user(conn, email: str):
   cur = conn.cursor()
   cur.execute("SELECT id, role FROM users WHERE email=%s", (email,))
   existing = cur.fetchone()
+  
+  target_role = get_role_for_email(conn, email)
+  
   if existing:
+    user_id, current_role = existing
+    
+    # Sync role if it should be ADMIN or FACULTY but isn't
+    # (e.g. user was added to faculty list AFTER signing up)
+    if current_role != target_role and target_role in ["ADMIN", "FACULTY"]:
+      cur.execute("UPDATE users SET role=%s WHERE id=%s", (target_role, user_id))
+      conn.commit()
+      current_role = target_role
+      
     cur.close()
-    return existing
+    return (user_id, current_role)
+  
   cur.execute(
     "INSERT INTO users (email, provider, role) VALUES (%s, %s, %s)",
-    (email, "google", "USER"),
+    (email, "google", target_role),
   )
   conn.commit()
   new_id = cur.lastrowid
   cur.close()
-  return (new_id, "USER")
+  return (new_id, target_role)
 
 
 def get_user_with_password(conn, email: str):
@@ -250,9 +285,24 @@ def login_user():
     if not bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8")):
       return jsonify({"message": "Invalid credentials."}), 401
 
+    # Final safety check for admin role override
+    if email == "nevinbenny2028@mca.ajce.in" and role != "ADMIN":
+      role = "ADMIN"
+      # Sync in DB if needed
+      temp_cur = conn.cursor()
+      temp_cur.execute("UPDATE users SET role='ADMIN' WHERE id=%s", (user_id,))
+      conn.commit()
+      temp_cur.close()
+
     session["user_id"] = user_id
     session["email"] = email
     session["role"] = role
+    
+    # Check for forced password change
+    cur = conn.cursor()
+    cur.execute("SELECT must_change_password FROM users WHERE id=%s", (user_id,))
+    must_change = cur.fetchone()[0] == 1
+    cur.close()
 
     return jsonify({
       "message": "Login successful.",
@@ -260,12 +310,49 @@ def login_user():
         "id": user_id,
         "email": email,
         "role": role
-      }
+      },
+      "requirePasswordChange": must_change
     }), 200
   except Exception:
     return jsonify({"message": "Unable to process login right now."}), 500
   finally:
     conn.close()
+
+
+@app.route("/api/auth/force-change-password", methods=["POST"])
+def force_change_password():
+    if "user_id" not in session:
+        return jsonify({"message": "Unauthorized"}), 401
+    
+    data = request.json
+    new_password = data.get("newPassword")
+    
+    if not new_password or len(new_password) < 8:
+        return jsonify({"message": "Password must be at least 8 characters"}), 400
+        
+    user_id = session["user_id"]
+    hashed = hash_password(new_password)
+    
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        # Update password and clear flag
+        cur.execute(
+            "UPDATE users SET password_hash=%s, must_change_password=FALSE WHERE id=%s",
+            (hashed, user_id)
+        )
+        conn.commit()
+        cur.close()
+        
+        return jsonify({"message": "Password updated successfully"})
+        
+    except mysql.connector.Error as err:
+        return jsonify({"message": "Database error"}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 @app.post("/api/forgot-password")

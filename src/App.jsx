@@ -5,6 +5,7 @@ import SignupPage from './pages/auth/SignupPage'
 import AdminLoginPage from './pages/auth/AdminLoginPage'
 import GoogleCallback from './pages/auth/GoogleCallback'
 import ResetPasswordPage from './pages/auth/ResetPasswordPage'
+import ChangePasswordPage from './pages/auth/ChangePasswordPage'
 import AuthLayout from './pages/auth/AuthLayout'
 import DashboardLayout from './pages/dashboard/DashboardLayout'
 import DashboardHome from './pages/dashboard/DashboardHome'
@@ -15,9 +16,8 @@ import UserAccount from './pages/UserAccount'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import UserManagement from './pages/admin/UserManagement'
-import DeviceManagement from './pages/admin/DeviceManagement'
-import AlertsManagement from './pages/admin/AlertsManagement'
 import SystemSettings from './pages/admin/SystemSettings'
+import FacultyManagement from './pages/admin/FacultyManagement'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
 
@@ -63,6 +63,13 @@ function App() {
             </AuthLayout>
           }
         />
+        <Route path="/auth/change-password"
+          element={
+            <AuthLayout heading="Update Password">
+              <ChangePasswordPage />
+            </AuthLayout>
+          }
+        />
 
         {/* User Dashboard - Protected for USER role */}
         <Route
@@ -93,8 +100,7 @@ function App() {
         >
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<UserManagement />} />
-          <Route path="devices" element={<DeviceManagement />} />
-          <Route path="alerts" element={<AlertsManagement />} />
+          <Route path="faculty" element={<FacultyManagement />} />
           <Route path="settings" element={<SystemSettings />} />
         </Route>
 

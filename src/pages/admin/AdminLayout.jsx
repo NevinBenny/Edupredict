@@ -33,6 +33,7 @@ const AdminLayout = () => {
       title: 'Academic Management',
       links: [
         { label: 'Manage Users', to: '/admin/users', icon: '👥' },
+        { label: 'Manage Faculty', to: '/admin/faculty', icon: '👨‍🏫' },
         { label: 'Manage Students', to: '/admin/students', icon: '🎓' },
         { label: 'Departments', to: '/admin/departments', icon: '🏫' },
         { label: 'Courses', to: '/admin/courses', icon: '📚' },

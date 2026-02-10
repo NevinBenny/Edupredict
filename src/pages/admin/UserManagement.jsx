@@ -37,7 +37,6 @@ const UserManagement = () => {
           role: user.role,
           status: user.status || 'active',
           joinDate: new Date(user.createdAt).toISOString().split('T')[0] || 'N/A',
-          devices: 0, // Can be extended when device API is available
         }))
         setUsers(mappedUsers)
         setError(null)
@@ -92,7 +91,6 @@ const UserManagement = () => {
       ...formData,
       status: 'active',
       joinDate: new Date().toISOString().split('T')[0],
-      devices: 0,
     }
 
     setUsers([...users, newUser])
@@ -124,12 +122,15 @@ const UserManagement = () => {
       width: '100px',
       render: (value) => <span className={`status-badge status-${value}`}>{value}</span>,
     },
-    { key: 'devices', label: 'Devices', width: '80px' },
     { key: 'joinDate', label: 'Joined', width: '120px' },
   ]
 
   const actions = [
-    { label: 'Toggle', variant: 'secondary', onClick: handleToggleStatus },
+    {
+      label: (user) => (user.status === 'active' ? 'Deactivate' : 'Activate'),
+      variant: 'secondary',
+      onClick: handleToggleStatus,
+    },
     { label: 'Delete', variant: 'danger', onClick: handleDeleteUser },
   ]
 
@@ -150,7 +151,7 @@ const UserManagement = () => {
       <section className="page-header">
         <div className="header-content">
           <h2>User Management</h2>
-          <p className="header-subtitle">Manage farmer accounts and administrative users</p>
+          <p className="header-subtitle">Manage student accounts and administrative users</p>
         </div>
         <button className="primary-btn" onClick={handleAddUser} disabled={loading}>
           + Add New User
@@ -209,7 +210,7 @@ const UserManagement = () => {
             value={formData.name}
             onChange={handleFormChange}
             error={errors.name}
-            placeholder="John Farmer"
+            placeholder="John Doe"
             required
           />
           <FormField
@@ -219,7 +220,7 @@ const UserManagement = () => {
             value={formData.email}
             onChange={handleFormChange}
             error={errors.email}
-            placeholder="john@farm.com"
+            placeholder="john@ajce.in"
             required
           />
           <div className="form-group">
@@ -233,7 +234,7 @@ const UserManagement = () => {
               onChange={handleFormChange}
               className="form-input"
             >
-              <option value="USER">Farmer (USER)</option>
+              <option value="USER">Student/Staff (USER)</option>
               <option value="ADMIN">Administrator (ADMIN)</option>
             </select>
           </div>

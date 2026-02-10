@@ -42,6 +42,12 @@ const LoginPage = () => {
 
             setStatus({ type: 'success', message: 'Welcome back! Redirecting...' })
 
+            // Check for forced password change
+            if (data.requirePasswordChange) {
+                setTimeout(() => navigate('/auth/change-password'), 1000)
+                return
+            }
+
             // Navigate based on role
             const target = data.user.role === 'ADMIN' ? '/admin' : '/dashboard'
             setTimeout(() => navigate(target), 1000)

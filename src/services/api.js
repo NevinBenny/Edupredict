@@ -57,6 +57,13 @@ export const resetPassword = async ({ token, password }) => {
   })
 }
 
+export const forcePasswordChange = async (newPassword) => {
+  return request('/auth/force-change-password', {
+    method: 'POST',
+    body: JSON.stringify({ newPassword }),
+  })
+}
+
 export const startGoogleOAuth = () => {
   window.location.href = `${API_BASE}/google/start`
 }
@@ -76,4 +83,25 @@ export const updateAccountProfile = async (profileData) => {
 // Admin API
 export const fetchAllUsers = async () => {
   return request('/users')
+}
+
+export const fetchAdminStats = async () => {
+  return request('/admin/stats')
+}
+
+export const getFaculties = async () => {
+  return request('/admin/faculties')
+}
+
+export const addFaculty = async (facultyData) => {
+  return request('/admin/faculties', {
+    method: 'POST',
+    body: JSON.stringify(facultyData)
+  })
+}
+
+export const deleteFaculty = async (id) => {
+  return request(`/admin/faculties/${id}`, {
+    method: 'DELETE'
+  })
 }
