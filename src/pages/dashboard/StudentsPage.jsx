@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { UserPlus, X } from 'lucide-react';
 import StudentTable from './StudentTable';
-import './DashboardHome.css';
+import './Dashboard.css'; // Updated import from DashboardHome.css to Dashboard.css
 
 const StudentsPage = () => {
     const { userProfile } = useOutletContext();
@@ -72,13 +72,13 @@ const StudentsPage = () => {
     return (
         <div className="dash-container minimal">
             <div className="primary-section" style={{ width: '100%' }}>
-                <div className="section-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div className="section-header">
                     <div>
                         <h3>Student Academic Records</h3>
                         <p>Displaying all {students.length} students currently in the database</p>
                     </div>
                     {userProfile?.role === 'FACULTY' && (
-                        <button className="btn-primary" onClick={() => setShowAddModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button className="btn-primary" onClick={() => setShowAddModal(true)}>
                             <UserPlus size={16} /> Add Student
                         </button>
                     )}
@@ -89,7 +89,7 @@ const StudentsPage = () => {
             {/* Add Student Modal */}
             {showAddModal && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: 500 }}>
+                    <div className="modal-content animate-slide-up" style={{ maxWidth: 500 }}>
                         <div className="modal-header">
                             <h3>Add Student to Your Class</h3>
                             <button className="close-btn" onClick={() => setShowAddModal(false)}><X size={20} /></button>
@@ -165,12 +165,12 @@ const StudentsPage = () => {
                                 </div>
                             </div>
 
-                            <div className="info-box" style={{ background: '#EFF6FF', padding: 12, borderRadius: 8, marginTop: 12, fontSize: 13, color: '#1E40AF' }}>
+                            <div className="info-box" style={{ background: 'var(--c-surface-muted)', padding: 12, borderRadius: 8, marginTop: 12, fontSize: 13, color: 'var(--c-text-secondary)' }}>
                                 ℹ️ <b>Note:</b> Student ID will be auto-generated based on your class department. The student will be automatically assigned to your class.
                             </div>
 
                             <div className="form-actions">
-                                <button type="button" className="btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
+                                <button type="button" className="btn-secondary-action" onClick={() => setShowAddModal(false)}>Cancel</button>
                                 <button type="submit" className="btn-primary" disabled={submitting}>
                                     {submitting ? 'Adding...' : 'Add Student'}
                                 </button>

@@ -3,15 +3,11 @@ import DataTable from '../../components/admin/DataTable'
 import Modal from '../../components/admin/Modal'
 import FormField from '../../components/admin/FormField'
 import { fetchAllUsers } from '../../services/api'
+import { UserPlus, Search } from 'lucide-react'
+import '../dashboard/Dashboard.css'
 
 /**
  * UserManagement - Admin page for managing user accounts
- * Features:
- * - View all users in a sortable table (fetched from database)
- * - Create new users/admins
- * - Change user roles
- * - Enable/disable accounts
- * - Search and filter users
  */
 const UserManagement = () => {
   // Real user data from API
@@ -120,7 +116,7 @@ const UserManagement = () => {
       key: 'status',
       label: 'Status',
       width: '100px',
-      render: (value) => <span className={`status-badge status-${value}`}>{value}</span>,
+      render: (value) => <span className={`status-pill ${value === 'active' ? 'low' : 'high'}`}>{value}</span>,
     },
     { key: 'joinDate', label: 'Joined', width: '120px' },
   ]
@@ -135,65 +131,60 @@ const UserManagement = () => {
   ]
 
   const modalFooter = (
-    <div className="modal-actions">
-      <button className="secondary-btn" onClick={() => setIsModalOpen(false)}>
+    <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+      <button className="btn-secondary-action" onClick={() => setIsModalOpen(false)}>
         Cancel
       </button>
-      <button className="primary-btn" onClick={handleCreateUser}>
+      <button className="btn-primary" onClick={handleCreateUser}>
         Create User
       </button>
     </div>
   )
 
   return (
-    <div className="admin-page">
-      {/* Page Header */}
-      <section className="page-header">
-        <div className="header-content">
-          <h2>User Management</h2>
-          <p className="header-subtitle">Manage student accounts and administrative users</p>
+    <div className="dash-container minimal">
+      <div className="section-header">
+        <div>
+          <h3>User Management</h3>
+          <p>Manage student accounts and administrative users</p>
         </div>
-        <button className="primary-btn" onClick={handleAddUser} disabled={loading}>
-          + Add New User
+        <button className="btn-primary" onClick={handleAddUser} disabled={loading}>
+          <UserPlus size={16} /> Add New User
         </button>
-      </section>
+      </div>
 
-      {/* Error Message */}
       {error && (
-        <section className="alert alert-error">
+        <div className="alert alert-error">
           <p>Error loading users: {error}</p>
-        </section>
+        </div>
       )}
 
-      {/* Loading State */}
       {loading ? (
-        <section className="page-content">
-          <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-            <p>Loading users...</p>
-          </div>
-        </section>
+        <div className="dash-loading">
+          <p>Loading users...</p>
+        </div>
       ) : (
-        <>
-          {/* Search and Filter */}
-          <section className="page-controls">
-            <input
-              type="search"
-              placeholder="Search by name or email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-              aria-label="Search users"
-            />
-            <div className="control-stats">
+        <div className="primary-section">
+          {/* Controls */}
+          <div className="table-controls">
+            <div className="search-box-wrapper">
+              <Search size={16} className="search-icon" />
+              <input
+                type="search"
+                placeholder="Search users..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="search-input-modern"
+              />
+            </div>
+            <div className="control-stats" style={{ color: 'var(--c-text-tertiary)', fontSize: '13px' }}>
               Showing {filteredUsers.length} of {users.length} users
             </div>
-          </section>
+          </div>
 
           {/* Users Table */}
-          <section className="page-content">
-            <DataTable columns={columns} rows={filteredUsers} actions={actions} />
-          </section>
-        </>
+          <DataTable columns={columns} rows={filteredUsers} actions={actions} />
+        </div>
       )}
 
       {/* Add User Modal */}
@@ -203,7 +194,7 @@ const UserManagement = () => {
         onClose={() => setIsModalOpen(false)}
         footer={modalFooter}
       >
-        <div className="form-container">
+        <div className="form-container" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <FormField
             label="Full Name"
             name="name"
@@ -227,16 +218,18 @@ const UserManagement = () => {
             <label htmlFor="role">
               Role <span className="required">*</span>
             </label>
-            <select
-              id="role"
-              name="role"
-              value={formData.role}
-              onChange={handleFormChange}
-              className="form-input"
-            >
-              <option value="USER">Student/Staff (USER)</option>
-              <option value="ADMIN">Administrator (ADMIN)</option>
-            </select>
+            <div className="select-wrapper">
+              <select
+                id="role"
+                name="role"
+                value={formData.role}
+                onChange={handleFormChange}
+                className="form-input"
+              >
+                <option value="USER">Student/Staff (USER)</option>
+                <option value="ADMIN">Administrator (ADMIN)</option>
+              </select>
+            </div>
           </div>
         </div>
       </Modal>

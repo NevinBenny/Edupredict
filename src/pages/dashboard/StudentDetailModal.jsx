@@ -6,7 +6,7 @@ const StudentDetailModal = ({ student, onClose }) => {
     if (!student) return null;
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay sidebar-mode" onClick={onClose}>
             <div className="modal-sidebar" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
                     <div className="modal-title">

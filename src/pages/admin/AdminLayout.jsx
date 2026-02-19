@@ -1,16 +1,14 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import icon from '../../assets/icon.png'
-import './AdminPanel.css'
-
-/**
- * AdminLayout - Main layout for admin panel with sidebar navigation
- * Features:
- * - Sidebar navigation with admin-specific routes
- * - Responsive header with user info and logout
- * - Role-based navigation sections
- * - Professional eco-friendly theme (light green + white)
- */
+import '../dashboard/Dashboard.css' // Reuse the main dashboard styles
+import {
+  LayoutDashboard,
+  Users,
+  Settings,
+  LogOut,
+  BookOpen,
+  GraduationCap
+} from 'lucide-react'
 
 const AdminLayout = () => {
   const navigate = useNavigate()
@@ -21,45 +19,43 @@ const AdminLayout = () => {
     navigate('/auth/login')
   }
 
-  // Navigation sections for admin panel
   const navSections = [
     {
       title: 'Main',
       links: [
-        { label: 'Dashboard', to: '/admin', end: true, icon: '📊' },
+        { label: 'Dashboard', to: '/admin', end: true, icon: <LayoutDashboard size={20} /> },
       ],
     },
     {
-      title: 'Academic Management',
+      title: 'Academic',
       links: [
-        { label: 'Manage Users', to: '/admin/users', icon: '👥' },
-        { label: 'Manage Faculty', to: '/admin/faculty', icon: '👨‍🏫' },
-        { label: 'Manage Classes', to: '/admin/classes', icon: '🏫' },
+        { label: 'Users', to: '/admin/users', icon: <Users size={20} /> },
+        { label: 'Faculty', to: '/admin/faculty', icon: <GraduationCap size={20} /> },
+        { label: 'Classes', to: '/admin/classes', icon: <BookOpen size={20} /> },
       ],
     },
     {
       title: 'System',
       links: [
-        { label: 'Global Settings', to: '/admin/settings', icon: '⚙️' },
+        { label: 'Settings', to: '/admin/settings', icon: <Settings size={20} /> },
       ],
     },
   ]
 
   return (
-    <div className="admin-shell">
-      {/* Sidebar Navigation */}
-      <aside className="admin-sidebar">
+    <div className="dashboard-shell">
+      <aside className="dashboard-sidebar">
         <div className="sidebar-brand">
-          <img src={icon} alt="EduPredict" style={{ width: '24px', height: '24px' }} />
+          <div className="brand-mark" style={{ background: 'var(--c-text-primary)' }}>///</div>
           <div>
             <p className="brand-title">EduPredict</p>
-            <p className="brand-sub">Admin Panel</p>
+            <p className="nav-section-title" style={{ paddingLeft: 0, marginBottom: 0 }}>Admin Panel</p>
           </div>
         </div>
 
         <nav className="sidebar-nav" aria-label="Admin navigation">
           {navSections.map((section) => (
-            <div className="nav-section" key={section.title}>
+            <div className="nav-group" key={section.title} style={{ marginBottom: '12px' }}>
               <p className="nav-section-title">{section.title}</p>
               <ul>
                 {section.links.map((link) => (
@@ -71,8 +67,8 @@ const AdminLayout = () => {
                         `nav-link ${isActive ? 'nav-link-active' : ''}`
                       }
                     >
-                      {/* <span className="nav-icon">{link.icon}</span> */}
-                      <span className="nav-label">{link.label}</span>
+                      {link.icon}
+                      <span>{link.label}</span>
                     </NavLink>
                   </li>
                 ))}
@@ -81,37 +77,32 @@ const AdminLayout = () => {
           ))}
         </nav>
 
-        <div className="sidebar-footer">
-          <button className="logout-btn" onClick={handleLogout}>
-            Logout
-          </button>
-        </div>
+        <button onClick={handleLogout} className="nav-link logout-btn">
+          <LogOut size={20} />
+          <span>Logout</span>
+        </button>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="admin-main">
-        {/* Top Bar */}
-        <header className="admin-topbar">
+      <div className="dashboard-main">
+        <header className="dashboard-topbar">
           <div className="topbar-left">
-            <h1>
-              <span style={{ color: 'var(--c-text-tertiary)' }}>///</span>
-              Administration
-            </h1>
+            <h1>Administration</h1>
           </div>
 
-          <div className="topbar-right">
-            <div className="user-profile">
-              <div className="profile-avatar">{user?.email?.[0].toUpperCase() || 'A'}</div>
-              <div className="profile-info">
-                <p className="profile-name">{user?.email || 'Administrator'}</p>
-                <p className="profile-role">System Admin</p>
+          <div className="topbar-actions">
+            <div className="user-profile-chip" style={{ borderColor: 'var(--c-text-primary)' }}>
+              <div className="avatar" style={{ background: 'var(--c-text-primary)' }}>
+                A
+              </div>
+              <div className="info">
+                <span className="name">Administrator</span>
+                <span className="role">System Access</span>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="admin-content">
+        <main className="dashboard-content">
           <Outlet />
         </main>
       </div>

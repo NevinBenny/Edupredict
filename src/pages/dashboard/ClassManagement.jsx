@@ -181,30 +181,30 @@ const ClassManagement = () => {
   const allSelected = unassignedStudents.length > 0 && selectedStudentIds.length === unassignedStudents.length
 
   const riskColor = (level) =>
-    level === 'High' ? '#EF4444' : level === 'Medium' ? '#F59E0B' : '#10B981'
+    level === 'High' ? 'high' : level === 'Medium' ? 'medium' : 'low'
 
   return (
-    <div className="dash-page">
-      <div className="page-header">
+    <div className="dash-container minimal">
+      <div className="section-header">
         <div>
-          <p className="eyebrow">Admin</p>
-          <h2>Class Management</h2>
+          <h3>Class Management</h3>
+          <p>Organize classes, assign faculty, and manage students</p>
         </div>
         <button className="btn-primary" onClick={() => setShowCreateModal(true)}>
           <Plus size={16} style={{ marginRight: 6 }} /> New Class
         </button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: '1.5rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 340px) 1fr', gap: '24px', alignItems: 'start' }}>
 
         {/* ── Left: Class List ── */}
-        <div className="card">
-          <div className="card-header">
-            <h3><BookOpen size={16} style={{ marginRight: 6 }} />Classes ({classes.length})</h3>
+        <div className="card-panel" style={{ padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--c-border-subtle)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <BookOpen size={16} /> <span style={{ fontWeight: 600 }}>Classes ({classes.length})</span>
           </div>
-          <div className="card-body" style={{ padding: 0 }}>
+          <div style={{ padding: 0 }}>
             {classes.length === 0 ? (
-              <div className="empty-state" style={{ padding: '2rem' }}>
+              <div className="empty-state" style={{ padding: '2rem', textAlign: 'center' }}>
                 <BookOpen size={36} color="#9CA3AF" />
                 <p style={{ marginTop: 8 }}>No classes yet. Create one!</p>
               </div>
@@ -215,10 +215,10 @@ const ClassManagement = () => {
                     key={cls.id}
                     onClick={() => selectClass(cls)}
                     style={{
-                      padding: '14px 16px',
-                      borderBottom: '1px solid #F3F4F6',
+                      padding: '16px 20px',
+                      borderBottom: '1px solid var(--c-border-subtle)',
                       cursor: 'pointer',
-                      background: selectedClass?.id === cls.id ? '#EFF6FF' : 'transparent',
+                      background: selectedClass?.id === cls.id ? 'var(--c-surface-muted)' : 'transparent',
                       display: 'flex',
                       alignItems: 'center',
                       gap: 12,
@@ -226,32 +226,31 @@ const ClassManagement = () => {
                     }}
                   >
                     <div style={{
-                      width: 40, height: 40, borderRadius: 10,
-                      background: '#2563EB', color: '#fff',
+                      width: 40, height: 40, borderRadius: 8,
+                      background: 'var(--c-accent-primary)', color: '#fff',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontWeight: 700, fontSize: 14, flexShrink: 0
                     }}>
                       {cls.name.slice(0, 2).toUpperCase()}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: '#111827' }}>{cls.name}</p>
-                      <p style={{ fontSize: 12, color: '#6B7280', margin: '2px 0 0' }}>
+                      <p style={{ fontWeight: 600, fontSize: 14, margin: 0, color: 'var(--c-text-primary)' }}>{cls.name}</p>
+                      <p style={{ fontSize: 12, color: 'var(--c-text-secondary)', margin: '2px 0 0' }}>
                         {cls.department || '—'} · Sem {cls.semester || '—'}
                       </p>
-                      <p style={{ fontSize: 11, color: '#9CA3AF', margin: '2px 0 0' }}>
+                      <p style={{ fontSize: 11, color: 'var(--c-text-tertiary)', margin: '2px 0 0' }}>
                         {cls.faculty_name ? `👤 ${cls.faculty_name}` : '⚠️ No faculty'} · {cls.student_count} students
                       </p>
                     </div>
                     <div style={{ display: 'flex', gap: 4 }}>
                       <button
-                        className="action-btn"
-                        style={{ padding: '4px 6px', background: '#FEE2E2', color: '#EF4444', border: 'none' }}
+                        className="btn-action-small danger"
                         onClick={(e) => { e.stopPropagation(); handleDeleteClass(cls.id) }}
                         title="Delete class"
                       >
                         <Trash2 size={13} />
                       </button>
-                      <ChevronRight size={16} color="#9CA3AF" />
+                      <ChevronRight size={16} color="var(--c-text-tertiary)" />
                     </div>
                   </li>
                 ))}
@@ -262,34 +261,34 @@ const ClassManagement = () => {
 
         {/* ── Right: Class Detail ── */}
         {selectedClass ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
             {/* Class Info Header */}
-            <div className="card">
-              <div className="card-body" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+            <div className="card-panel">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: 20 }}>{selectedClass.name}</h3>
-                  <p style={{ margin: '4px 0 0', color: '#6B7280', fontSize: 13 }}>
+                  <p style={{ margin: '4px 0 0', color: 'var(--c-text-secondary)', fontSize: 13 }}>
                     {selectedClass.department} · Semester {selectedClass.semester}
                   </p>
                   <p style={{ margin: '4px 0 0', fontSize: 13 }}>
                     {selectedClass.faculty_name
-                      ? <span style={{ color: '#10B981' }}>👤 {selectedClass.faculty_name} ({selectedClass.faculty_email})</span>
-                      : <span style={{ color: '#EF4444' }}>⚠️ No faculty assigned</span>
+                      ? <span style={{ color: 'var(--c-status-safe)' }}>👤 {selectedClass.faculty_name} ({selectedClass.faculty_email})</span>
+                      : <span style={{ color: 'var(--c-status-danger)' }}>⚠️ No faculty assigned</span>
                     }
                   </p>
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="btn-secondary" onClick={() => { fetchUnassignedFaculties(); setShowAssignFacultyModal(true) }}>
+                  <button className="btn-secondary-action" onClick={() => { fetchUnassignedFaculties(); setShowAssignFacultyModal(true) }}>
                     <UserCheck size={15} style={{ marginRight: 5 }} /> Assign Faculty
                   </button>
-                  <button className="btn-primary" onClick={() => {
+                  <button className="btn-secondary-action" onClick={() => {
                     setNewStudent(s => ({ ...s, department: selectedClass.department || '', semester: selectedClass.semester || '' }))
                     setShowAddStudentModal(true)
                   }}>
                     <UserPlus size={15} style={{ marginRight: 5 }} /> Add Student
                   </button>
-                  <button className="action-btn" onClick={() => { fetchUnassignedStudents(selectedClass.department, selectedClass.semester); setShowAssignExistingModal(true) }}>
+                  <button className="btn-primary" onClick={() => { fetchUnassignedStudents(selectedClass.department, selectedClass.semester); setShowAssignExistingModal(true) }}>
                     <Users size={15} style={{ marginRight: 5 }} /> Assign Existing
                   </button>
                 </div>
@@ -297,41 +296,37 @@ const ClassManagement = () => {
             </div>
 
             {/* Students Table */}
-            <div className="card">
-              <div className="card-header">
-                <h3><GraduationCap size={16} style={{ marginRight: 6 }} />Students ({classStudents.length})</h3>
+            <div className="card-panel table-card-panel">
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--c-border-subtle)' }}>
+                <h3 style={{ fontSize: '15px' }}><GraduationCap size={16} style={{ marginRight: 6 }} />Students ({classStudents.length})</h3>
               </div>
-              <div className="card-body" style={{ padding: 0 }}>
+              <div>
                 {classStudents.length === 0 ? (
-                  <div className="empty-state" style={{ padding: '2rem' }}>
+                  <div className="empty-state" style={{ padding: '2rem', textAlign: 'center' }}>
                     <Users size={36} color="#9CA3AF" />
                     <p style={{ marginTop: 8 }}>No students in this class yet.</p>
                   </div>
                 ) : (
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <table className="student-table modern">
                     <thead>
-                      <tr style={{ background: '#F9FAFB', borderBottom: '1px solid #E5E7EB' }}>
+                      <tr>
                         {['ID', 'Name', 'Dept', 'Sem', 'Attendance', 'SGPA', 'Backlogs', 'Risk'].map(h => (
-                          <th key={h} style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600, color: '#374151' }}>{h}</th>
+                          <th key={h}>{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {classStudents.map((s, i) => (
-                        <tr key={s.student_id} style={{ borderBottom: '1px solid #F3F4F6', background: i % 2 === 0 ? '#fff' : '#FAFAFA' }}>
-                          <td style={{ padding: '10px 12px', color: '#6B7280' }}>{s.student_id}</td>
-                          <td style={{ padding: '10px 12px', fontWeight: 500 }}>{s.name}</td>
-                          <td style={{ padding: '10px 12px', color: '#6B7280' }}>{s.department}</td>
-                          <td style={{ padding: '10px 12px', color: '#6B7280' }}>{s.semester}</td>
-                          <td style={{ padding: '10px 12px' }}>{s.attendance_percentage?.toFixed(1)}%</td>
-                          <td style={{ padding: '10px 12px' }}>{s.sgpa?.toFixed(2)}</td>
-                          <td style={{ padding: '10px 12px' }}>{s.backlogs}</td>
-                          <td style={{ padding: '10px 12px' }}>
-                            <span style={{
-                              background: riskColor(s.risk_level) + '20',
-                              color: riskColor(s.risk_level),
-                              padding: '2px 8px', borderRadius: 20, fontWeight: 600, fontSize: 11
-                            }}>{s.risk_level}</span>
+                        <tr key={s.student_id}>
+                          <td>{s.student_id}</td>
+                          <td style={{ fontWeight: 500 }}>{s.name}</td>
+                          <td>{s.department}</td>
+                          <td>{s.semester}</td>
+                          <td>{s.attendance_percentage?.toFixed(1)}%</td>
+                          <td>{s.sgpa?.toFixed(2)}</td>
+                          <td>{s.backlogs}</td>
+                          <td>
+                            <span className={`status-pill ${riskColor(s.risk_level)}`}>{s.risk_level}</span>
                           </td>
                         </tr>
                       ))}
@@ -342,10 +337,10 @@ const ClassManagement = () => {
             </div>
           </div>
         ) : (
-          <div className="card">
-            <div className="empty-state" style={{ padding: '4rem' }}>
+          <div className="card-panel">
+            <div className="empty-state" style={{ padding: '4rem', textAlign: 'center' }}>
               <BookOpen size={48} color="#9CA3AF" />
-              <p style={{ marginTop: 12, color: '#6B7280' }}>Select a class to view details</p>
+              <p style={{ marginTop: 12, color: 'var(--c-text-secondary)' }}>Select a class to view details</p>
             </div>
           </div>
         )}
@@ -356,7 +351,7 @@ const ClassManagement = () => {
       {/* Create Class Modal */}
       {showCreateModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: 420 }}>
+          <div className="modal-content animate-slide-up" style={{ maxWidth: 420 }}>
             <div className="modal-header">
               <h3>Create New Class</h3>
               <button className="close-btn" onClick={() => setShowCreateModal(false)}><X size={20} /></button>
@@ -378,7 +373,7 @@ const ClassManagement = () => {
                   onChange={e => setNewClass({ ...newClass, semester: e.target.value })} />
               </div>
               <div className="form-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowCreateModal(false)}>Cancel</button>
+                <button type="button" className="btn-secondary-action" onClick={() => setShowCreateModal(false)}>Cancel</button>
                 <button type="submit" className="btn-primary" disabled={loading}>
                   {loading ? 'Creating...' : 'Create Class'}
                 </button>
@@ -391,7 +386,7 @@ const ClassManagement = () => {
       {/* Assign Faculty Modal */}
       {showAssignFacultyModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: 420 }}>
+          <div className="modal-content animate-slide-up" style={{ maxWidth: 420 }}>
             <div className="modal-header">
               <h3>Assign Faculty to {selectedClass?.name}</h3>
               <button className="close-btn" onClick={() => setShowAssignFacultyModal(false)}><X size={20} /></button>
@@ -399,19 +394,21 @@ const ClassManagement = () => {
             <form onSubmit={handleAssignFaculty} className="modal-form">
               <div className="form-group">
                 <label>Select Faculty</label>
-                <select className="form-input" value={selectedFacultyId}
-                  onChange={e => setSelectedFacultyId(e.target.value)}>
-                  <option value="">— Remove faculty assignment —</option>
-                  {unassignedFaculties.map(f => (
-                    <option key={f.id} value={f.id}>{f.name} ({f.email})</option>
-                  ))}
-                </select>
+                <div className="select-wrapper">
+                  <select className="form-input" value={selectedFacultyId}
+                    onChange={e => setSelectedFacultyId(e.target.value)}>
+                    <option value="">— Remove faculty assignment —</option>
+                    {unassignedFaculties.map(f => (
+                      <option key={f.id} value={f.id}>{f.name} ({f.email})</option>
+                    ))}
+                  </select>
+                </div>
                 {unassignedFaculties.length === 0 && (
-                  <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>All faculty are already assigned to classes.</p>
+                  <p style={{ fontSize: 12, color: 'var(--c-text-tertiary)', marginTop: 4 }}>All faculty are assigned or none available.</p>
                 )}
               </div>
               <div className="form-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowAssignFacultyModal(false)}>Cancel</button>
+                <button type="button" className="btn-secondary-action" onClick={() => setShowAssignFacultyModal(false)}>Cancel</button>
                 <button type="submit" className="btn-primary" disabled={loading}>
                   {loading ? 'Saving...' : 'Assign Faculty'}
                 </button>
@@ -424,13 +421,13 @@ const ClassManagement = () => {
       {/* Add New Student Modal */}
       {showAddStudentModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: 520 }}>
+          <div className="modal-content animate-slide-up" style={{ maxWidth: 520 }}>
             <div className="modal-header">
               <h3>Add Student to {selectedClass?.name}</h3>
               <button className="close-btn" onClick={() => setShowAddStudentModal(false)}><X size={20} /></button>
             </div>
             <form onSubmit={handleAddStudent} className="modal-form">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                 {[
                   { label: 'Full Name *', key: 'name', placeholder: 'e.g. Riya Sharma' },
                   { label: 'Department *', key: 'department', placeholder: 'e.g. MCA' },
@@ -455,11 +452,11 @@ const ClassManagement = () => {
                   </div>
                 ))}
               </div>
-              <p style={{ fontSize: 12, color: '#9CA3AF', marginTop: 4 }}>
+              <p style={{ fontSize: 12, color: 'var(--c-text-tertiary)', marginTop: 8 }}>
                 💡 Student ID will be auto-generated (e.g. <strong>MCA250016</strong>)
               </p>
               <div className="form-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowAddStudentModal(false)}>Cancel</button>
+                <button type="button" className="btn-secondary-action" onClick={() => setShowAddStudentModal(false)}>Cancel</button>
                 <button type="submit" className="btn-primary" disabled={loading}>
                   {loading ? 'Adding...' : 'Add Student'}
                 </button>
@@ -472,26 +469,26 @@ const ClassManagement = () => {
       {/* Assign Existing Students Modal */}
       {showAssignExistingModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: 480 }}>
+          <div className="modal-content animate-slide-up" style={{ maxWidth: 480 }}>
             <div className="modal-header">
               <h3>Assign Students to {selectedClass?.name}</h3>
               <button className="close-btn" onClick={() => setShowAssignExistingModal(false)}><X size={20} /></button>
             </div>
             <form onSubmit={handleAssignExisting} className="modal-form">
-              <p style={{ fontSize: 12, color: '#6B7280', marginBottom: 8 }}>
+              <p style={{ fontSize: 13, color: 'var(--c-text-secondary)', marginBottom: 12 }}>
                 Showing unassigned students in <strong>{selectedClass?.department}</strong> · Sem <strong>{selectedClass?.semester}</strong>
               </p>
               {unassignedStudents.length === 0 ? (
-                <p style={{ color: '#6B7280', textAlign: 'center', padding: '1rem' }}>
+                <p style={{ color: 'var(--c-text-tertiary)', textAlign: 'center', padding: '1rem' }}>
                   No unassigned students found for this department &amp; semester.
                 </p>
               ) : (
-                <div style={{ border: '1px solid #E5E7EB', borderRadius: 8, overflow: 'hidden' }}>
+                <div style={{ border: '1px solid var(--c-border-subtle)', borderRadius: 8, overflow: 'hidden' }}>
                   {/* Select All row */}
                   <label style={{
                     display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '10px 14px', borderBottom: '2px solid #E5E7EB',
-                    cursor: 'pointer', background: '#F9FAFB', fontWeight: 600, fontSize: 13
+                    padding: '10px 14px', borderBottom: '1px solid var(--c-border-subtle)',
+                    cursor: 'pointer', background: 'var(--c-surface-muted)', fontWeight: 600, fontSize: 13
                   }}>
                     <input
                       type="checkbox"
@@ -505,7 +502,7 @@ const ClassManagement = () => {
                     {unassignedStudents.map(s => (
                       <label key={s.student_id} style={{
                         display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 14px', borderBottom: '1px solid #F3F4F6',
+                        padding: '10px 14px', borderBottom: '1px solid var(--c-border-subtle)',
                         cursor: 'pointer', background: selectedStudentIds.includes(s.student_id) ? '#EFF6FF' : '#fff'
                       }}>
                         <input
@@ -515,18 +512,18 @@ const ClassManagement = () => {
                         />
                         <div>
                           <p style={{ margin: 0, fontWeight: 500, fontSize: 13 }}>{s.name}</p>
-                          <p style={{ margin: 0, fontSize: 11, color: '#9CA3AF' }}>{s.student_id} · {s.department} · Sem {s.semester}</p>
+                          <p style={{ margin: 0, fontSize: 11, color: 'var(--c-text-tertiary)' }}>{s.student_id} · {s.department} · Sem {s.semester}</p>
                         </div>
                       </label>
                     ))}
                   </div>
                 </div>
               )}
-              <p style={{ fontSize: 12, color: '#6B7280', marginTop: 8 }}>
+              <p style={{ fontSize: 12, color: 'var(--c-text-tertiary)', marginTop: 8 }}>
                 {selectedStudentIds.length} student(s) selected
               </p>
               <div className="form-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowAssignExistingModal(false)}>Cancel</button>
+                <button type="button" className="btn-secondary-action" onClick={() => setShowAssignExistingModal(false)}>Cancel</button>
                 <button type="submit" className="btn-primary" disabled={loading || !selectedStudentIds.length}>
                   {loading ? 'Assigning...' : 'Assign Selected'}
                 </button>

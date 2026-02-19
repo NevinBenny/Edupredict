@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import './DashboardHome.css';
+import './Dashboard.css';
 import MetricCard from './MetricCard';
 import StatDonutChart from './StatDonutChart';
 import StudentTable from './StudentTable';

@@ -4,16 +4,25 @@ import { useEffect, useState } from 'react'
 import { getAccountProfile } from '../../services/api'
 import CompleteProfileModal from '../../components/CompleteProfileModal'
 import './Dashboard.css'
-import icon from '../../assets/icon.png'
+import {
+  LayoutDashboard,
+  Users,
+  BrainCircuit,
+  Stethoscope,
+  FileText,
+  LogOut,
+  Bell,
+  User
+} from 'lucide-react'
 
 const navSections = [
   {
     links: [
-      { label: 'Dashboard', to: '/dashboard', end: true },
-      { label: 'Students', to: '/dashboard/students' },
-      { label: 'Risk Analysis', to: '/dashboard/ai-risk' },
-      { label: 'Interventions', to: '/dashboard/interventions' },
-      { label: 'Reports', to: '/dashboard/reports' },
+      { label: 'Dashboard', to: '/dashboard', end: true, icon: <LayoutDashboard size={20} /> },
+      { label: 'Students', to: '/dashboard/students', icon: <Users size={20} /> },
+      { label: 'Risk Analysis', to: '/dashboard/ai-risk', icon: <BrainCircuit size={20} /> },
+      { label: 'Interventions', to: '/dashboard/interventions', icon: <Stethoscope size={20} /> },
+      { label: 'Reports', to: '/dashboard/reports', icon: <FileText size={20} /> },
     ],
   },
 ]
@@ -38,8 +47,6 @@ const DashboardLayout = () => {
         role: data.role || 'USER'
       })
 
-      // Check if profile is incomplete
-      // Consider it incomplete if full_name, phone_number, or country is missing
       const isProfileIncomplete = !profile.full_name || !profile.phone_number || !profile.country
       if (isProfileIncomplete) {
         setShowCompleteProfile(true)
@@ -54,7 +61,7 @@ const DashboardLayout = () => {
   }, [])
 
   const handleProfileComplete = () => {
-    loadProfile() // Reload to get updated name etc.
+    loadProfile()
   }
 
   return (
@@ -70,7 +77,7 @@ const DashboardLayout = () => {
           <div className="brand-mark">EP</div>
           <div>
             <p className="brand-title">EduPredict</p>
-            <p className="nav-section-title" style={{ margin: 0 }}>Faculty Portal</p>
+            <p className="nav-section-title" style={{ paddingLeft: 0, marginBottom: 0 }}>Faculty Portal</p>
           </div>
         </div>
 
@@ -85,43 +92,34 @@ const DashboardLayout = () => {
                     `nav-link ${isActive ? 'nav-link-active' : ''}`
                   }
                 >
-                  {link.label}
+                  {link.icon}
+                  <span>{link.label}</span>
                 </NavLink>
               </li>
             ))}
           </ul>
         </nav>
 
-        <div style={{ marginTop: 'auto' }}>
-          <button
-            onClick={logout}
-            className="nav-link"
-            style={{
-              width: '100%',
-              justifyContent: 'flex-start',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              color: '#d14343'
-            }}
-          >
-            Logout
-          </button>
-        </div>
+        <button onClick={logout} className="nav-link logout-btn">
+          <LogOut size={20} />
+          <span>Logout</span>
+        </button>
       </aside>
 
       <div className="dashboard-main">
-        <header className="dashboard-topbar minimal">
+        <header className="dashboard-topbar">
           <div className="topbar-left">
-            <h1 className="portal-title">Faculty Portal</h1>
+            <h1>Overview</h1>
           </div>
           <div className="topbar-actions">
             <div className="notifications-icon">
               <span className="dot"></span>
-              🔔
+              <Bell size={20} />
             </div>
             <NavLink to="/dashboard/account" className="user-profile-chip">
-              <div className="avatar">{userProfile.name.charAt(0)}</div>
+              <div className="avatar">
+                {userProfile.name.charAt(0).toUpperCase()}
+              </div>
               <div className="info">
                 <span className="name">{userProfile.name}</span>
                 <span className="role">Faculty</span>

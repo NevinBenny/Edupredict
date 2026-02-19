@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { getFaculties, addFaculty, deleteFaculty } from '../../services/api'
-import './AdminPanel.css'
+import { UserPlus, Trash2 } from 'lucide-react'
+import '../dashboard/Dashboard.css'
 
 const FacultyManagement = () => {
     const [faculties, setFaculties] = useState([])
@@ -67,25 +68,25 @@ const FacultyManagement = () => {
     }
 
     return (
-        <div className="admin-page-container fade-in">
-            <div className="page-header">
-                <div className="header-text">
-                    <h2>Faculty Management</h2>
+        <div className="dash-container minimal">
+            <div className="section-header">
+                <div>
+                    <h3>Faculty Management</h3>
                     <p>View and manage academic staff members</p>
                 </div>
-                <button className="primary-btn" onClick={() => setShowAddModal(true)}>
-                    + Add Faculty
+                <button className="btn-primary" onClick={() => setShowAddModal(true)}>
+                    <UserPlus size={16} /> Add Faculty
                 </button>
             </div>
 
             {error && <div className="alert alert-error">{error}</div>}
             {success && <div className="alert alert-success">{success}</div>}
 
-            <div className="table-card">
+            <div className="card-panel table-card-panel">
                 {loading ? (
-                    <div className="loading-state">Loading staff records...</div>
+                    <div className="dash-loading">Loading staff records...</div>
                 ) : (
-                    <table className="admin-table">
+                    <table className="student-table modern">
                         <thead>
                             <tr>
                                 <th>Name</th>
@@ -101,9 +102,9 @@ const FacultyManagement = () => {
                                 faculties.map((f) => (
                                     <tr key={f.id}>
                                         <td>
-                                            <div className="user-info-cell">
-                                                <div className="user-avatar-sm">{f.name[0]}</div>
-                                                <span>{f.name}</span>
+                                            <div className="student-name-cell">
+                                                <div className="student-avatar-small">{f.name[0]}</div>
+                                                <span className="font-semibold">{f.name}</span>
                                             </div>
                                         </td>
                                         <td>{f.email}</td>
@@ -111,15 +112,15 @@ const FacultyManagement = () => {
                                         <td>{f.designation || 'N/A'}</td>
                                         <td>{new Date(f.created_at).toLocaleDateString()}</td>
                                         <td>
-                                            <button className="action-btn delete" onClick={() => handleDelete(f.id)}>
-                                                🗑️
+                                            <button className="btn-action-small danger" onClick={() => handleDelete(f.id)} title="Delete Faculty">
+                                                <Trash2 size={16} />
                                             </button>
                                         </td>
                                     </tr>
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan="6" className="empty-state">No faculty found</td>
+                                    <td colSpan="6" className="empty-state" style={{ textAlign: 'center', padding: '32px', color: 'var(--c-text-tertiary)' }}>No faculty found</td>
                                 </tr>
                             )}
                         </tbody>
@@ -129,12 +130,15 @@ const FacultyManagement = () => {
 
             {showAddModal && (
                 <div className="modal-overlay">
-                    <div className="modal-content">
-                        <h3>Add New Faculty</h3>
-                        <form onSubmit={handleAddFaculty}>
+                    <div className="modal-content animate-slide-up" style={{ maxWidth: 500 }}>
+                        <div className="modal-header">
+                            <h3>Add New Faculty</h3>
+                        </div>
+                        <form onSubmit={handleAddFaculty} className="modal-form">
                             <div className="form-group">
                                 <label>Full Name</label>
                                 <input
+                                    className="form-input"
                                     type="text"
                                     value={newFaculty.name}
                                     onChange={(e) => setNewFaculty({ ...newFaculty, name: e.target.value })}
@@ -145,6 +149,7 @@ const FacultyManagement = () => {
                             <div className="form-group">
                                 <label>Email Address</label>
                                 <input
+                                    className="form-input"
                                     type="email"
                                     value={newFaculty.email}
                                     onChange={(e) => setNewFaculty({ ...newFaculty, email: e.target.value })}
@@ -154,20 +159,24 @@ const FacultyManagement = () => {
                             </div>
                             <div className="form-group">
                                 <label>Department</label>
-                                <select
-                                    value={newFaculty.department}
-                                    onChange={(e) => setNewFaculty({ ...newFaculty, department: e.target.value })}
-                                >
-                                    <option value="">Select Department</option>
-                                    <option value="Computer Science">Computer Science</option>
-                                    <option value="Information Technology">Information Technology</option>
-                                    <option value="Electronics">Electronics</option>
-                                    <option value="Mechanical">Mechanical</option>
-                                </select>
+                                <div className="select-wrapper">
+                                    <select
+                                        className="form-input"
+                                        value={newFaculty.department}
+                                        onChange={(e) => setNewFaculty({ ...newFaculty, department: e.target.value })}
+                                    >
+                                        <option value="">Select Department</option>
+                                        <option value="Computer Science">Computer Science</option>
+                                        <option value="Information Technology">Information Technology</option>
+                                        <option value="Electronics">Electronics</option>
+                                        <option value="Mechanical">Mechanical</option>
+                                    </select>
+                                </div>
                             </div>
                             <div className="form-group">
                                 <label>Designation</label>
                                 <input
+                                    className="form-input"
                                     type="text"
                                     value={newFaculty.designation}
                                     onChange={(e) => setNewFaculty({ ...newFaculty, designation: e.target.value })}
@@ -177,6 +186,7 @@ const FacultyManagement = () => {
                             <div className="form-group">
                                 <label>Temporary Password</label>
                                 <input
+                                    className="form-input"
                                     type="text"
                                     value={newFaculty.password || ''}
                                     onChange={(e) => setNewFaculty({ ...newFaculty, password: e.target.value })}
@@ -188,9 +198,9 @@ const FacultyManagement = () => {
                                     User will be forced to change this on first login.
                                 </small>
                             </div>
-                            <div className="modal-actions">
-                                <button type="button" className="secondary-btn" onClick={() => setShowAddModal(false)}>Cancel</button>
-                                <button type="submit" className="primary-btn">Create Account</button>
+                            <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                                <button type="button" className="btn-secondary-action" onClick={() => setShowAddModal(false)}>Cancel</button>
+                                <button type="submit" className="btn-primary">Create Account</button>
                             </div>
                         </form>
                     </div>

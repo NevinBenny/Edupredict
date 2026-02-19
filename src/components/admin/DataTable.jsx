@@ -4,8 +4,8 @@
  */
 const DataTable = ({ columns, rows, actions }) => {
   return (
-    <div className="data-table-container">
-      <table className="simple-table">
+    <div className="card-panel table-card-panel">
+      <table className="student-table modern">
         <thead>
           <tr>
             {columns.map((col) => (
@@ -19,7 +19,7 @@ const DataTable = ({ columns, rows, actions }) => {
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length + (actions ? 1 : 0)} className="empty-state">
+              <td colSpan={columns.length + (actions ? 1 : 0)} className="empty-state" style={{ textAlign: 'center', padding: '32px', color: 'var(--c-text-tertiary)' }}>
                 No data available
               </td>
             </tr>
@@ -33,15 +33,23 @@ const DataTable = ({ columns, rows, actions }) => {
                 ))}
                 {actions && actions.length > 0 && (
                   <td className="action-cell">
-                    <div className="action-buttons">
-                      {actions.map((action) => (
+                    <div className="action-buttons" style={{ display: 'flex', gap: '8px' }}>
+                      {actions.map((action, i) => (
                         <button
-                          key={action.label}
-                          className={`action-btn action-btn-${action.variant || 'primary'}`}
+                          key={i}
+                          className={`btn-action-small ${action.variant || 'primary'}`}
                           onClick={() => action.onClick(row)}
                           title={action.label}
+                          style={{
+                            padding: '6px 12px',
+                            fontSize: '12px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--c-border-strong)',
+                            background: 'white',
+                            cursor: 'pointer'
+                          }}
                         >
-                          {action.icon ? <span>{action.icon}</span> : action.label}
+                          {action.label}
                         </button>
                       ))}
                     </div>
