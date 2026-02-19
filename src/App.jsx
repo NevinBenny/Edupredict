@@ -13,6 +13,7 @@ import StudentsPage from './pages/dashboard/StudentsPage'
 import AIRiskPrediction from './pages/dashboard/AIRiskPrediction'
 import Reports from './pages/dashboard/Reports'
 import Interventions from './pages/dashboard/Interventions'
+import ClassManagement from './pages/dashboard/ClassManagement'
 import UserAccount from './pages/UserAccount'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -102,6 +103,7 @@ function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="faculty" element={<FacultyManagement />} />
+          <Route path="classes" element={<ClassManagement />} />
           <Route path="settings" element={<SystemSettings />} />
         </Route>
 

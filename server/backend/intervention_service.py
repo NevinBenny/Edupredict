@@ -1,30 +1,44 @@
 import os
-from flask import Blueprint, request, jsonify, send_from_directory
+from flask import Blueprint, request, jsonify, send_from_directory, session
 from werkzeug.utils import secure_filename
 from db_connect import get_connection
 import mysql.connector
+from utils import get_faculty_class_id
 
 intervention_bp = Blueprint('intervention', __name__)
 UPLOAD_FOLDER = os.path.join(os.getcwd(), 'uploads', 'interventions')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+
+
 
 @intervention_bp.route('/api/interventions', methods=['GET'])
 def get_interventions():
     conn = None
     try:
         conn = get_connection()
+        class_id = get_faculty_class_id(conn)
         cur = conn.cursor(dictionary=True)
-        
-        # Join with students table to get names
-        query = """
-        SELECT i.*, s.name as student_name, s.department, s.risk_level
-        FROM interventions i
-        JOIN students s ON i.student_id = s.student_id
-        ORDER BY i.assigned_date DESC
-        """
-        cur.execute(query)
+
+        if class_id:
+            query = """
+            SELECT i.*, s.name as student_name, s.department, s.risk_level
+            FROM interventions i
+            JOIN students s ON i.student_id = s.student_id
+            WHERE s.class_id = %s
+            ORDER BY i.assigned_date DESC
+            """
+            cur.execute(query, (class_id,))
+        else:
+            query = """
+            SELECT i.*, s.name as student_name, s.department, s.risk_level
+            FROM interventions i
+            JOIN students s ON i.student_id = s.student_id
+            ORDER BY i.assigned_date DESC
+            """
+            cur.execute(query)
+
         interventions = cur.fetchall()
-        
         cur.close()
         return jsonify({"interventions": interventions})
     except Exception as e:

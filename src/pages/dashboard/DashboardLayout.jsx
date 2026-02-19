@@ -131,7 +131,7 @@ const DashboardLayout = () => {
         </header>
 
         <main className="dashboard-content">
-          <Outlet />
+          <Outlet context={{ userProfile }} />
         </main>
       </div>
     </div >

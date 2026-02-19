@@ -32,6 +32,7 @@ from validators import validate_email, validate_password
 from admin_service import admin_bp
 from intervention_service import intervention_bp
 from report_service import report_bp
+from class_service import class_bp
 
 load_dotenv()
 
@@ -55,6 +56,7 @@ app.register_blueprint(dashboard_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(intervention_bp)
 app.register_blueprint(report_bp)
+app.register_blueprint(class_bp)
 CORS(app, origins=get_cors_origins(), supports_credentials=True)
 app.secret_key = os.environ.get("FLASK_SECRET", "dev-secret-change")
 # Session cookie settings optimized for OAuth flow
