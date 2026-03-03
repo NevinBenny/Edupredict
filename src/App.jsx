@@ -101,7 +101,6 @@ function App() {
           }
         >
           <Route index element={<AdminDashboard />} />
-          <Route path="users" element={<UserManagement />} />
           <Route path="faculty" element={<FacultyManagement />} />
           <Route path="classes" element={<ClassManagement />} />
           <Route path="settings" element={<SystemSettings />} />

@@ -137,6 +137,11 @@ def upsert_google_user(conn, email: str):
     cur.close()
     return (user_id, current_role)
   
+  # STRICT SECURITY: If not existing user and not authorized (Admin/Faculty), REJECT.
+  if target_role == "USER":
+      cur.close()
+      return None, None
+
   cur.execute(
     "INSERT INTO users (email, provider, role) VALUES (%s, %s, %s)",
     (email, "google", target_role),
@@ -547,11 +552,17 @@ def google_callback():
   email = id_info.get("email")
   if not email:
     return jsonify({"message": "Google token missing email."}), 400
+  
+  origin = os.environ.get("CORS_ORIGIN", "http://localhost:5173").split(",")[0].strip()
 
   conn = get_connection()
   try:
     user_id, role = upsert_google_user(conn, email)
     
+    if not user_id:
+        # User is unauthorized (strict mode)
+        return redirect(f"{origin}/login?error=unauthorized_email")
+
     # establish session
     session["user_id"] = user_id
     session["email"] = email
@@ -560,7 +571,6 @@ def google_callback():
     conn.close()
 
   # Redirect to frontend dashboard after successful Google auth
-  origin = os.environ.get("CORS_ORIGIN", "http://localhost:5173").split(",")[0].strip()
   target = f"{origin}/welcome"
   return redirect(target)
 

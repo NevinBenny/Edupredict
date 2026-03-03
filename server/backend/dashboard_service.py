@@ -12,6 +12,17 @@ def get_summary():
     try:
         conn = get_connection()
         class_id = get_faculty_class_id(conn)
+        
+        # Security: If Faculty but no class assigned, return empty stats
+        if session.get("role") == "FACULTY" and not class_id:
+            conn.close()
+            return jsonify({
+                "total_students": 0,
+                "avg_attendance": 0,
+                "avg_sgpa": 0,
+                "high_risk_students": 0
+            })
+
         cur = conn.cursor(dictionary=True)
 
         where = "WHERE class_id = %s" if class_id else ""
@@ -51,6 +62,12 @@ def get_risk_distribution():
     try:
         conn = get_connection()
         class_id = get_faculty_class_id(conn)
+        
+        # Security: If Faculty but no class assigned, return empty distribution
+        if session.get("role") == "FACULTY" and not class_id:
+            conn.close()
+            return jsonify([])
+
         cur = conn.cursor(dictionary=True)
 
         where = "WHERE class_id = %s" if class_id else ""
@@ -96,6 +113,12 @@ def get_students():
     try:
         conn = get_connection()
         class_id = get_faculty_class_id(conn)
+        
+        # Security: If Faculty but no class assigned, return empty list
+        if session.get("role") == "FACULTY" and not class_id:
+            conn.close()
+            return jsonify({"students": [], "total": 0})
+
         cur = conn.cursor(dictionary=True)
 
         where = "WHERE s.class_id = %s" if class_id else ""

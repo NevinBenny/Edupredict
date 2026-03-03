@@ -20,6 +20,11 @@ def get_interventions():
         class_id = get_faculty_class_id(conn)
         cur = conn.cursor(dictionary=True)
 
+        if session.get("role") == "FACULTY" and not class_id:
+            cur.close()
+            conn.close()
+            return jsonify({"interventions": []})
+
         if class_id:
             query = """
             SELECT i.*, s.name as student_name, s.department, s.risk_level

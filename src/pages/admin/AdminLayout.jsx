@@ -29,7 +29,6 @@ const AdminLayout = () => {
     {
       title: 'Academic',
       links: [
-        { label: 'Users', to: '/admin/users', icon: <Users size={20} /> },
         { label: 'Faculty', to: '/admin/faculty', icon: <GraduationCap size={20} /> },
         { label: 'Classes', to: '/admin/classes', icon: <BookOpen size={20} /> },
       ],
