@@ -21,6 +21,7 @@ import UserManagement from './pages/admin/UserManagement'
 import SystemSettings from './pages/admin/SystemSettings'
 import FacultyManagement from './pages/admin/FacultyManagement'
 import ProtectedRoute from './components/ProtectedRoute'
+import StudentHome from './pages/student/StudentHome'
 import { AuthProvider } from './context/AuthContext'
 
 function App() {
@@ -105,6 +106,16 @@ function App() {
           <Route path="classes" element={<ClassManagement />} />
           <Route path="settings" element={<SystemSettings />} />
         </Route>
+
+        {/* Student Portal - Protected for STUDENT role */}
+        <Route
+          path="/student"
+          element={
+            <ProtectedRoute requiredRole="STUDENT">
+              <StudentHome />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/auth/login" replace />} />

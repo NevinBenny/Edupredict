@@ -3,6 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { getAccountProfile } from '../../services/api'
 
+/** Returns the home route for a given role string */
+const getRoleTarget = (role) => {
+    if (role === 'ADMIN') return '/admin'
+    if (role === 'STUDENT') return '/student'
+    return '/dashboard' // FACULTY and any legacy USER role
+}
+
 const GoogleCallback = () => {
     const navigate = useNavigate()
     const { login } = useAuth()
@@ -24,8 +31,8 @@ const GoogleCallback = () => {
                         ...data.profile,
                     })
 
-                    // Navigate to dashboard for regular users, admin panel for admins
-                    const target = data.role === 'ADMIN' ? '/admin' : '/dashboard'
+                    // Navigate based on role
+                    const target = getRoleTarget(data.role)
                     navigate(target, { replace: true })
                 } else {
                     console.error('No user data returned from profile API')

@@ -4,6 +4,13 @@ import { useAuth } from '../../context/AuthContext'
 import { handleLogin, startGoogleOAuth } from '../../services/api'
 import { validateUserInput } from '../../utils/validation'
 
+/** Returns the home route for a given role string */
+const getRoleTarget = (role) => {
+    if (role === 'ADMIN') return '/admin'
+    if (role === 'STUDENT') return '/student'
+    return '/dashboard' // FACULTY and any legacy USER role
+}
+
 const LoginPage = () => {
     const navigate = useNavigate()
     const [searchParams] = useSearchParams()
@@ -60,7 +67,7 @@ const LoginPage = () => {
             }
 
             // Navigate based on role
-            const target = data.user.role === 'ADMIN' ? '/admin' : '/dashboard'
+            const target = getRoleTarget(data.user.role)
             setTimeout(() => navigate(target), 1000)
         } catch (err) {
             setStatus({ type: 'error', message: err.message || 'Login failed. Please check your credentials.' })
