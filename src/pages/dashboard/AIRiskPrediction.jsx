@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
-import { AlertTriangle, TrendingUp, Users, CheckCircle } from 'lucide-react'
+import { AlertTriangle, TrendingUp, Users, CheckCircle, BrainCircuit } from 'lucide-react'
 import './Dashboard.css'
 
 const AIRiskPrediction = () => {
@@ -19,6 +19,25 @@ const AIRiskPrediction = () => {
     } catch (err) {
       setError(err.message);
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const runPredictions = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('http://localhost:5000/api/ai/run-predictions', {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Failed to run ML predictions');
+      }
+      // Re-fetch the updated data to refresh charts
+      await fetchAnalysis();
+    } catch (err) {
+      setError(err.message);
       setLoading(false);
     }
   };
@@ -47,9 +66,14 @@ const AIRiskPrediction = () => {
           <h3>AI Powered Insights</h3>
           <p>Risk analysis and predictive modeling</p>
         </div>
-        <button onClick={fetchAnalysis} className="btn-secondary-action">
-          <TrendingUp size={16} /> Refresh Analysis
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={fetchAnalysis} className="btn-secondary-action">
+            <TrendingUp size={16} /> Refresh
+          </button>
+          <button onClick={runPredictions} className="primary-btn" style={{ margin: 0, padding: '8px 16px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <BrainCircuit size={16} /> Run AI Diagnostics
+          </button>
+        </div>
       </div>
 
       {/* Top Stats Row */}
