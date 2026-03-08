@@ -3,7 +3,7 @@ import DataTable from '../../components/admin/DataTable'
 import Modal from '../../components/admin/Modal'
 import PasswordRevealModal from '../../components/admin/PasswordRevealModal'
 import { getFaculties, addFaculty, updateFaculty, deleteFaculty, batchUploadFaculty, resetFacultyPassword } from '../../services/api'
-import { Pencil, Trash2, Key, RefreshCw, Upload } from 'lucide-react'
+import { Pencil, Trash2, Key, RefreshCw, Upload, Search, Filter } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmToast } from '../../utils/confirmToast'
 import './AdminPanel.css'
@@ -11,6 +11,8 @@ import './AdminPanel.css'
 const FacultyManagement = () => {
     const [faculties, setFaculties] = useState([])
     const [loading, setLoading] = useState(true)
+    const [searchTerm, setSearchTerm] = useState('')
+    const [deptFilter, setDeptFilter] = useState('')
     const [showAddModal, setShowAddModal] = useState(false)
     const [editingFacultyId, setEditingFacultyId] = useState(null)
     const [newFaculty, setNewFaculty] = useState({
@@ -148,6 +150,19 @@ const FacultyManagement = () => {
         a.click()
     }
 
+    const departments = [...new Set(faculties.map(f => f.department))].filter(Boolean).sort()
+
+    const filteredFaculties = faculties.filter(f => {
+        const matchesSearch =
+            f.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            f.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            f.designation?.toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesDept = deptFilter === '' || f.department === deptFilter;
+
+        return matchesSearch && matchesDept;
+    })
+
     // Prepare table columns
     const columns = [
         {
@@ -211,13 +226,44 @@ const FacultyManagement = () => {
                 </div>
             </div>
 
+            <section className="page-controls">
+                <div className="search-box">
+                    <Search className="search-icon" size={18} />
+                    <input
+                        type="search"
+                        placeholder="Search faculty by name, email, or role..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="search-input"
+                    />
+                </div>
+
+                <div className="filter-group">
+                    <Filter size={16} className="filter-icon" />
+                    <select
+                        className="filter-select"
+                        value={deptFilter}
+                        onChange={(e) => setDeptFilter(e.target.value)}
+                    >
+                        <option value="">All Departments</option>
+                        {departments.map(dept => (
+                            <option key={dept} value={dept}>{dept}</option>
+                        ))}
+                    </select>
+                </div>
+
+                <div className="control-stats">
+                    Showing <strong>{filteredFaculties.length}</strong> of {faculties.length} staff
+                </div>
+            </section>
+
             <div className="page-content">
                 {loading ? (
                     <div className="loading-state">Loading staff records...</div>
                 ) : (
                     <DataTable
                         columns={columns}
-                        rows={faculties}
+                        rows={filteredFaculties}
                         actions={actions}
                     />
                 )}

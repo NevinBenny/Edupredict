@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import DataTable from '../../components/admin/DataTable'
 import Modal from '../../components/admin/Modal'
 import PasswordRevealModal from '../../components/admin/PasswordRevealModal'
-import { Upload, Download, RefreshCw, Key, CheckSquare, Pencil, Trash2 } from 'lucide-react'
+import { Upload, Download, RefreshCw, Key, CheckSquare, Pencil, Trash2, Search, Filter } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmToast } from '../../utils/confirmToast'
 import { getStudents, addSingleStudent, updateStudent, deleteStudent, batchUploadStudents, resetStudentPassword as resetApi, getCourses } from '../../services/api'
@@ -14,6 +14,8 @@ const StudentManagement = () => {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [searchTerm, setSearchTerm] = useState('')
+    const [deptFilter, setDeptFilter] = useState('')
+    const [courseSearch, setCourseSearch] = useState('')
 
     // File upload state
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
@@ -81,12 +83,14 @@ const StudentManagement = () => {
 
     const openCreateModal = () => {
         setEditingStudentId(null)
+        setCourseSearch('')
         setSingleStudentData({ name: '', email: '', department: 'MCA', semester: '1', sgpa: '', backlogs: 0, subject_ids: [] })
         setIsSingleModalOpen(true)
     }
 
     const openEditModal = (student) => {
         setEditingStudentId(student.student_id)
+        setCourseSearch('')
         setSingleStudentData({
             name: student.name,
             email: student.email,
@@ -161,11 +165,19 @@ const StudentManagement = () => {
         })
     }
 
+    const departments = [...new Set(students.map(s => s.department))].filter(Boolean).sort()
+
     const filteredStudents = students.filter(
-        (s) =>
-            s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.student_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            s.email?.toLowerCase().includes(searchTerm.toLowerCase()),
+        (s) => {
+            const matchesSearch =
+                s.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                s.student_id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                s.email?.toLowerCase().includes(searchTerm.toLowerCase());
+
+            const matchesDept = deptFilter === '' || s.department === deptFilter;
+
+            return matchesSearch && matchesDept;
+        }
     )
 
     const columns = [
@@ -232,15 +244,33 @@ const StudentManagement = () => {
             {error && <div className="alert alert-error">{error}</div>}
 
             <section className="page-controls">
-                <input
-                    type="search"
-                    placeholder="Search by name, ID, or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="search-input"
-                />
+                <div className="search-box">
+                    <Search className="search-icon" size={18} />
+                    <input
+                        type="search"
+                        placeholder="Search by name, ID, or email..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="search-input"
+                    />
+                </div>
+
+                <div className="filter-group">
+                    <Filter size={16} className="filter-icon" />
+                    <select
+                        className="filter-select"
+                        value={deptFilter}
+                        onChange={(e) => setDeptFilter(e.target.value)}
+                    >
+                        <option value="">All Departments</option>
+                        {departments.map(dept => (
+                            <option key={dept} value={dept}>{dept}</option>
+                        ))}
+                    </select>
+                </div>
+
                 <div className="control-stats">
-                    Showing {filteredStudents.length} of {students.length} students
+                    Showing <strong>{filteredStudents.length}</strong> of {students.length} students
                 </div>
             </section>
 
@@ -322,27 +352,42 @@ const StudentManagement = () => {
                         </div>
                         <div style={{ gridColumn: '1 / -1' }}>
                             <label style={{ display: 'block', marginBottom: '0.5rem' }}>Assign Courses *</label>
+
+                            {/* Course search in modal */}
+                            <div className="search-box" style={{ marginBottom: '0.75rem', minWidth: '100%' }}>
+                                <Search className="search-icon" size={14} />
+                                <input
+                                    className="search-input"
+                                    style={{ padding: '6px 12px 6px 32px !important', fontSize: '13px' }}
+                                    placeholder="Filter courses..."
+                                    value={courseSearch}
+                                    onChange={(e) => setCourseSearch(e.target.value)}
+                                />
+                            </div>
+
                             <div className="form-input" style={{ maxHeight: '150px', overflowY: 'auto', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 {courses.length === 0 ? (
                                     <span style={{ color: 'var(--c-text-secondary)', fontSize: '0.9rem' }}>No courses available. Please add courses first.</span>
                                 ) : (
-                                    courses.map(course => (
-                                        <label key={course.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                                            <input
-                                                type="checkbox"
-                                                checked={singleStudentData.subject_ids.includes(course.id)}
-                                                onChange={(e) => {
-                                                    const currentIds = singleStudentData.subject_ids;
-                                                    if (e.target.checked) {
-                                                        setSingleStudentData({ ...singleStudentData, subject_ids: [...currentIds, course.id] })
-                                                    } else {
-                                                        setSingleStudentData({ ...singleStudentData, subject_ids: currentIds.filter(id => id !== course.id) })
-                                                    }
-                                                }}
-                                            />
-                                            {course.name} ({course.course_code}) - Sem {course.semester}
-                                        </label>
-                                    ))
+                                    courses
+                                        .filter(course => !courseSearch || course.name.toLowerCase().includes(courseSearch.toLowerCase()) || course.course_code?.toLowerCase().includes(courseSearch.toLowerCase()))
+                                        .map(course => (
+                                            <label key={course.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={singleStudentData.subject_ids.includes(course.id)}
+                                                    onChange={(e) => {
+                                                        const currentIds = singleStudentData.subject_ids;
+                                                        if (e.target.checked) {
+                                                            setSingleStudentData({ ...singleStudentData, subject_ids: [...currentIds, course.id] })
+                                                        } else {
+                                                            setSingleStudentData({ ...singleStudentData, subject_ids: currentIds.filter(id => id !== course.id) })
+                                                        }
+                                                    }}
+                                                />
+                                                {course.name} ({course.course_code}) - Sem {course.semester}
+                                            </label>
+                                        ))
                                 )}
                             </div>
                         </div>

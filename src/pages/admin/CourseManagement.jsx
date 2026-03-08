@@ -4,7 +4,7 @@ import Modal from '../../components/admin/Modal'
 import { getCourses, addCourse, updateCourse, deleteCourse, getFaculties } from '../../services/api'
 import toast from 'react-hot-toast'
 import { confirmToast } from '../../utils/confirmToast'
-import { RefreshCw, Plus, Pencil, Trash2 } from 'lucide-react'
+import { RefreshCw, Plus, Pencil, Trash2, Search, Filter } from 'lucide-react'
 import './AdminPanel.css'
 
 const CourseManagement = () => {
@@ -12,6 +12,8 @@ const CourseManagement = () => {
     const [faculties, setFaculties] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
+    const [deptFilter, setDeptFilter] = useState('')
+    const [facultySearch, setFacultySearch] = useState('')
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false)
@@ -47,12 +49,14 @@ const CourseManagement = () => {
 
     const openCreate = () => {
         setEditingId(null)
+        setFacultySearch('')
         setFormData({ code: '', name: '', department: 'MCA', semester: '1', faculty_ids: [] })
         setIsModalOpen(true)
     }
 
     const openEdit = (course) => {
         setEditingId(course.id)
+        setFacultySearch('')
         setFormData({
             code: course.code,
             name: course.name,
@@ -95,11 +99,18 @@ const CourseManagement = () => {
         })
     }
 
+    const departments = [...new Set(courses.map(c => c.department))].filter(Boolean).sort()
+
     const filteredCourses = courses.filter(
-        (c) =>
-            c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            c.department?.toLowerCase().includes(searchTerm.toLowerCase())
+        (c) => {
+            const matchesSearch =
+                c.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                c.code?.toLowerCase().includes(searchTerm.toLowerCase());
+
+            const matchesDept = deptFilter === '' || c.department === deptFilter;
+
+            return matchesSearch && matchesDept;
+        }
     )
 
     const columns = [
@@ -148,15 +159,33 @@ const CourseManagement = () => {
             </section>
 
             <section className="page-controls">
-                <input
-                    type="search"
-                    placeholder="Search by course code, name, or department..."
-                    className="search-input"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+                <div className="search-box">
+                    <Search className="search-icon" size={18} />
+                    <input
+                        type="search"
+                        placeholder="Search by course code or name..."
+                        className="search-input"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+
+                <div className="filter-group">
+                    <Filter size={16} className="filter-icon" />
+                    <select
+                        className="filter-select"
+                        value={deptFilter}
+                        onChange={(e) => setDeptFilter(e.target.value)}
+                    >
+                        <option value="">All Departments</option>
+                        {departments.map(dept => (
+                            <option key={dept} value={dept}>{dept}</option>
+                        ))}
+                    </select>
+                </div>
+
                 <div className="control-stats">
-                    Total Courses: <strong>{filteredCourses.length}</strong>
+                    Showing <strong>{filteredCourses.length}</strong> of {courses.length} courses
                 </div>
             </section>
 
@@ -196,27 +225,42 @@ const CourseManagement = () => {
                         </div>
                         <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
                             <label style={{ display: 'block', marginBottom: '0.5rem' }}>Assign Faculty (Optional)</label>
+
+                            {/* Inner Modal Search */}
+                            <div className="search-box" style={{ marginBottom: '0.75rem', minWidth: '100%' }}>
+                                <Search className="search-icon" size={14} />
+                                <input
+                                    className="search-input"
+                                    style={{ padding: '6px 12px 6px 32px !important', fontSize: '13px' }}
+                                    placeholder="Filter faculty list..."
+                                    value={facultySearch}
+                                    onChange={(e) => setFacultySearch(e.target.value)}
+                                />
+                            </div>
+
                             <div className="form-input" style={{ maxHeight: '150px', overflowY: 'auto', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                                 {faculties.length === 0 ? (
                                     <span style={{ color: 'var(--c-text-secondary)', fontSize: '0.9rem' }}>No faculty available.</span>
                                 ) : (
-                                    faculties.map(faculty => (
-                                        <label key={faculty.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                                            <input
-                                                type="checkbox"
-                                                checked={formData.faculty_ids.includes(faculty.id)}
-                                                onChange={(e) => {
-                                                    const currentIds = formData.faculty_ids;
-                                                    if (e.target.checked) {
-                                                        setFormData({ ...formData, faculty_ids: [...currentIds, faculty.id] })
-                                                    } else {
-                                                        setFormData({ ...formData, faculty_ids: currentIds.filter(id => id !== faculty.id) })
-                                                    }
-                                                }}
-                                            />
-                                            {faculty.name} ({faculty.department})
-                                        </label>
-                                    ))
+                                    faculties
+                                        .filter(f => !facultySearch || f.name.toLowerCase().includes(facultySearch.toLowerCase()) || f.department?.toLowerCase().includes(facultySearch.toLowerCase()))
+                                        .map(faculty => (
+                                            <label key={faculty.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={formData.faculty_ids.includes(faculty.id)}
+                                                    onChange={(e) => {
+                                                        const currentIds = formData.faculty_ids;
+                                                        if (e.target.checked) {
+                                                            setFormData({ ...formData, faculty_ids: [...currentIds, faculty.id] })
+                                                        } else {
+                                                            setFormData({ ...formData, faculty_ids: currentIds.filter(id => id !== faculty.id) })
+                                                        }
+                                                    }}
+                                                />
+                                                {faculty.name} ({faculty.department})
+                                            </label>
+                                        ))
                                 )}
                             </div>
                         </div>

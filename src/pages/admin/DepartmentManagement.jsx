@@ -4,12 +4,13 @@ import Modal from '../../components/admin/Modal'
 import { getDepartments, renameDepartment } from '../../services/api'
 import toast from 'react-hot-toast'
 import { confirmToast } from '../../utils/confirmToast'
-import { RefreshCw, Users, BookOpen, GraduationCap, Pencil } from 'lucide-react'
+import { RefreshCw, Users, BookOpen, GraduationCap, Pencil, Search } from 'lucide-react'
 import './AdminPanel.css'
 
 const DepartmentManagement = () => {
     const [departments, setDepartments] = useState([])
     const [loading, setLoading] = useState(true)
+    const [searchTerm, setSearchTerm] = useState('')
 
     // Rename Modal State
     const [isRenameModalOpen, setIsRenameModalOpen] = useState(false)
@@ -58,6 +59,10 @@ const DepartmentManagement = () => {
             }
         })
     }
+
+    const filteredDepartments = departments.filter(d =>
+        d.department?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
 
     // Prepare table data
     const columns = [
@@ -121,10 +126,26 @@ const DepartmentManagement = () => {
                 <strong>Note:</strong> Departments are aggregated dynamically based on user and subject data. Renaming a department affects all associated records globally.
             </div>
 
+            <section className="page-controls">
+                <div className="search-box">
+                    <Search className="search-icon" size={18} />
+                    <input
+                        type="search"
+                        placeholder="Search departments..."
+                        className="search-input"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <div className="control-stats">
+                    Showing <strong>{filteredDepartments.length}</strong> of {departments.length} departments
+                </div>
+            </section>
+
             <section className="page-content">
                 <DataTable
                     columns={columns}
-                    rows={departments}
+                    rows={filteredDepartments}
                     actions={actions}
                 />
             </section>
