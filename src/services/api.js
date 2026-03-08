@@ -5,8 +5,12 @@ const API_BASE = 'http://localhost:5000/api'
 const request = async (endpoint, options = {}) => {
   const token = localStorage.getItem('token')
   const headers = {
-    'Content-Type': 'application/json',
     ...options.headers,
+  }
+
+  // Only set application/json if not sending FormData
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json'
   }
 
   if (token) {
@@ -22,7 +26,7 @@ const request = async (endpoint, options = {}) => {
   const data = await response.json()
 
   if (!response.ok) {
-    throw new Error(data.message || 'API request failed')
+    throw new Error(data.message || data.error || 'API request failed')
   }
 
   return data
@@ -81,8 +85,27 @@ export const updateAccountProfile = async (profileData) => {
 }
 
 // Admin API
-export const fetchAllUsers = async () => {
-  return request('/users')
+export const fetchAdmins = async () => {
+  return request('/admin/admins')
+}
+
+export const addAdmin = async (adminData) => {
+  return request('/admin/admins/single', {
+    method: 'POST',
+    body: JSON.stringify(adminData)
+  })
+}
+
+export const toggleAdminRetire = async (id) => {
+  return request(`/admin/admins/${id}/retire`, {
+    method: 'PUT'
+  })
+}
+
+export const makeAdminDefault = async (id) => {
+  return request(`/admin/admins/${id}/default`, {
+    method: 'PUT'
+  })
 }
 
 export const fetchAdminStats = async () => {
@@ -104,4 +127,105 @@ export const deleteFaculty = async (id) => {
   return request(`/admin/faculties/${id}`, {
     method: 'DELETE'
   })
+}
+
+export const updateFaculty = async (id, facultyData) => {
+  return request(`/admin/faculties/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(facultyData)
+  })
+}
+
+export const resetFacultyPassword = async (id) => {
+  return request(`/admin/faculties/${id}/reset-password`, {
+    method: 'POST'
+  })
+}
+
+export const batchUploadFaculty = async (formData) => {
+  return request('/admin/faculties/batch', {
+    method: 'POST',
+    body: formData
+  })
+}
+
+export const getStudents = async () => {
+  return request('/admin/students')
+}
+
+export const addSingleStudent = async (studentData) => {
+  return request('/admin/students/single', {
+    method: 'POST',
+    body: JSON.stringify(studentData)
+  })
+}
+
+export const batchUploadStudents = async (formData) => {
+  return request('/admin/students/batch', {
+    method: 'POST',
+    body: formData
+  })
+}
+
+export const resetStudentPassword = async (studentId) => {
+  return request(`/admin/students/${studentId}/reset-password`, {
+    method: 'POST'
+  })
+}
+
+export const updateStudent = async (studentId, studentData) => {
+  return request(`/admin/students/${studentId}`, {
+    method: 'PUT',
+    body: JSON.stringify(studentData)
+  })
+}
+
+export const deleteStudent = async (studentId) => {
+  return request(`/admin/students/${studentId}`, {
+    method: 'DELETE'
+  })
+}
+
+// --- DEPARTMENTS ---
+
+export const getDepartments = async () => {
+  return request('/admin/departments')
+}
+
+export const renameDepartment = async (oldName, newName) => {
+  return request(`/admin/departments/${encodeURIComponent(oldName)}`, {
+    method: 'PUT',
+    body: JSON.stringify({ new_name: newName })
+  })
+}
+
+// --- COURSES ---
+
+export const getCourses = async () => {
+  return request('/admin/courses')
+}
+
+export const addCourse = async (courseData) => {
+  return request('/admin/courses', {
+    method: 'POST',
+    body: JSON.stringify(courseData)
+  })
+}
+
+export const updateCourse = async (courseId, courseData) => {
+  return request(`/admin/courses/${courseId}`, {
+    method: 'PUT',
+    body: JSON.stringify(courseData)
+  })
+}
+
+export const deleteCourse = async (courseId) => {
+  return request(`/admin/courses/${courseId}`, {
+    method: 'DELETE'
+  })
+}
+
+// --- STUDENT PORTAL ---
+export const getMyCourses = async () => {
+  return request('/dashboard/my-courses')
 }

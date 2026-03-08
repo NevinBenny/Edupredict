@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import LoginPage from './pages/auth/LoginPage'
 import SignupPage from './pages/auth/SignupPage'
@@ -9,6 +10,7 @@ import ChangePasswordPage from './pages/auth/ChangePasswordPage'
 import AuthLayout from './pages/auth/AuthLayout'
 import DashboardLayout from './pages/dashboard/DashboardLayout'
 import DashboardHome from './pages/dashboard/DashboardHome'
+import DashboardRouter from './pages/dashboard/DashboardRouter'
 import StudentsPage from './pages/dashboard/StudentsPage'
 import AIRiskPrediction from './pages/dashboard/AIRiskPrediction'
 import Reports from './pages/dashboard/Reports'
@@ -20,6 +22,9 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import UserManagement from './pages/admin/UserManagement'
 import SystemSettings from './pages/admin/SystemSettings'
 import FacultyManagement from './pages/admin/FacultyManagement'
+import StudentManagement from './pages/admin/StudentManagement'
+import DepartmentManagement from './pages/admin/DepartmentManagement'
+import CourseManagement from './pages/admin/CourseManagement'
 import ProtectedRoute from './components/ProtectedRoute'
 import StudentHome from './pages/student/StudentHome'
 import { AuthProvider } from './context/AuthContext'
@@ -27,6 +32,7 @@ import { AuthProvider } from './context/AuthContext'
 function App() {
   return (
     <AuthProvider>
+      <Toaster position="top-right" />
       <Routes>
         <Route path="/" element={<Navigate to="/auth/login" replace />} />
         <Route path="/auth" element={<Navigate to="/auth/login" replace />} />
@@ -83,7 +89,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<DashboardHome />} />
+          <Route index element={<DashboardRouter />} />
           <Route path="students" element={<StudentsPage />} />
           <Route path="ai-risk" element={<AIRiskPrediction />} />
           <Route path="interventions" element={<Interventions />} />
@@ -103,7 +109,9 @@ function App() {
         >
           <Route index element={<AdminDashboard />} />
           <Route path="faculty" element={<FacultyManagement />} />
-          <Route path="classes" element={<ClassManagement />} />
+          <Route path="students" element={<StudentManagement />} />
+          <Route path="departments" element={<DepartmentManagement />} />
+          <Route path="courses" element={<CourseManagement />} />
           <Route path="settings" element={<SystemSettings />} />
         </Route>
 

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import FormField from '../../components/admin/FormField'
-import { Save } from 'lucide-react'
-import '../dashboard/Dashboard.css'
+import './AdminPanel.css'
 
 /**
  * SystemSettings - Admin page for system configuration

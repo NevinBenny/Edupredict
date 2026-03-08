@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { resetPassword } from '../../services/api'
 import { validateUserInput } from '../../utils/validation'
+import toast from 'react-hot-toast'
 
 const ResetPasswordPage = () => {
   const navigate = useNavigate()
@@ -9,7 +10,6 @@ const ResetPasswordPage = () => {
   const [form, setForm] = useState({ password: '', confirmPassword: '' })
   const [token, setToken] = useState('')
   const [errors, setErrors] = useState({})
-  const [status, setStatus] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -25,9 +25,8 @@ const ResetPasswordPage = () => {
 
   const onSubmit = async (e) => {
     e.preventDefault()
-    setStatus(null)
     if (!token) {
-      setStatus({ type: 'error', message: 'Reset link is missing or invalid.' })
+      toast.error('Reset link is missing or invalid.')
       return
     }
 
@@ -40,10 +39,10 @@ const ResetPasswordPage = () => {
     setSubmitting(true)
     try {
       const result = await resetPassword({ token, password: form.password, confirmPassword: form.confirmPassword })
-      setStatus({ type: 'success', message: result?.message || 'Password updated. Redirecting to login…' })
-      setTimeout(() => navigate('/auth/login', { replace: true }), 1200)
+      toast.success(result?.message || 'Password updated! Redirecting to login…')
+      setTimeout(() => navigate('/auth/login', { replace: true }), 1500)
     } catch (err) {
-      setStatus({ type: 'error', message: err.message || 'Unable to reset password right now.' })
+      toast.error(err.message || 'Unable to reset password right now.')
     } finally {
       setSubmitting(false)
     }
@@ -82,12 +81,6 @@ const ResetPasswordPage = () => {
         />
         {errors.confirmPassword ? <p className="input-error">{errors.confirmPassword}</p> : null}
       </div>
-
-      {status ? (
-        <p className={`status-text ${status.type === 'success' ? 'status-success' : 'status-error'}`}>
-          {status.message}
-        </p>
-      ) : null}
 
       <button className="primary-btn" type="submit" disabled={submitting}>
         {submitting ? 'Updating…' : 'Update Password'}

@@ -2,35 +2,28 @@ import React, { useState } from 'react';
 import StudentDetailModal from './StudentDetailModal';
 import { Search, Filter, ChevronDown } from 'lucide-react';
 
-const StudentTable = ({ students }) => {
+const StudentTable = ({ students = [] }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterSubject, setFilterSubject] = useState('All');
     const [filterDept, setFilterDept] = useState('All');
     const [filterRisk, setFilterRisk] = useState('All');
     const [selectedStudent, setSelectedStudent] = useState(null);
 
-    const [itemsPerPage] = useState(10);
-    const [currentPage, setCurrentPage] = useState(1);
+    // Safety guard
+    const safeStudents = Array.isArray(students) ? students : [];
 
-    const filteredStudents = students.filter(student => {
+    const filteredStudents = safeStudents.filter(student => {
         const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             student.student_id.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesDept = filterDept === 'All' || student.department === filterDept;
-        const matchesRisk = filterRisk === 'All' || student.risk_level === filterRisk;
-        return matchesSearch && matchesDept && matchesRisk;
+        const matchesRisk = filterRisk === 'All' ||
+            (student.risk_level && student.risk_level.toLowerCase() === filterRisk.toLowerCase());
+        const matchesSubject = filterSubject === 'All' || student.subject_name === filterSubject;
+        return matchesSearch && matchesDept && matchesRisk && matchesSubject;
     });
 
-    // Reset page on filter change
-    React.useEffect(() => {
-        setCurrentPage(1);
-    }, [searchTerm, filterDept, filterRisk]);
-
-    // Pagination Logic
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentItems = filteredStudents.slice(indexOfFirstItem, indexOfLastItem);
-    const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
-
-    const departments = ['All', ...new Set(students.map(s => s.department))];
+    const departments = ['All', ...new Set(safeStudents.map(s => s.department))];
+    const subjects = ['All', ...new Set(safeStudents.map(s => s.subject_name).filter(Boolean))];
 
     return (
         <div className="student-table-section animate-slide-up">
@@ -45,25 +38,21 @@ const StudentTable = ({ students }) => {
                         className="search-input-modern"
                     />
                 </div>
-                <div className="filters-group">
-                    {/* Only show Department filter if there is more than 1 distinct department */}
-                    {new Set(students.map(s => s.department)).size > 1 && (
-                        <div className="select-wrapper">
-                            <select value={filterDept} onChange={(e) => setFilterDept(e.target.value)}>
-                                {departments.map(dept => <option key={dept} value={dept}>{dept === 'All' ? 'All Departments' : dept}</option>)}
-                            </select>
-                            <ChevronDown size={14} className="select-arrow" />
-                        </div>
-                    )}
-                    <div className="select-wrapper">
-                        <select value={filterRisk} onChange={(e) => setFilterRisk(e.target.value)}>
-                            <option value="All">All Risk Levels</option>
-                            <option value="Low">Low Risk</option>
-                            <option value="Medium">Medium Risk</option>
-                            <option value="High">High Risk</option>
+                <div className="filters">
+                    {subjects.length > 1 && (
+                        <select value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)}>
+                            {subjects.map(sub => <option key={sub} value={sub}>{sub === 'All' ? 'All Subjects' : sub}</option>)}
                         </select>
-                        <ChevronDown size={14} className="select-arrow" />
-                    </div>
+                    )}
+                    <select value={filterDept} onChange={(e) => setFilterDept(e.target.value)}>
+                        {departments.map(dept => <option key={dept} value={dept}>{dept === 'All' ? 'All Dept' : dept + ' Dept'}</option>)}
+                    </select>
+                    <select value={filterRisk} onChange={(e) => setFilterRisk(e.target.value)}>
+                        <option value="All">All Risk</option>
+                        <option value="Low">Low Risk</option>
+                        <option value="Medium">Medium</option>
+                        <option value="High">High Risk</option>
+                    </select>
                 </div>
             </div>
 
@@ -72,7 +61,8 @@ const StudentTable = ({ students }) => {
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Student Name</th>
+                            <th>Name</th>
+                            {subjects.length > 1 && <th>Subject</th>}
                             <th>Department</th>
                             <th>Sem</th>
                             <th>Attendance</th>
@@ -82,54 +72,20 @@ const StudentTable = ({ students }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {currentItems.length > 0 ? (
-                            currentItems.map(student => (
-                                <tr key={student.student_id} onClick={() => setSelectedStudent(student)}>
-                                    <td className="font-mono text-secondary">{student.student_id}</td>
-                                    <td>
-                                        <div className="student-name-cell">
-                                            <div className="student-avatar-small">
-                                                {student.name.charAt(0)}
-                                            </div>
-                                            <span className="font-semibold">{student.name}</span>
-                                        </div>
-                                    </td>
-                                    <td>{student.department}</td>
-                                    <td>{student.semester}</td>
-                                    <td>
-                                        <div className="progress-bar-cell">
-                                            <span className="text-sm">{student.attendance_percentage}%</span>
-                                            <div className="progress-track">
-                                                <div
-                                                    className="progress-fill"
-                                                    style={{
-                                                        width: `${student.attendance_percentage}%`,
-                                                        background: student.attendance_percentage < 75 ? 'var(--c-status-danger)' : 'var(--c-status-safe)'
-                                                    }}
-                                                />
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td className="font-bold">{student.sgpa}</td>
-                                    <td>
-                                        {student.backlogs > 0 ? (
-                                            <span className="badge-warn">{student.backlogs} Pending</span>
-                                        ) : (
-                                            <span className="text-secondary">-</span>
-                                        )}
-                                    </td>
-                                    <td>
-                                        <span className={`status-pill ${student.risk_level.toLowerCase()}`}>
-                                            <span className="status-dot"></span>
-                                            {student.risk_level}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="8" className="empty-state" style={{ padding: '3rem', textAlign: 'center' }}>
-                                    <p style={{ color: 'var(--c-text-tertiary)' }}>No students found matching your filters.</p>
+                        {filteredStudents.map((student, index) => (
+                            <tr key={`${student.student_id}-${student.subject_name || index}`} onClick={() => setSelectedStudent(student)}>
+                                <td className="st-id">{student.student_id}</td>
+                                <td className="st-name">{student.name}</td>
+                                {subjects.length > 1 && <td>{student.subject_name || '-'}</td>}
+                                <td>{student.department}</td>
+                                <td>{student.semester}</td>
+                                <td>{student.attendance_percentage}%</td>
+                                <td className="st-sgpa">{student.sgpa}</td>
+                                <td className={`st-backlogs ${student.backlogs > 0 ? 'warning' : ''}`}>{student.backlogs}</td>
+                                <td>
+                                    <span className={`risk-badge minimal ${student.risk_level.toLowerCase()}`}>
+                                        {student.risk_level}
+                                    </span>
                                 </td>
                             </tr>
                         )}

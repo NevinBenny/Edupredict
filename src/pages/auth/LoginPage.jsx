@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { handleLogin, startGoogleOAuth } from '../../services/api'
 import { validateUserInput } from '../../utils/validation'
+import toast from 'react-hot-toast'
 
 /** Returns the home route for a given role string */
 const getRoleTarget = (role) => {
@@ -17,7 +18,6 @@ const LoginPage = () => {
     const { login } = useAuth()
     const [form, setForm] = useState({ email: '', password: '' })
     const [errors, setErrors] = useState({})
-    const [status, setStatus] = useState(null)
     const [submitting, setSubmitting] = useState(false)
 
     useEffect(() => {
@@ -40,7 +40,6 @@ const LoginPage = () => {
 
     const onSubmit = async (e) => {
         e.preventDefault()
-        setStatus(null)
 
         const validationErrors = validateUserInput(form)
         if (Object.keys(validationErrors).length > 0) {
@@ -51,26 +50,23 @@ const LoginPage = () => {
         setSubmitting(true)
         try {
             const data = await handleLogin(form)
-            login(data.user) // Data from handleLogin should include user profile and token
+            login(data.user)
 
-            // Store token if not handled by API service
             if (data.token) {
                 localStorage.setItem('token', data.token)
             }
 
-            setStatus({ type: 'success', message: 'Welcome back! Redirecting...' })
+            toast.success('Welcome back! Redirecting...')
 
-            // Check for forced password change
             if (data.requirePasswordChange) {
                 setTimeout(() => navigate('/auth/change-password'), 1000)
                 return
             }
 
-            // Navigate based on role
-            const target = getRoleTarget(data.user.role)
+            const target = data.user.role === 'ADMIN' ? '/admin' : '/dashboard'
             setTimeout(() => navigate(target), 1000)
         } catch (err) {
-            setStatus({ type: 'error', message: err.message || 'Login failed. Please check your credentials.' })
+            toast.error(err.message || 'Login failed. Please check your credentials.')
         } finally {
             setSubmitting(false)
         }
@@ -110,12 +106,6 @@ const LoginPage = () => {
                 </div>
                 {errors.password && <p className="input-error">{errors.password}</p>}
             </div>
-
-            {status && (
-                <div className={`status-text ${status.type === 'success' ? 'status-success' : 'status-error'}`}>
-                    {status.message}
-                </div>
-            )}
 
             <button className="primary-btn" type="submit" disabled={submitting}>
                 {submitting ? 'Logging in...' : 'Log In'}

@@ -36,20 +36,12 @@ const DataTable = ({ columns, rows, actions }) => {
                     <div className="action-buttons" style={{ display: 'flex', gap: '8px' }}>
                       {actions.map((action, i) => (
                         <button
-                          key={i}
-                          className={`btn-action-small ${action.variant || 'primary'}`}
+                          key={typeof action.label === 'function' ? action.label(row) : action.label}
+                          className={`action-btn action-btn-${action.variant || 'primary'}`}
                           onClick={() => action.onClick(row)}
-                          title={action.label}
-                          style={{
-                            padding: '6px 12px',
-                            fontSize: '12px',
-                            borderRadius: '4px',
-                            border: '1px solid var(--c-border-strong)',
-                            background: 'white',
-                            cursor: 'pointer'
-                          }}
+                          title={typeof action.label === 'function' ? action.label(row) : action.label}
                         >
-                          {action.label}
+                          {action.icon ? <span>{action.icon}</span> : (typeof action.label === 'function' ? action.label(row) : action.label)}
                         </button>
                       ))}
                     </div>

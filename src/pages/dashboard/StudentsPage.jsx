@@ -8,30 +8,28 @@ const StudentsPage = () => {
     const { userProfile } = useOutletContext();
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // Modal & Form State
-    const [showAddModal, setShowAddModal] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const [newStudent, setNewStudent] = useState({
-        name: '',
-        attendance_percentage: '',
-        sgpa: '',
-        backlogs: '',
-        internal_marks: '',
-        assignment_score: ''
-    });
+    useEffect(() => {
+        const fetchStudents = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/api/students', {
+                    credentials: 'include'    // ← required for session cookies
+                });
+                const data = await response.json();
 
-    const fetchStudents = async () => {
-        try {
-            const response = await fetch('http://localhost:5000/api/students', { credentials: 'include' });
-            const data = await response.json();
-            setStudents(data.students || []);
-        } catch (error) {
-            console.error('Error fetching students:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+                if (data.error) {
+                    setError(data.error);
+                } else {
+                    setStudents(Array.isArray(data.students) ? data.students : []);
+                }
+            } catch (err) {
+                console.error('Error fetching students:', err);
+                setError('Failed to load students.');
+            } finally {
+                setLoading(false);
+            }
+        };
 
     useEffect(() => {
         fetchStudents();
@@ -69,19 +67,20 @@ const StudentsPage = () => {
         );
     }
 
+    if (error) {
+        return (
+            <div className="dash-loading">
+                <p style={{ color: '#ef4444' }}>⚠️ {error}</p>
+            </div>
+        );
+    }
+
     return (
         <div className="dash-container minimal">
             <div className="primary-section" style={{ width: '100%' }}>
                 <div className="section-header">
-                    <div>
-                        <h3>Student Academic Records</h3>
-                        <p>Displaying all {students.length} students currently in the database</p>
-                    </div>
-                    {userProfile?.role === 'FACULTY' && (
-                        <button className="btn-primary" onClick={() => setShowAddModal(true)}>
-                            <UserPlus size={16} /> Add Student
-                        </button>
-                    )}
+                    <h3>Student Academic Records</h3>
+                    <p>Displaying {students.length} student{students.length !== 1 ? 's' : ''} assigned to your courses</p>
                 </div>
                 <StudentTable students={students} />
             </div>

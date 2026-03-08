@@ -2,236 +2,254 @@ import { useState, useEffect } from 'react'
 import DataTable from '../../components/admin/DataTable'
 import Modal from '../../components/admin/Modal'
 import FormField from '../../components/admin/FormField'
-import { fetchAllUsers } from '../../services/api'
-import { UserPlus, Search } from 'lucide-react'
-import '../dashboard/Dashboard.css'
+import { fetchAdmins, addAdmin, toggleAdminRetire, makeAdminDefault } from '../../services/api'
+import { Shield, ShieldAlert, ShieldCheck } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { confirmToast } from '../../utils/confirmToast'
+import './AdminPanel.css'
 
 /**
- * UserManagement - Admin page for managing user accounts
+ * UserManagement - Admin page for managing administrative user accounts
+ * Features:
+ * - View all admins in a table
+ * - Create new admins
+ * - Retire/Unretire admins
+ * - Make an admin the "Default" admin
  */
 const UserManagement = () => {
-  // Real user data from API
-  const [users, setUsers] = useState([])
+  const [admins, setAdmins] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
+
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [formData, setFormData] = useState({ name: '', email: '', role: 'USER' })
+  const [formData, setFormData] = useState({ email: '' })
   const [errors, setErrors] = useState({})
 
-  // Fetch users from API on component mount
-  useEffect(() => {
-    const loadUsers = async () => {
-      try {
-        setLoading(true)
-        const response = await fetchAllUsers()
-        // Map API response to component data structure
-        const mappedUsers = response.users.map((user) => ({
-          id: user.id,
-          name: user.email.split('@')[0], // Use part of email as name if name not available
-          email: user.email,
-          role: user.role,
-          status: user.status || 'active',
-          joinDate: new Date(user.createdAt).toISOString().split('T')[0] || 'N/A',
-        }))
-        setUsers(mappedUsers)
-        setError(null)
-      } catch (err) {
-        setError(err.message || 'Failed to load users')
-        console.error('Error fetching users:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
+  const [isCreating, setIsCreating] = useState(false)
+  const [newCredentials, setNewCredentials] = useState(null)
 
-    loadUsers()
+  const loadAdmins = async () => {
+    try {
+      setLoading(true)
+      const response = await fetchAdmins()
+
+      const mappedAdmins = response.admins.map((admin) => ({
+        id: admin.id,
+        name: admin.email.split('@')[0],
+        email: admin.email,
+        status: admin.status || 'ACTIVE',
+        isDefault: admin.is_default === 1,
+        joinDate: admin.created_at ? new Date(admin.created_at).toISOString().split('T')[0] : 'N/A',
+      }))
+
+      setAdmins(mappedAdmins)
+      setError(null)
+    } catch (err) {
+      setError(err.message || 'Failed to load admins')
+      console.error('Error fetching admins:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadAdmins()
   }, [])
 
-  const filteredUsers = users.filter(
-    (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()),
+  const filteredAdmins = admins.filter(
+    (admin) =>
+      admin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      admin.email.toLowerCase().includes(searchTerm.toLowerCase()),
   )
 
-  const handleAddUser = () => {
-    setFormData({ name: '', email: '', role: 'USER' })
-    setErrors({})
-    setIsModalOpen(true)
-  }
-
-  const handleFormChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }))
-    }
-  }
-
-  const validateForm = () => {
-    const newErrors = {}
-    if (!formData.name.trim()) newErrors.name = 'Name is required'
-    if (!formData.email.trim()) newErrors.email = 'Email is required'
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = 'Invalid email'
-    return newErrors
-  }
-
-  const handleCreateUser = () => {
-    const newErrors = validateForm()
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors)
+  const handleCreateAdmin = async (e) => {
+    e.preventDefault()
+    if (!formData.email.trim()) {
+      setErrors({ email: 'Email is required' })
       return
     }
 
-    const newUser = {
-      id: users.length + 1,
-      ...formData,
-      status: 'active',
-      joinDate: new Date().toISOString().split('T')[0],
-    }
+    setIsCreating(true)
+    setError(null)
 
-    setUsers([...users, newUser])
-    setIsModalOpen(false)
-    setFormData({ name: '', email: '', role: 'USER' })
-  }
-
-  const handleDeleteUser = (user) => {
-    if (confirm(`Delete user ${user.name}?`)) {
-      setUsers(users.filter((u) => u.id !== user.id))
+    try {
+      const resp = await addAdmin({ email: formData.email })
+      setNewCredentials(resp.credentials)
+      loadAdmins()
+      toast.success("Admin created successfully")
+    } catch (err) {
+      toast.error(err.message || 'Failed to create admin')
+    } finally {
+      setIsCreating(false)
     }
   }
 
-  const handleToggleStatus = (user) => {
-    setUsers(
-      users.map((u) =>
-        u.id === user.id ? { ...u, status: u.status === 'active' ? 'inactive' : 'active' } : u,
-      ),
-    )
+  const handleToggleRetire = async (admin) => {
+    if (admin.isDefault) {
+      toast.error("Cannot retire the default admin account.")
+      return
+    }
+    const action = admin.status === 'ACTIVE' ? 'retire' : 'restore'
+    confirmToast(`Are you sure you want to ${action} ${admin.email}?`, async () => {
+      try {
+        await toggleAdminRetire(admin.id)
+        loadAdmins()
+        toast.success(`Admin ${action}d successfully.`)
+      } catch (err) {
+        toast.error(err.message || `Failed to ${action} admin`)
+      }
+    })
+  }
+
+  const handleMakeDefault = async (admin) => {
+    if (admin.status === 'RETIRED') {
+      toast.error("Cannot make a retired admin the default admin.")
+      return
+    }
+    confirmToast(`Make ${admin.email} the default admin? This will remove default status from the current default.`, async () => {
+      try {
+        await makeAdminDefault(admin.id)
+        loadAdmins()
+        toast.success("Default admin updated.")
+      } catch (err) {
+        toast.error(err.message || "Failed to make admin default")
+      }
+    })
   }
 
   const columns = [
-    { key: 'name', label: 'Name', width: '200px' },
-    { key: 'email', label: 'Email', width: '200px' },
-    { key: 'role', label: 'Role', width: '100px', render: (value) => <span className="role-badge">{value}</span> },
+    { key: 'email', label: 'Email', width: '250px' },
+    {
+      key: 'isDefault',
+      label: 'Role Level',
+      width: '150px',
+      render: (isDefault) => isDefault ? (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--c-primary)', fontWeight: 600 }}>
+          <ShieldCheck size={16} /> Default
+        </span>
+      ) : (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--c-text-secondary)' }}>
+          <Shield size={16} /> Standard
+        </span>
+      )
+    },
     {
       key: 'status',
       label: 'Status',
-      width: '100px',
-      render: (value) => <span className={`status-pill ${value === 'active' ? 'low' : 'high'}`}>{value}</span>,
+      width: '120px',
+      render: (status) => (
+        <span className={`status-badge status-${status.toLowerCase()}`}>
+          {status}
+        </span>
+      ),
     },
     { key: 'joinDate', label: 'Joined', width: '120px' },
   ]
 
   const actions = [
     {
-      label: (user) => (user.status === 'active' ? 'Deactivate' : 'Activate'),
+      label: (admin) => (admin.status === 'ACTIVE' ? 'Retire' : 'Restore'),
       variant: 'secondary',
-      onClick: handleToggleStatus,
+      onClick: handleToggleRetire,
     },
-    { label: 'Delete', variant: 'danger', onClick: handleDeleteUser },
+    {
+      label: 'Make Default',
+      variant: 'primary',
+      onClick: handleMakeDefault,
+    }
   ]
 
-  const modalFooter = (
-    <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-      <button className="btn-secondary-action" onClick={() => setIsModalOpen(false)}>
-        Cancel
-      </button>
-      <button className="btn-primary" onClick={handleCreateUser}>
-        Create User
-      </button>
-    </div>
-  )
-
   return (
-    <div className="dash-container minimal">
-      <div className="section-header">
-        <div>
-          <h3>User Management</h3>
-          <p>Manage student accounts and administrative users</p>
+    <div className="admin-page">
+      <section className="page-header">
+        <div className="header-content">
+          <h2>Admin Management</h2>
+          <p className="header-subtitle">Watch, retire, and manage administrative privileges</p>
         </div>
-        <button className="btn-primary" onClick={handleAddUser} disabled={loading}>
-          <UserPlus size={16} /> Add New User
+        <button className="primary-btn" onClick={() => { setIsModalOpen(true); setNewCredentials(null); setFormData({ email: '' }); }} disabled={loading}>
+          + Create Admin
         </button>
       </div>
 
       {error && (
-        <div className="alert alert-error">
-          <p>Error loading users: {error}</p>
-        </div>
+        <section className="alert alert-error">
+          <p>{error}</p>
+        </section>
       )}
 
       {loading ? (
-        <div className="dash-loading">
-          <p>Loading users...</p>
-        </div>
+        <section className="page-content">
+          <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+            <p>Loading admins...</p>
+          </div>
+        </section>
       ) : (
-        <div className="primary-section">
-          {/* Controls */}
-          <div className="table-controls">
-            <div className="search-box-wrapper">
-              <Search size={16} className="search-icon" />
-              <input
-                type="search"
-                placeholder="Search users..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="search-input-modern"
-              />
-            </div>
-            <div className="control-stats" style={{ color: 'var(--c-text-tertiary)', fontSize: '13px' }}>
-              Showing {filteredUsers.length} of {users.length} users
+        <>
+          <section className="page-controls">
+            <input
+              type="search"
+              placeholder="Search by email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+              aria-label="Search admins"
+            />
+            <div className="control-stats">
+              Showing {filteredAdmins.length} of {admins.length} admins
             </div>
           </div>
 
-          {/* Users Table */}
-          <DataTable columns={columns} rows={filteredUsers} actions={actions} />
-        </div>
+          <section className="page-content">
+            <DataTable columns={columns} rows={filteredAdmins} actions={actions} />
+          </section>
+        </>
       )}
 
-      {/* Add User Modal */}
       <Modal
         isOpen={isModalOpen}
-        title="Create New User"
+        title={newCredentials ? "Admin Created" : "Create New Admin"}
         onClose={() => setIsModalOpen(false)}
-        footer={modalFooter}
       >
-        <div className="form-container" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <FormField
-            label="Full Name"
-            name="name"
-            value={formData.name}
-            onChange={handleFormChange}
-            error={errors.name}
-            placeholder="John Doe"
-            required
-          />
-          <FormField
-            label="Email Address"
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleFormChange}
-            error={errors.email}
-            placeholder="john@ajce.in"
-            required
-          />
-          <div className="form-group">
-            <label htmlFor="role">
-              Role <span className="required">*</span>
-            </label>
-            <div className="select-wrapper">
-              <select
-                id="role"
-                name="role"
-                value={formData.role}
-                onChange={handleFormChange}
+        {!newCredentials ? (
+          <form onSubmit={handleCreateAdmin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>Email Address *</label>
+              <input
+                type="email"
                 className="form-input"
-              >
-                <option value="USER">Student/Staff (USER)</option>
-                <option value="ADMIN">Administrator (ADMIN)</option>
-              </select>
+                value={formData.email}
+                required
+                onChange={e => { setFormData({ email: e.target.value }); setErrors({}); }}
+                placeholder="admin@ajce.in"
+              />
+              {errors.email && <small style={{ color: 'red' }}>{errors.email}</small>}
             </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+              <button type="button" className="secondary-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
+              <button type="submit" className="primary-btn" disabled={isCreating}>
+                {isCreating ? 'Creating...' : 'Create Admin'}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center', padding: '1rem' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22c55e' }}>
+              <ShieldAlert size={32} />
+            </div>
+            <h3 style={{ margin: 0 }}>Provisioning Complete</h3>
+            <p style={{ textAlign: 'center', color: 'var(--c-text-secondary)' }}>
+              Admin account created for <b>{newCredentials.email}</b>
+            </p>
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', width: '100%', textAlign: 'center', border: '1px solid #e2e8f0' }}>
+              <p style={{ margin: '0 0 0.5rem 0', color: '#64748b' }}>Temporary Password</p>
+              <code style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>{newCredentials.password}</code>
+            </div>
+            <button className="secondary-btn" onClick={() => setIsModalOpen(false)} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+              Done
+            </button>
           </div>
-        </div>
+        )}
       </Modal>
     </div>
   )

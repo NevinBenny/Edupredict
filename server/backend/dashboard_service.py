@@ -30,26 +30,31 @@ def get_summary():
 
         cur.execute(f"SELECT COUNT(*) as total FROM students {where}", params)
         total = cur.fetchone()['total']
-
-        cur.execute(f"SELECT AVG(attendance_percentage) as avg_attendance FROM students {where}", params)
-        avg_attendance = cur.fetchone()['avg_attendance'] or 0
-
-        cur.execute(f"SELECT AVG(sgpa) as avg_sgpa FROM students {where}", params)
-        avg_sgpa = cur.fetchone()['avg_sgpa'] or 0
-
-        cur.execute(f"SELECT COUNT(*) as high_risk FROM students WHERE risk_level = 'High' {'AND class_id = %s' if class_id else ''}", params)
+        
+        # Average Attendance from academic records
+        cur.execute("SELECT AVG(attendance_percentage) as avg_attendance FROM student_academic_records")
+        row = cur.fetchone()
+        avg_attendance = float(row['avg_attendance']) if row and row['avg_attendance'] is not None else 0.0
+        
+        # Average SGPA from students
+        cur.execute("SELECT AVG(sgpa) as avg_sgpa FROM students")
+        row = cur.fetchone()
+        avg_sgpa = float(row['avg_sgpa']) if row and row['avg_sgpa'] is not None else 0.0
+        
+        # High Risk Count
+        cur.execute("SELECT COUNT(*) as high_risk FROM students WHERE risk_level = 'High'")
         high_risk = cur.fetchone()['high_risk']
 
         summary = {
             "total_students": total,
-            "avg_attendance": round(float(avg_attendance), 1),
-            "avg_sgpa": round(float(avg_sgpa), 2),
+            "avg_attendance": round(avg_attendance, 1),
+            "avg_sgpa": round(avg_sgpa, 2),
             "high_risk_students": high_risk
         }
 
         cur.close()
         return jsonify(summary)
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({"error": str(err)}), 500
     finally:
         if conn:
@@ -109,44 +114,63 @@ def get_risk_distribution():
 
 @dashboard_bp.route("/api/students", methods=["GET"])
 def get_students():
+    user_id = session.get("user_id")
+    role = session.get("role")
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    if role not in ("ADMIN", "FACULTY"):
+        return jsonify({"error": "Forbidden"}), 403
+        
     conn = None
     try:
         conn = get_connection()
         class_id = get_faculty_class_id(conn)
         
-        # Security: If Faculty but no class assigned, return empty list
-        if session.get("role") == "FACULTY" and not class_id:
-            conn.close()
-            return jsonify({"students": [], "total": 0})
-
-        cur = conn.cursor(dictionary=True)
-
-        where = "WHERE s.class_id = %s" if class_id else ""
-        params = (class_id,) if class_id else ()
-
-        cur.execute(f"""
-            SELECT
-                s.student_id, s.name, s.department, s.semester,
-                s.attendance_percentage, s.internal_marks,
-                s.assignment_score, s.sgpa, s.backlogs,
-                s.risk_score, s.risk_level,
-                s.class_id,
-                c.name AS class_name
-            FROM students s
-            LEFT JOIN classes c ON c.id = s.class_id
-            {where}
-            ORDER BY s.created_at DESC
-        """, params)
-        students = cur.fetchall()
-
+        if role == "ADMIN":
+            cur.execute("""
+                SELECT 
+                    s.student_id, s.name, s.department, s.semester, u.email,
+                    COALESCE(AVG(sar.attendance_percentage), 0) as attendance_percentage,
+                    COALESCE(AVG(sar.internal_marks), 0) as internal_marks, 
+                    COALESCE(AVG(sar.assignment_score), 0) as assignment_score,
+                    s.sgpa, s.backlogs, 
+                    s.risk_score, s.risk_level,
+                    NULL as subject_name
+                FROM students s
+                LEFT JOIN users u ON s.user_id = u.id
+                LEFT JOIN student_academic_records sar ON s.student_id = sar.student_id
+                GROUP BY s.student_id, s.name, s.department, s.semester, u.email, s.sgpa, s.backlogs, s.risk_score, s.risk_level
+                ORDER BY s.created_at DESC
+            """)
+            students = cur.fetchall()
+        elif role == "FACULTY":
+            cur.execute("""
+                SELECT 
+                    s.student_id, s.name, s.department, s.semester, u.email,
+                    sar.attendance_percentage, sar.internal_marks, 
+                    sar.assignment_score, s.sgpa, s.backlogs, 
+                    s.risk_score, s.risk_level, sub.name as subject_name
+                FROM faculties f
+                JOIN faculty_subjects fs ON f.id = fs.faculty_id
+                JOIN subjects sub ON fs.subject_id = sub.id
+                JOIN student_academic_records sar ON sub.id = sar.subject_id
+                JOIN students s ON sar.student_id = s.student_id
+                LEFT JOIN users u ON s.user_id = u.id
+                WHERE f.email = (SELECT email FROM users WHERE id = %s)
+                ORDER BY sub.name ASC, s.name ASC
+            """, (user_id,))
+            students = cur.fetchall()
+        
+        # Format decimals/floats for JSON compatibility
         for student in students:
-            student['attendance_percentage'] = float(student['attendance_percentage'])
-            student['sgpa'] = float(student['sgpa'])
-            student['risk_score'] = float(student['risk_score'])
-
+            student['attendance_percentage'] = float(student['attendance_percentage']) if student['attendance_percentage'] is not None else 0.0
+            student['sgpa'] = float(student['sgpa']) if student['sgpa'] is not None else 0.0
+            student['risk_score'] = float(student['risk_score']) if student['risk_score'] is not None else 0.0
+            
         cur.close()
         return jsonify({"students": students, "total": len(students)})
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({"error": str(err)}), 500
     finally:
         if conn:
@@ -156,11 +180,31 @@ def get_students():
 @dashboard_bp.route("/api/students", methods=["POST"])
 def add_student():
     data = request.json
+    required_fields = ["student_id", "name", "subject_id", "attendance_percentage"]
     
     conn = None
     try:
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
+        
+        # 1. Validate subject_id exists
+        cur.execute("SELECT id FROM subjects WHERE id=%s", (data['subject_id'],))
+        if not cur.fetchone():
+            return jsonify({"error": "Invalid subject_id. The selected subject does not exist."}), 404
+            
+        # 2. Ensure student exists in base table
+        cur.execute("SELECT id FROM students WHERE student_id=%s", (data['student_id'],))
+        existing_student = cur.fetchone()
+        
+        if not existing_student:
+            # Create base student record
+            cur.execute("""
+                INSERT INTO students (student_id, name, department, semester) 
+                VALUES (%s, %s, %s, %s)
+            """, (data['student_id'], data['name'], '', '1'))
+            student_db_id = cur.lastrowid
+        else:
+            student_db_id = existing_student['id']
         
         # ── Faculty Scoping & Auto-Fill ───────────────────────────────────────
         class_id = None
@@ -206,42 +250,75 @@ def add_student():
         # ── Risk Calculation ──────────────────────────────────────────────────
         internal_marks   = data.get("internal_marks", 0)
         assignment_score = data.get("assignment_score", 0)
-        sgpa             = data.get("sgpa", 0.0)
-        backlogs         = data.get("backlogs", 0)
-
-        risk_score = 0
-        if float(data["attendance_percentage"]) < 75: risk_score += 40
-        if float(sgpa) < 6.5:                         risk_score += 30
-        if int(backlogs) > 0:                         risk_score += 30
-
-        risk_level = "Low"
-        if risk_score >= 60:   risk_level = "High"
-        elif risk_score >= 30: risk_level = "Medium"
-
-        risk_score = data.get("risk_score", risk_score)
-        risk_level = data.get("risk_level", risk_level)
-
-        # ── Insert ────────────────────────────────────────────────────────────
-        # Re-use cursor if needed or create new one (already open)
+        
+        # 3. Check if academic record already exists for this subject
         cur.execute("""
-            INSERT INTO students (
-                student_id, name, department, semester,
-                attendance_percentage, internal_marks,
-                assignment_score, sgpa, backlogs,
-                risk_score, risk_level, class_id
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            student_id, data["name"], department,
-            semester, data["attendance_percentage"],
-            internal_marks, assignment_score, sgpa, backlogs,
-            risk_score, risk_level, class_id
-        ))
+            SELECT id FROM student_academic_records 
+            WHERE student_id=%s AND subject_id=%s
+        """, (student_db_id, data['subject_id']))
+        existing_record = cur.fetchone()
+        
+        if existing_record:
+            # Update existing record
+            cur.execute("""
+                UPDATE student_academic_records 
+                SET attendance_percentage=%s, internal_marks=%s, assignment_score=%s
+                WHERE id=%s
+            """, (data['attendance_percentage'], internal_marks, assignment_score, existing_record['id']))
+        else:
+            # Insert new record
+            cur.execute("""
+                INSERT INTO student_academic_records (
+                    student_id, subject_id, attendance_percentage, 
+                    internal_marks, assignment_score
+                ) VALUES (%s, %s, %s, %s, %s)
+            """, (student_db_id, data['subject_id'], data['attendance_percentage'], internal_marks, assignment_score))
+            
         conn.commit()
-        last_id = cur.lastrowid
+        return jsonify({"message": "Student record saved successfully"}), 201
+        
+    except mysql.connector.Error as err:
+        if conn: conn.rollback()
+        return jsonify({"error": str(err)}), 500
+    finally:
+        if conn:
+            cur.close()
+            conn.close()
+
+@dashboard_bp.route("/api/dashboard/my-courses", methods=["GET"])
+def get_my_courses():
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    user_id = session.get("user_id")
+    role = session.get("role")
+    
+    if role != "STUDENT":
+        return jsonify({"error": "Forbidden"}), 403
+        
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor(dictionary=True)
+        
+        cur.execute("""
+            SELECT 
+                sub.name as subject_name, sub.course_code, sub.department, sub.semester,
+                sar.attendance_percentage, sar.internal_marks, sar.assignment_score
+            FROM students s
+            JOIN student_academic_records sar ON s.student_id = sar.student_id
+            JOIN subjects sub ON sar.subject_id = sub.id
+            WHERE s.user_id = %s
+            ORDER BY sub.semester DESC, sub.name ASC
+        """, (user_id,))
+        courses = cur.fetchall()
+        
+        # Format decimals/floats
+        for row in courses:
+            row['attendance_percentage'] = float(row['attendance_percentage']) if row['attendance_percentage'] is not None else 0.0
+            
         cur.close()
-
-        return jsonify({"message": "Student added successfully", "id": last_id, "student_id": student_id}), 201
-
+        return jsonify({"courses": courses})
     except mysql.connector.Error as err:
         return jsonify({"error": str(err)}), 500
     finally:

@@ -29,8 +29,11 @@ const AdminLayout = () => {
     {
       title: 'Academic',
       links: [
-        { label: 'Faculty', to: '/admin/faculty', icon: <GraduationCap size={20} /> },
-        { label: 'Classes', to: '/admin/classes', icon: <BookOpen size={20} /> },
+        { label: 'Manage Admins', to: '/admin/users', icon: '🛡️' },
+        { label: 'Manage Faculty', to: '/admin/faculty', icon: '👨‍🏫' },
+        { label: 'Manage Students', to: '/admin/students', icon: '🎓' },
+        { label: 'Departments', to: '/admin/departments', icon: '🏫' },
+        { label: 'Courses', to: '/admin/courses', icon: '📚' },
       ],
     },
     {

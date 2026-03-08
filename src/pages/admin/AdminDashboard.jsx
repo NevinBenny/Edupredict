@@ -12,7 +12,6 @@ const AdminDashboard = () => {
     totalStudents: 0,
     totalFaculty: 0,
     highRiskStudents: 0,
-    systemHealth: 98,
   })
 
   const [loading, setLoading] = useState(true)
@@ -27,7 +26,6 @@ const AdminDashboard = () => {
           totalStudents: response.totalStudents || 0,
           totalFaculty: response.totalFaculty || 0,
           highRiskStudents: response.highRiskStudents || 0,
-          systemHealth: 99,
         })
       } catch (err) {
         console.error('Error loading dashboard stats:', err)
@@ -56,46 +54,43 @@ const AdminDashboard = () => {
         </button>
       </div>
 
-      <div className="stats-grid">
-        <MetricCard
-          label="Total Students"
-          value={loading ? '...' : stats.totalStudents}
-          icon={<Users size={20} />}
-          color="#3b82f6"
-        />
-        <MetricCard
-          label="Total Faculty"
-          value={stats.totalFaculty}
-          icon={<GraduationCap size={20} />}
-          color="#8b5cf6"
-        />
-        <MetricCard
-          label="High Risk"
-          value={stats.highRiskStudents}
-          icon={<AlertTriangle size={20} />}
-          color="#ef4444"
-          trend="down"
-          trendValue="Critical"
-        />
-        <MetricCard
-          label="System Health"
-          value={`${stats.systemHealth}%`}
-          icon={<Activity size={20} />}
-          color="#10b981"
-        />
-      </div>
+        <div className="stats-grid">
+          <StatCard
+            title="Total Students"
+            value={loading ? '...' : stats.totalStudents}
+            subtitle="Enrolled students"
+            variant="users"
+          />
+          <StatCard
+            title="Total Faculty"
+            value={stats.totalFaculty}
+            subtitle="Academic staff"
+            variant="devices" // Reusing style but different content
+          />
+          <StatCard
+            title="High Risk Students"
+            value={stats.highRiskStudents}
+            subtitle="Require intervention"
+            variant="alerts"
+            trend={{ direction: stats.highRiskStudents > 0 ? 'down' : 'up', text: 'Critical' }}
+          />
 
-      <div className="primary-section">
-        <div className="section-header">
-          <h3>Quick Actions</h3>
         </div>
-        <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-          <a href="/admin/users" className="card-panel" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center', textAlign: 'center', transition: 'transform 0.2s' }}>
-            <div style={{ background: '#EFF6FF', padding: '12px', borderRadius: '50%', color: '#3b82f6' }}><Users size={24} /></div>
-            <div>
-              <h4 style={{ margin: '0 0 4px 0', fontSize: '15px' }}>Manage Users</h4>
-              <p style={{ margin: 0, fontSize: '12px', color: 'var(--c-text-secondary)' }}>Create & edit accounts</p>
-            </div>
+      </section>
+
+      {/* Quick Actions Section */}
+      <section className="dashboard-section">
+        <h2>Quick Actions</h2>
+        <div className="actions-grid">
+          <a href="/admin/users" className="action-card">
+            <span className="action-icon">🛡️</span>
+            <h3>Manage Admins</h3>
+            <p>Create, watch, or retire admin accounts</p>
+          </a>
+          <a href="/admin/faculty" className="action-card">
+            <span className="action-icon">👨‍🏫</span>
+            <h3>Manage Faculty</h3>
+            <p>Add or remove academic staff</p>
           </a>
           <a href="/admin/faculty" className="card-panel" style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', gap: '12px', alignItems: 'center', textAlign: 'center' }}>
             <div style={{ background: '#F5F3FF', padding: '12px', borderRadius: '50%', color: '#8b5cf6' }}><GraduationCap size={24} /></div>
