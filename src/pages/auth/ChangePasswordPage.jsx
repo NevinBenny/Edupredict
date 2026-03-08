@@ -1,8 +1,8 @@
-
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { forcePasswordChange } from '../../services/api'
+import toast from 'react-hot-toast'
 import './authpages.css'
 
 const ChangePasswordPage = () => {
@@ -10,32 +10,31 @@ const ChangePasswordPage = () => {
     const { logout } = useAuth()
     const [password, setPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
-    const [error, setError] = useState('')
     const [loading, setLoading] = useState(false)
 
     const handleSubmit = async (e) => {
         e.preventDefault()
-        setError('')
 
         if (password.length < 8) {
-            setError('Password must be at least 8 characters')
+            toast.error('Password must be at least 8 characters')
             return
         }
 
         if (password !== confirmPassword) {
-            setError('Passwords do not match')
+            toast.error('Passwords do not match')
             return
         }
 
         setLoading(true)
         try {
             await forcePasswordChange(password)
-
-            alert('Password updated successfully. Please log in again.')
-            await logout()
-            navigate('/auth/login')
+            toast.success('Password updated! Logging you out...')
+            setTimeout(async () => {
+                await logout()
+                navigate('/auth/login')
+            }, 1500)
         } catch (err) {
-            setError(err.message)
+            toast.error(err.message || 'Failed to update password')
         } finally {
             setLoading(false)
         }
@@ -72,8 +71,6 @@ const ChangePasswordPage = () => {
                             required
                         />
                     </div>
-
-                    {error && <div className="status-text status-error">{error}</div>}
 
                     <button type="submit" className="primary-btn" disabled={loading}>
                         {loading ? 'Updating...' : 'Update Password'}
