@@ -15,7 +15,6 @@ const AdminDashboard = () => {
     totalStudents: 0,
     totalFaculty: 0,
     highRiskStudents: 0,
-    systemHealth: 98,
   })
 
   const [loading, setLoading] = useState(true)
@@ -30,7 +29,6 @@ const AdminDashboard = () => {
           totalStudents: response.totalStudents || 0,
           totalFaculty: response.totalFaculty || 0,
           highRiskStudents: response.highRiskStudents || 0,
-          systemHealth: 99,
         })
       } catch (err) {
         console.error('Error loading dashboard stats:', err)
@@ -78,12 +76,7 @@ const AdminDashboard = () => {
             variant="alerts"
             trend={{ direction: stats.highRiskStudents > 0 ? 'down' : 'up', text: 'Critical' }}
           />
-          <StatCard
-            title="System Health"
-            value={`${stats.systemHealth}%`}
-            subtitle="Operational"
-            variant="health"
-          />
+
         </div>
       </section>
 
