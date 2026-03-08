@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import DataTable from '../../components/admin/DataTable'
 import Modal from '../../components/admin/Modal'
 import PasswordRevealModal from '../../components/admin/PasswordRevealModal'
-import { getFaculties, addFaculty, deleteFaculty, batchUploadFaculty, resetFacultyPassword } from '../../services/api'
+import { getFaculties, addFaculty, updateFaculty, deleteFaculty, batchUploadFaculty, resetFacultyPassword } from '../../services/api'
+import { Pencil, Trash2, Key, RefreshCw, Upload } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmToast } from '../../utils/confirmToast'
 import './AdminPanel.css'
@@ -10,6 +12,7 @@ const FacultyManagement = () => {
     const [faculties, setFaculties] = useState([])
     const [loading, setLoading] = useState(true)
     const [showAddModal, setShowAddModal] = useState(false)
+    const [editingFacultyId, setEditingFacultyId] = useState(null)
     const [newFaculty, setNewFaculty] = useState({
         name: '',
         email: '',
@@ -49,22 +52,44 @@ const FacultyManagement = () => {
         }
     }
 
-    const handleAddFaculty = async (e) => {
+    const openCreateModal = () => {
+        setEditingFacultyId(null)
+        setNewFaculty({ name: '', email: '', department: '', designation: '', password: '' })
+        setShowAddModal(true)
+    }
+
+    const openEditModal = (faculty) => {
+        setEditingFacultyId(faculty.id)
+        setNewFaculty({
+            name: faculty.name,
+            email: faculty.email,
+            department: faculty.department || '',
+            designation: faculty.designation || '',
+            password: 'KEEP_EXISTING' // Dummy for required field check if needed
+        })
+        setShowAddModal(true)
+    }
+
+    const handleFacultySubmit = async (e) => {
         e.preventDefault()
 
-        if (!newFaculty.name || !newFaculty.email || !newFaculty.password) {
-            toast.error('Name, email, and password are required')
+        if (!newFaculty.name || !newFaculty.email || (!editingFacultyId && !newFaculty.password)) {
+            toast.error('Required fields are missing')
             return
         }
 
         try {
-            await addFaculty(newFaculty)
-            toast.success('Faculty added successfully!')
-            setNewFaculty({ name: '', email: '', department: '', designation: '' })
+            if (editingFacultyId) {
+                await updateFaculty(editingFacultyId, newFaculty)
+                toast.success('Faculty updated successfully!')
+            } else {
+                await addFaculty(newFaculty)
+                toast.success('Faculty added successfully!')
+            }
             setShowAddModal(false)
             fetchFaculties()
         } catch (err) {
-            toast.error(err.message || 'Failed to add faculty')
+            toast.error(err.message || 'Failed to save faculty')
         }
     }
 
@@ -123,6 +148,49 @@ const FacultyManagement = () => {
         a.click()
     }
 
+    // Prepare table columns
+    const columns = [
+        {
+            key: 'name',
+            label: 'Name',
+            render: (name) => (
+                <div className="user-info-cell">
+                    <div className="user-avatar-sm">{name[0]}</div>
+                    <span>{name}</span>
+                </div>
+            )
+        },
+        { key: 'email', label: 'Email' },
+        { key: 'department', label: 'Department' },
+        { key: 'designation', label: 'Designation' },
+        {
+            key: 'created_at',
+            label: 'Joined',
+            render: (date) => new Date(date).toLocaleDateString()
+        }
+    ]
+
+    const actions = [
+        {
+            label: 'Edit',
+            icon: <Pencil size={15} />,
+            variant: 'secondary',
+            onClick: openEditModal
+        },
+        {
+            label: 'Reset PWD',
+            icon: <Key size={15} />,
+            variant: 'secondary',
+            onClick: handleResetPassword
+        },
+        {
+            label: 'Delete',
+            icon: <Trash2 size={15} />,
+            variant: 'danger',
+            onClick: (f) => handleDelete(f.id)
+        }
+    ]
+
     return (
         <div className="admin-page-container fade-in">
             <div className="page-header">
@@ -131,75 +199,35 @@ const FacultyManagement = () => {
                     <p>View and manage academic staff members</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button className="primary-btn" onClick={() => setShowAddModal(true)}>
+                    <button className="primary-btn" onClick={fetchFaculties}>
+                        <RefreshCw size={16} /> Refresh
+                    </button>
+                    <button className="primary-btn" onClick={openCreateModal}>
                         + Add Faculty
                     </button>
                     <button className="primary-btn" onClick={() => setIsUploadModalOpen(true)}>
-                        Batch Upload CSV
+                        <Upload size={16} /> Batch Upload CSV
                     </button>
                 </div>
             </div>
 
-            <div className="table-card">
+            <div className="page-content">
                 {loading ? (
                     <div className="loading-state">Loading staff records...</div>
                 ) : (
-                    <table className="admin-table">
-                        <thead>
-                            <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Department</th>
-                                <th>Designation</th>
-                                <th>Joined</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {faculties.length > 0 ? (
-                                faculties.map((f) => (
-                                    <tr key={f.id}>
-                                        <td>
-                                            <div className="user-info-cell">
-                                                <div className="user-avatar-sm">{f.name[0]}</div>
-                                                <span>{f.name}</span>
-                                            </div>
-                                        </td>
-                                        <td>{f.email}</td>
-                                        <td>{f.department || 'N/A'}</td>
-                                        <td>{f.designation || 'N/A'}</td>
-                                        <td>{new Date(f.created_at).toLocaleDateString()}</td>
-                                        <td>
-                                            <div className="action-buttons">
-                                                <button
-                                                    className="action-btn action-btn-secondary"
-                                                    onClick={() => handleResetPassword(f)}
-                                                    title="Reset Password"
-                                                >
-                                                    Reset PWD
-                                                </button>
-                                                <button className="action-btn delete" onClick={() => handleDelete(f.id)} title="Delete">
-                                                    🗑️
-                                                </button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan="6" className="empty-state">No faculty found</td>
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
+                    <DataTable
+                        columns={columns}
+                        rows={faculties}
+                        actions={actions}
+                    />
                 )}
             </div>
 
             {showAddModal && (
                 <div className="modal-overlay">
                     <div className="modal-content">
-                        <h3>Add New Faculty</h3>
-                        <form onSubmit={handleAddFaculty}>
+                        <h3>{editingFacultyId ? 'Edit Faculty member' : 'Add New Faculty'}</h3>
+                        <form onSubmit={handleFacultySubmit}>
                             <div className="form-group">
                                 <label>Full Name</label>
                                 <input
@@ -218,7 +246,10 @@ const FacultyManagement = () => {
                                     onChange={(e) => setNewFaculty({ ...newFaculty, email: e.target.value })}
                                     placeholder="john@ajce.in"
                                     required
+                                    disabled={!!editingFacultyId}
+                                    style={editingFacultyId ? { background: '#f1f5f9' } : {}}
                                 />
+                                {editingFacultyId && <small style={{ color: '#666' }}>Email cannot be changed after creation.</small>}
                             </div>
                             <div className="form-group">
                                 <label>Department</label>
@@ -242,34 +273,36 @@ const FacultyManagement = () => {
                                     placeholder="Assistant Professor"
                                 />
                             </div>
-                            <div className="form-group">
-                                <label>Temporary Password</label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <input
-                                        type="text"
-                                        value={newFaculty.password || ''}
-                                        onChange={(e) => setNewFaculty({ ...newFaculty, password: e.target.value })}
-                                        placeholder="Enter or generate a password"
-                                        required
-                                        minLength={8}
-                                        style={{ flex: 1 }}
-                                    />
-                                    <button
-                                        type="button"
-                                        className="secondary-btn"
-                                        style={{ whiteSpace: 'nowrap' }}
-                                        onClick={() => setNewFaculty({ ...newFaculty, password: generatePassword() })}
-                                    >
-                                        Generate
-                                    </button>
+                            {!editingFacultyId && (
+                                <div className="form-group">
+                                    <label>Temporary Password</label>
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        <input
+                                            type="text"
+                                            value={newFaculty.password || ''}
+                                            onChange={(e) => setNewFaculty({ ...newFaculty, password: e.target.value })}
+                                            placeholder="Enter or generate a password"
+                                            required
+                                            minLength={8}
+                                            style={{ flex: 1 }}
+                                        />
+                                        <button
+                                            type="button"
+                                            className="secondary-btn"
+                                            style={{ whiteSpace: 'nowrap' }}
+                                            onClick={() => setNewFaculty({ ...newFaculty, password: generatePassword() })}
+                                        >
+                                            Generate
+                                        </button>
+                                    </div>
+                                    <small style={{ display: 'block', marginTop: '4px', color: '#666' }}>
+                                        User will be forced to change this on first login.
+                                    </small>
                                 </div>
-                                <small style={{ display: 'block', marginTop: '4px', color: '#666' }}>
-                                    User will be forced to change this on first login.
-                                </small>
-                            </div>
+                            )}
                             <div className="modal-actions">
                                 <button type="button" className="secondary-btn" onClick={() => setShowAddModal(false)}>Cancel</button>
-                                <button type="submit" className="primary-btn">Create Account</button>
+                                <button type="submit" className="primary-btn">{editingFacultyId ? 'Update Faculty' : 'Create Account'}</button>
                             </div>
                         </form>
                     </div>

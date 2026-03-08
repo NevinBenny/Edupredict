@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react'
 import DataTable from '../../components/admin/DataTable'
 import Modal from '../../components/admin/Modal'
-import { getCourses, addCourse, updateCourse, deleteCourse } from '../../services/api'
+import { getCourses, addCourse, updateCourse, deleteCourse, getFaculties } from '../../services/api'
 import toast from 'react-hot-toast'
 import { confirmToast } from '../../utils/confirmToast'
-import { RefreshCw, Plus } from 'lucide-react'
+import { RefreshCw, Plus, Pencil, Trash2 } from 'lucide-react'
 import './AdminPanel.css'
 
 const CourseManagement = () => {
     const [courses, setCourses] = useState([])
+    const [faculties, setFaculties] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
 
@@ -20,28 +21,33 @@ const CourseManagement = () => {
         code: '',
         name: '',
         department: '',
-        semester: '1'
+        semester: '1',
+        faculty_ids: []
     })
 
-    const fetchAllCourses = async () => {
+    const fetchAllData = async () => {
         try {
             setLoading(true)
-            const data = await getCourses()
-            setCourses(data.courses || [])
+            const [courseData, facultyData] = await Promise.all([
+                getCourses(),
+                getFaculties()
+            ])
+            setCourses(courseData.courses || [])
+            setFaculties(facultyData.faculties || [])
         } catch (err) {
-            toast.error(err.message || 'Failed to load courses')
+            toast.error(err.message || 'Failed to load data')
         } finally {
             setLoading(false)
         }
     }
 
     useEffect(() => {
-        fetchAllCourses()
+        fetchAllData()
     }, [])
 
     const openCreate = () => {
         setEditingId(null)
-        setFormData({ code: '', name: '', department: 'MCA', semester: '1' })
+        setFormData({ code: '', name: '', department: 'MCA', semester: '1', faculty_ids: [] })
         setIsModalOpen(true)
     }
 
@@ -51,7 +57,8 @@ const CourseManagement = () => {
             code: course.code,
             name: course.name,
             department: course.department,
-            semester: course.semester?.toString() || '1'
+            semester: course.semester?.toString() || '1',
+            faculty_ids: course.faculty_ids || []
         })
         setIsModalOpen(true)
     }
@@ -68,7 +75,7 @@ const CourseManagement = () => {
                 toast.success('Course created successfully')
             }
             setIsModalOpen(false)
-            fetchAllCourses()
+            fetchAllData()
         } catch (err) {
             toast.error(err.message || 'Failed to save course')
         } finally {
@@ -81,7 +88,7 @@ const CourseManagement = () => {
             try {
                 await deleteCourse(course.id)
                 toast.success('Course deleted')
-                fetchAllCourses()
+                fetchAllData()
             } catch (err) {
                 toast.error(err.message || 'Failed to delete course')
             }
@@ -98,6 +105,7 @@ const CourseManagement = () => {
     const columns = [
         { key: 'code', label: 'Course Code', width: '120px' },
         { key: 'name', label: 'Course Name' },
+        { key: 'faculty_names', label: 'Assigned Faculty', render: (names) => <span style={{ fontSize: '0.875rem', color: names === 'Unassigned' ? 'var(--c-text-secondary)' : 'inherit' }}>{names}</span> },
         {
             key: 'department',
             label: 'Department',
@@ -110,11 +118,13 @@ const CourseManagement = () => {
     const actions = [
         {
             label: 'Edit',
+            icon: <Pencil size={16} />,
             variant: 'secondary',
             onClick: openEdit,
         },
         {
             label: 'Delete',
+            icon: <Trash2 size={16} />,
             variant: 'danger',
             onClick: handleDelete,
         }
@@ -128,7 +138,7 @@ const CourseManagement = () => {
                     <p className="header-subtitle">Manage academic subjects, codes, and syllabus details</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button className="secondary-btn" onClick={fetchAllCourses}>
+                    <button className="secondary-btn" onClick={fetchAllData}>
                         <RefreshCw size={16} /> Refresh
                     </button>
                     <button className="primary-btn" onClick={openCreate}>
@@ -183,6 +193,32 @@ const CourseManagement = () => {
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem' }}>Semester *</label>
                             <input className="form-input" required type="number" min="1" max="10" value={formData.semester} onChange={e => setFormData({ ...formData, semester: e.target.value })} />
+                        </div>
+                        <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Assign Faculty (Optional)</label>
+                            <div className="form-input" style={{ maxHeight: '150px', overflowY: 'auto', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {faculties.length === 0 ? (
+                                    <span style={{ color: 'var(--c-text-secondary)', fontSize: '0.9rem' }}>No faculty available.</span>
+                                ) : (
+                                    faculties.map(faculty => (
+                                        <label key={faculty.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={formData.faculty_ids.includes(faculty.id)}
+                                                onChange={(e) => {
+                                                    const currentIds = formData.faculty_ids;
+                                                    if (e.target.checked) {
+                                                        setFormData({ ...formData, faculty_ids: [...currentIds, faculty.id] })
+                                                    } else {
+                                                        setFormData({ ...formData, faculty_ids: currentIds.filter(id => id !== faculty.id) })
+                                                    }
+                                                }}
+                                            />
+                                            {faculty.name} ({faculty.department})
+                                        </label>
+                                    ))
+                                )}
+                            </div>
                         </div>
                     </div>
 

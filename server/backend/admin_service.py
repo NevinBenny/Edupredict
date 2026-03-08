@@ -156,6 +156,40 @@ def delete_faculty(faculty_id):
         if conn:
             conn.close()
 
+@admin_bp.route("/api/admin/faculties/<int:faculty_id>", methods=["PUT"])
+def update_faculty(faculty_id):
+    is_admin, msg, code = check_admin()
+    if not is_admin:
+        return jsonify({"message": msg}), code
+    
+    data = request.json
+    name = data.get("name")
+    department = data.get("department")
+    designation = data.get("designation")
+    
+    if not name:
+        return jsonify({"error": "Name is required"}), 400
+        
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor()
+        
+        cur.execute("""
+            UPDATE faculties 
+            SET name = %s, department = %s, designation = %s 
+            WHERE id = %s
+        """, (name, department, designation, faculty_id))
+        
+        conn.commit()
+        cur.close()
+        return jsonify({"message": "Faculty updated successfully"})
+    except mysql.connector.Error as err:
+        return jsonify({"error": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+
 @admin_bp.route("/api/admin/faculties/<int:faculty_id>/reset-password", methods=["POST"])
 def reset_faculty_password(faculty_id):
     is_admin, msg, code = check_admin()
@@ -445,6 +479,84 @@ def add_single_student():
     finally:
         conn.close()
 
+@admin_bp.route("/api/admin/students/<string:student_id>", methods=["PUT"])
+def update_student(student_id):
+    is_admin, msg, code = check_admin()
+    if not is_admin: return jsonify({"error": msg}), code
+
+    data = request.json
+    name = data.get("name", "").strip()
+    dept = data.get("department", "").strip()
+    sem = data.get("semester", "").strip()
+    sgpa = float(data.get("sgpa", 0)) if data.get("sgpa") else 0.0
+    backlogs = int(data.get("backlogs", 0)) if data.get("backlogs") else 0
+    subject_ids = data.get("subject_ids", [])
+
+    if not name or not dept or not sem:
+        return jsonify({"error": "Name, department, and semester are required"}), 400
+
+    conn = get_connection()
+    try:
+        cur = conn.cursor(dictionary=True)
+        
+        # Risk calc
+        risk_score = 0
+        if sgpa < 6.5: risk_score += 30
+        if backlogs > 0: risk_score += 30
+        risk_level = "High" if risk_score >= 60 else ("Medium" if risk_score >= 30 else "Low")
+        
+        cur.execute("""
+            UPDATE students 
+            SET name=%s, department=%s, semester=%s, sgpa=%s, backlogs=%s, risk_score=%s, risk_level=%s
+            WHERE student_id=%s
+        """, (name, dept, sem, sgpa, backlogs, risk_score, risk_level, student_id))
+        
+        # Update subjects: remove old, add new
+        cur.execute("DELETE FROM student_academic_records WHERE student_id=%s", (student_id,))
+        for sub_id in subject_ids:
+            cur.execute("""
+                INSERT INTO student_academic_records (student_id, subject_id, attendance_percentage, internal_marks, assignment_score)
+                VALUES (%s, %s, 100, 0, 0)
+            """, (student_id, sub_id))
+
+        conn.commit()
+        return jsonify({"message": "Student updated successfully"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@admin_bp.route("/api/admin/students/<string:student_id>", methods=["DELETE"])
+def delete_student(student_id):
+    is_admin, msg, code = check_admin()
+    if not is_admin: return jsonify({"error": msg}), code
+
+    conn = get_connection()
+    try:
+        cur = conn.cursor(dictionary=True)
+        # Find user_id first to delete from users table
+        cur.execute("SELECT user_id FROM students WHERE student_id=%s", (student_id,))
+        row = cur.fetchone()
+        if not row:
+            return jsonify({"error": "Student not found"}), 404
+        
+        user_id = row['user_id']
+        # Deleting from users will cascade if FK is set, or we do it manually.
+        # Assuming FK cascade on students.user_id -> users.id is there? 
+        # Actually it's safer to delete both.
+        cur.execute("DELETE FROM student_academic_records WHERE student_id=%s", (student_id,))
+        cur.execute("DELETE FROM students WHERE student_id=%s", (student_id,))
+        cur.execute("DELETE FROM users WHERE id=%s", (user_id,))
+        
+        conn.commit()
+        return jsonify({"message": "Student deleted successfully"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
 # --- ADMIN MANAGEMENT ENDPOINTS ---
 
 @admin_bp.route("/api/admin/admins", methods=["GET"])
@@ -625,8 +737,27 @@ def get_courses():
     conn = get_connection()
     try:
         cur = conn.cursor(dictionary=True)
-        cur.execute("SELECT * FROM subjects ORDER BY department, semester, code")
+        cur.execute("""
+            SELECT s.*, 
+                   GROUP_CONCAT(fs.faculty_id) as faculty_ids,
+                   GROUP_CONCAT(f.name SEPARATOR ', ') as faculty_names
+            FROM subjects s
+            LEFT JOIN faculty_subjects fs ON s.id = fs.subject_id
+            LEFT JOIN faculties f ON fs.faculty_id = f.id
+            GROUP BY s.id
+            ORDER BY s.department, s.semester, s.code
+        """)
         courses = cur.fetchall()
+        for c in courses:
+            if c['faculty_ids']:
+                # Handle potential duplicate IDs if JOIN returns multiple rows unexpectedly, though GROUP_CONCAT handles simple cases
+                c['faculty_ids'] = list(set([int(i) for i in str(c['faculty_ids']).split(',')]))
+            else:
+                c['faculty_ids'] = []
+                
+            if not c['faculty_names']:
+                c['faculty_names'] = "Unassigned"
+                
         return jsonify({"courses": courses})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -643,6 +774,7 @@ def add_course():
     name = data.get("name", "").strip()
     dept = data.get("department", "").strip()
     sem = data.get("semester", "")
+    faculty_ids = data.get("faculty_ids", [])
     
     if not code_val or not name or not dept or not str(sem).strip():
         return jsonify({"error": "All fields (code, name, department, semester) are required"}), 400
@@ -652,6 +784,11 @@ def add_course():
         cur = conn.cursor()
         cur.execute("INSERT INTO subjects (code, name, department, semester) VALUES (%s, %s, %s, %s)", 
                    (code_val, name, dept, sem))
+        course_id = cur.lastrowid
+        
+        for f_id in faculty_ids:
+            cur.execute("INSERT INTO faculty_subjects (faculty_id, subject_id) VALUES (%s, %s)", (f_id, course_id))
+            
         conn.commit()
         return jsonify({"message": "Course created successfully"})
     except Exception as e:
@@ -670,6 +807,7 @@ def update_course(course_id):
     name = data.get("name", "").strip()
     dept = data.get("department", "").strip()
     sem = data.get("semester", "")
+    faculty_ids = data.get("faculty_ids", [])
     
     if not code_val or not name or not dept or not str(sem).strip():
         return jsonify({"error": "All fields are required"}), 400
@@ -682,6 +820,11 @@ def update_course(course_id):
             SET code=%s, name=%s, department=%s, semester=%s 
             WHERE id=%s
         """, (code_val, name, dept, sem, course_id))
+        
+        cur.execute("DELETE FROM faculty_subjects WHERE subject_id=%s", (course_id,))
+        for f_id in faculty_ids:
+            cur.execute("INSERT INTO faculty_subjects (faculty_id, subject_id) VALUES (%s, %s)", (f_id, course_id))
+            
         conn.commit()
         return jsonify({"message": "Course updated successfully"})
     except Exception as e:

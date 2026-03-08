@@ -4,7 +4,7 @@ import Modal from '../../components/admin/Modal'
 import { getDepartments, renameDepartment } from '../../services/api'
 import toast from 'react-hot-toast'
 import { confirmToast } from '../../utils/confirmToast'
-import { RefreshCw, Users, BookOpen, GraduationCap } from 'lucide-react'
+import { RefreshCw, Users, BookOpen, GraduationCap, Pencil } from 'lucide-react'
 import './AdminPanel.css'
 
 const DepartmentManagement = () => {
@@ -97,6 +97,7 @@ const DepartmentManagement = () => {
     const actions = [
         {
             label: 'Rename',
+            icon: <Pencil size={16} />,
             variant: 'secondary',
             onClick: (dep) => openRenameModal(dep.department),
         }

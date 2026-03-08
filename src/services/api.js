@@ -129,6 +129,13 @@ export const deleteFaculty = async (id) => {
   })
 }
 
+export const updateFaculty = async (id, facultyData) => {
+  return request(`/admin/faculties/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(facultyData)
+  })
+}
+
 export const resetFacultyPassword = async (id) => {
   return request(`/admin/faculties/${id}/reset-password`, {
     method: 'POST'
@@ -163,6 +170,19 @@ export const batchUploadStudents = async (formData) => {
 export const resetStudentPassword = async (studentId) => {
   return request(`/admin/students/${studentId}/reset-password`, {
     method: 'POST'
+  })
+}
+
+export const updateStudent = async (studentId, studentData) => {
+  return request(`/admin/students/${studentId}`, {
+    method: 'PUT',
+    body: JSON.stringify(studentData)
+  })
+}
+
+export const deleteStudent = async (studentId) => {
+  return request(`/admin/students/${studentId}`, {
+    method: 'DELETE'
   })
 }
 
