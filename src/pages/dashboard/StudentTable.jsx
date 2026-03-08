@@ -16,7 +16,8 @@ const StudentTable = ({ students = [] }) => {
         const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             student.student_id.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesDept = filterDept === 'All' || student.department === filterDept;
-        const matchesRisk = filterRisk === 'All' || student.risk_level === filterRisk;
+        const matchesRisk = filterRisk === 'All' ||
+            (student.risk_level && student.risk_level.toLowerCase() === filterRisk.toLowerCase());
         const matchesSubject = filterSubject === 'All' || student.subject_name === filterSubject;
         return matchesSearch && matchesDept && matchesRisk && matchesSubject;
     });
@@ -69,8 +70,8 @@ const StudentTable = ({ students = [] }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {filteredStudents.map(student => (
-                            <tr key={student.student_id} onClick={() => setSelectedStudent(student)}>
+                        {filteredStudents.map((student, index) => (
+                            <tr key={`${student.student_id}-${student.subject_name || index}`} onClick={() => setSelectedStudent(student)}>
                                 <td className="st-id">{student.student_id}</td>
                                 <td className="st-name">{student.name}</td>
                                 {subjects.length > 1 && <td>{student.subject_name || '-'}</td>}
