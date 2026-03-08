@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import './DashboardComponents.css';
 import StudentDetailModal from './StudentDetailModal';
+import { Search, Filter, ChevronDown } from 'lucide-react';
 
 const StudentTable = ({ students = [] }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -26,14 +26,16 @@ const StudentTable = ({ students = [] }) => {
     const subjects = ['All', ...new Set(safeStudents.map(s => s.subject_name).filter(Boolean))];
 
     return (
-        <div className="student-table-section">
-            <div className="table-controls minimal">
-                <div className="search-box">
+        <div className="student-table-section animate-slide-up">
+            <div className="table-controls">
+                <div className="search-box-wrapper">
+                    <Search size={16} className="search-icon" />
                     <input
                         type="text"
-                        placeholder="Search by ID or Name..."
+                        placeholder="Search students..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
+                        className="search-input-modern"
                     />
                 </div>
                 <div className="filters">
@@ -54,8 +56,8 @@ const StudentTable = ({ students = [] }) => {
                 </div>
             </div>
 
-            <div className="table-wrapper">
-                <table className="student-table minimal">
+            <div className="card-panel table-card-panel">
+                <table className="student-table modern">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -66,7 +68,7 @@ const StudentTable = ({ students = [] }) => {
                             <th>Attendance</th>
                             <th>GPA</th>
                             <th>Backlogs</th>
-                            <th>Risk Level</th>
+                            <th>Risk Status</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -86,10 +88,62 @@ const StudentTable = ({ students = [] }) => {
                                     </span>
                                 </td>
                             </tr>
-                        ))}
+                        )}
                     </tbody>
                 </table>
             </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="pagination-controls" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', padding: '0 4px' }}>
+                    <p style={{ fontSize: '13px', color: 'var(--c-text-secondary)' }}>
+                        Showing <strong>{indexOfFirstItem + 1}</strong> to <strong>{Math.min(indexOfLastItem, filteredStudents.length)}</strong> of <strong>{filteredStudents.length}</strong> results
+                    </p>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                            className="btn-secondary-action"
+                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            disabled={currentPage === 1}
+                            style={{ padding: '6px 14px' }}
+                        >
+                            Previous
+                        </button>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                // Logic to show relevant page numbers (simplified for now)
+                                let p = i + 1;
+                                if (totalPages > 5 && currentPage > 3) {
+                                    p = currentPage - 2 + i;
+                                    if (p > totalPages) p = totalPages - (4 - i);
+                                }
+                                return (
+                                    <button
+                                        key={p}
+                                        className={`btn-icon ${currentPage === p ? 'active' : ''}`}
+                                        onClick={() => setCurrentPage(p)}
+                                        style={{
+                                            width: '32px', height: '32px',
+                                            background: currentPage === p ? 'var(--c-accent-primary)' : 'transparent',
+                                            color: currentPage === p ? 'white' : 'var(--c-text-secondary)',
+                                            border: currentPage === p ? 'none' : '1px solid var(--c-border-subtle)'
+                                        }}
+                                    >
+                                        {p}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                        <button
+                            className="btn-secondary-action"
+                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            disabled={currentPage === totalPages}
+                            style={{ padding: '6px 14px' }}
+                        >
+                            Next
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {selectedStudent && (
                 <StudentDetailModal

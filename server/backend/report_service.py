@@ -1,13 +1,14 @@
-from flask import Blueprint, send_file, jsonify
-from reportlab.lib.pagesizes import letter, A4
+from flask import Blueprint, send_file, jsonify, session
+from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.enums import TA_CENTER
 from io import BytesIO
 from datetime import datetime
 from db_connect import get_connection
+from utils import get_faculty_class_id
 
 report_bp = Blueprint('report', __name__)
 
@@ -17,10 +18,13 @@ def generate_risk_report():
     conn = None
     try:
         conn = get_connection()
+        class_id = get_faculty_class_id(conn)
         cur = conn.cursor(dictionary=True)
-        
-        # Fetch high-risk students
-        cur.execute("SELECT * FROM students WHERE risk_level = 'High' ORDER BY risk_score DESC")
+
+        if class_id:
+            cur.execute("SELECT * FROM students WHERE risk_level = 'High' AND class_id = %s ORDER BY risk_score DESC", (class_id,))
+        else:
+            cur.execute("SELECT * FROM students WHERE risk_level = 'High' ORDER BY risk_score DESC")
         high_risk_students = cur.fetchall()
         cur.close()
         
@@ -117,10 +121,13 @@ def generate_performance_report():
     conn = None
     try:
         conn = get_connection()
+        class_id = get_faculty_class_id(conn)
         cur = conn.cursor(dictionary=True)
-        
-        # Fetch all students
-        cur.execute("SELECT * FROM students ORDER BY sgpa DESC")
+
+        if class_id:
+            cur.execute("SELECT * FROM students WHERE class_id = %s ORDER BY sgpa DESC", (class_id,))
+        else:
+            cur.execute("SELECT * FROM students ORDER BY sgpa DESC")
         students = cur.fetchall()
         cur.close()
         

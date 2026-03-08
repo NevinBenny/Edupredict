@@ -15,6 +15,7 @@ import StudentsPage from './pages/dashboard/StudentsPage'
 import AIRiskPrediction from './pages/dashboard/AIRiskPrediction'
 import Reports from './pages/dashboard/Reports'
 import Interventions from './pages/dashboard/Interventions'
+import ClassManagement from './pages/dashboard/ClassManagement'
 import UserAccount from './pages/UserAccount'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
@@ -25,6 +26,7 @@ import StudentManagement from './pages/admin/StudentManagement'
 import DepartmentManagement from './pages/admin/DepartmentManagement'
 import CourseManagement from './pages/admin/CourseManagement'
 import ProtectedRoute from './components/ProtectedRoute'
+import StudentHome from './pages/student/StudentHome'
 import { AuthProvider } from './context/AuthContext'
 
 function App() {
@@ -106,13 +108,22 @@ function App() {
           }
         >
           <Route index element={<AdminDashboard />} />
-          <Route path="users" element={<UserManagement />} />
           <Route path="faculty" element={<FacultyManagement />} />
           <Route path="students" element={<StudentManagement />} />
           <Route path="departments" element={<DepartmentManagement />} />
           <Route path="courses" element={<CourseManagement />} />
           <Route path="settings" element={<SystemSettings />} />
         </Route>
+
+        {/* Student Portal - Protected for STUDENT role */}
+        <Route
+          path="/student"
+          element={
+            <ProtectedRoute requiredRole="STUDENT">
+              <StudentHome />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Catch-all route */}
         <Route path="*" element={<Navigate to="/auth/login" replace />} />

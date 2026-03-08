@@ -65,33 +65,33 @@ const Reports = () => {
   }
 
   return (
-    <div className="dash-page">
-      <div className="page-header">
+    <div className="dash-container">
+      <div className="section-header">
         <div>
-          <p className="eyebrow">Performance</p>
-          <h2>Reports Generation</h2>
+          <h3>Reports Generation</h3>
+          <p>Download detailed insights and academic summaries</p>
         </div>
       </div>
 
       {error && (
-        <div className="alert alert-danger" style={{ marginBottom: '20px' }}>
+        <div className="alert alert-error" style={{ marginBottom: '20px' }}>
           <AlertCircle size={18} /> {error}
         </div>
       )}
 
       <div className="dashboard-grid-2col">
         {/* Risk Report Card */}
-        <div className="card">
-          <div className="card-header">
+        <div className="card-panel">
+          <div className="section-header" style={{ marginBottom: '16px' }}>
             <h3>At-Risk Student Report</h3>
           </div>
-          <div className="card-body">
+          <div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
-              <div className="stat-icon" style={{ background: '#FEE2E2', color: '#EF4444', marginTop: '4px' }}>
+              <div className="metric-icon-box" style={{ background: '#FEE2E2', color: '#EF4444' }}>
                 <FileText size={24} />
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ marginBottom: '8px', color: '#374151' }}>
+                <p style={{ marginBottom: '16px', color: 'var(--c-text-secondary)', lineHeight: '1.5', fontSize: '14px' }}>
                   Generates a detailed list of students identified as 'High Risk'. Includes risk scores,
                   attendance deficits, and backlog counts for immediate intervention.
                 </p>
@@ -99,13 +99,12 @@ const Reports = () => {
                   className="btn-primary"
                   onClick={downloadRiskReport}
                   disabled={loading}
-                  style={{ marginTop: '12px' }}
                 >
                   {loading ? (
                     <>Generating...</>
                   ) : (
                     <>
-                      <Download size={16} style={{ marginRight: '6px' }} />
+                      <Download size={18} />
                       Download Risk Report
                     </>
                   )}
@@ -116,31 +115,30 @@ const Reports = () => {
         </div>
 
         {/* Performance Report Card */}
-        <div className="card">
-          <div className="card-header">
+        <div className="card-panel">
+          <div className="section-header" style={{ marginBottom: '16px' }}>
             <h3>Class Performance Report</h3>
           </div>
-          <div className="card-body">
+          <div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
-              <div className="stat-icon" style={{ background: '#DBEAFE', color: '#2563EB', marginTop: '4px' }}>
+              <div className="metric-icon-box" style={{ background: '#DBEAFE', color: '#2563EB' }}>
                 <FileText size={24} />
               </div>
               <div style={{ flex: 1 }}>
-                <p style={{ marginBottom: '8px', color: '#374151' }}>
+                <p style={{ marginBottom: '16px', color: 'var(--c-text-secondary)', lineHeight: '1.5', fontSize: '14px' }}>
                   Comprehensive academic summary including class averages for SGPA and Attendance,
                   along with a full roster performance breakdown.
                 </p>
                 <button
-                  className="btn-secondary"
+                  className="btn-secondary-action"
                   onClick={downloadPerformanceReport}
                   disabled={loading}
-                  style={{ marginTop: '12px' }}
                 >
                   {loading ? (
                     <>Generating...</>
                   ) : (
                     <>
-                      <Download size={16} style={{ marginRight: '6px' }} />
+                      <Download size={18} />
                       Download Academic Report
                     </>
                   )}
@@ -152,15 +150,15 @@ const Reports = () => {
       </div>
 
       {/* Recent Reports Section (Placeholder) */}
-      <div className="card" style={{ marginTop: '2rem' }}>
-        <div className="card-header">
+      <div className="card-panel">
+        <div className="section-header" style={{ marginBottom: '16px' }}>
           <h3>Recent Reports</h3>
         </div>
-        <div className="card-body">
-          <div className="empty-state" style={{ padding: '40px' }}>
-            <FileText size={48} color="#9CA3AF" style={{ marginBottom: '12px' }} />
-            <p style={{ color: '#6B7280' }}>No reports generated recently in this session.</p>
-            <p style={{ fontSize: '12px', color: '#9CA3AF', marginTop: '4px' }}>
+        <div>
+          <div className="empty-state-small" style={{ padding: '40px' }}>
+            <FileText size={48} color="var(--c-text-tertiary)" style={{ marginBottom: '12px' }} />
+            <p style={{ color: 'var(--c-text-secondary)' }}>No reports generated recently in this session.</p>
+            <p style={{ fontSize: '13px', color: 'var(--c-text-tertiary)', marginTop: '4px' }}>
               Downloaded reports are saved to your browser's default download location.
             </p>
           </div>

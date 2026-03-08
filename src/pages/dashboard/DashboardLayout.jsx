@@ -4,7 +4,16 @@ import { useEffect, useState } from 'react'
 import { getAccountProfile } from '../../services/api'
 import CompleteProfileModal from '../../components/CompleteProfileModal'
 import './Dashboard.css'
-import icon from '../../assets/icon.png'
+import {
+  LayoutDashboard,
+  Users,
+  BrainCircuit,
+  Stethoscope,
+  FileText,
+  LogOut,
+  Bell,
+  User
+} from 'lucide-react'
 
 const facultyNav = [
   { label: 'Dashboard', to: '/dashboard', end: true },
@@ -38,8 +47,6 @@ const DashboardLayout = () => {
         role: data.role || 'USER'
       })
 
-      // Check if profile is incomplete
-      // Consider it incomplete if full_name, phone_number, or country is missing
       const isProfileIncomplete = !profile.full_name || !profile.phone_number || !profile.country
       if (isProfileIncomplete) {
         setShowCompleteProfile(true)
@@ -54,7 +61,7 @@ const DashboardLayout = () => {
   }, [])
 
   const handleProfileComplete = () => {
-    loadProfile() // Reload to get updated name etc.
+    loadProfile()
   }
 
   return (
@@ -87,33 +94,22 @@ const DashboardLayout = () => {
                     `nav-link ${isActive ? 'nav-link-active' : ''}`
                   }
                 >
-                  {link.label}
+                  {link.icon}
+                  <span>{link.label}</span>
                 </NavLink>
               </li>
             ))}
           </ul>
         </nav>
 
-        <div style={{ marginTop: 'auto' }}>
-          <button
-            onClick={logout}
-            className="nav-link"
-            style={{
-              width: '100%',
-              justifyContent: 'flex-start',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              color: '#d14343'
-            }}
-          >
-            Logout
-          </button>
-        </div>
+        <button onClick={logout} className="nav-link logout-btn">
+          <LogOut size={20} />
+          <span>Logout</span>
+        </button>
       </aside>
 
       <div className="dashboard-main">
-        <header className="dashboard-topbar minimal">
+        <header className="dashboard-topbar">
           <div className="topbar-left">
             <h1 className="portal-title">
               {userProfile.role === 'FACULTY' ? 'Faculty Portal' : 'Student Portal'}
@@ -122,10 +118,12 @@ const DashboardLayout = () => {
           <div className="topbar-actions">
             <div className="notifications-icon">
               <span className="dot"></span>
-              🔔
+              <Bell size={20} />
             </div>
             <NavLink to="/dashboard/account" className="user-profile-chip">
-              <div className="avatar">{userProfile.name.charAt(0)}</div>
+              <div className="avatar">
+                {userProfile.name.charAt(0).toUpperCase()}
+              </div>
               <div className="info">
                 <span className="name">{userProfile.name}</span>
                 <span className="role">{userProfile.role === 'FACULTY' ? 'Faculty' : 'Student'}</span>
@@ -135,7 +133,7 @@ const DashboardLayout = () => {
         </header>
 
         <main className="dashboard-content">
-          <Outlet />
+          <Outlet context={{ userProfile }} />
         </main>
       </div>
     </div >

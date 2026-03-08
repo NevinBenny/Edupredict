@@ -92,40 +92,39 @@ const Interventions = () => {
     const highRiskStudents = students.filter(s => s.risk_level === 'High')
 
     return (
-        <div className="dash-page">
-            <div className="page-header">
+        <div className="dash-container">
+            <div className="section-header">
                 <div>
-                    <p className="eyebrow">Student Support</p>
-                    <h2>Interventions & Assignments</h2>
+                    <h3>Interventions & Assignments</h3>
+                    <p>Manage student support and remedial tasks</p>
                 </div>
                 <button className="btn-primary" onClick={() => setShowModal(true)}>
-                    <Plus size={18} style={{ marginRight: '8px' }} /> Assign New Task
+                    <Plus size={18} /> Assign New Task
                 </button>
             </div>
 
             <div className="dashboard-grid-2col" style={{ alignItems: 'start' }}>
                 {/* Left: High Risk Students - Compact List */}
-                <div className="card">
-                    <div className="card-header">
+                <div className="card-panel">
+                    <div className="section-header" style={{ marginBottom: '16px' }}>
                         <h3>High Risk Students</h3>
                     </div>
-                    <div className="card-body" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                    <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
                         {highRiskStudents.length > 0 ? (
                             <ul className="alert-list">
                                 {highRiskStudents.map(s => (
-                                    <li key={s.student_id} className="alert-item" style={{ alignItems: 'center', padding: '10px' }}>
-                                        <div className="alert-icon" style={{ color: '#EF4444' }}>
-                                            <AlertCircle size={18} />
+                                    <li key={s.student_id} className="alert-item">
+                                        <div className="alert-icon" style={{ color: 'var(--c-status-danger)' }}>
+                                            <AlertCircle size={20} />
                                         </div>
                                         <div className="alert-content" style={{ flex: 1 }}>
-                                            <p style={{ marginBottom: '2px', fontSize: '13px' }}>{s.name}</p>
-                                            <span className="user-role" style={{ fontSize: '11px', color: '#666' }}>
-                                                Score: {s.risk_score} • {s.department}
+                                            <p>{s.name}</p>
+                                            <span className="text-sm">
+                                                Risk Score: <strong>{s.risk_score}</strong> • {s.department}
                                             </span>
                                         </div>
                                         <button
                                             className="btn-sm btn-outline"
-                                            style={{ fontSize: '11px', padding: '4px 8px' }}
                                             onClick={() => {
                                                 setSelectedStudent(s.student_id)
                                                 setShowModal(true)
@@ -138,64 +137,65 @@ const Interventions = () => {
                             </ul>
                         ) : (
                             <div className="empty-state-small">
-                                <CheckCircle size={24} color="#10B981" />
-                                <p>No high risk students.</p>
+                                <CheckCircle size={24} color="var(--c-status-safe)" />
+                                <p>No high risk students found.</p>
                             </div>
                         )}
                     </div>
                 </div>
 
                 {/* Right: Active Interventions - Detailed Cards */}
-                <div className="card">
-                    <div className="card-header">
+                <div className="card-panel">
+                    <div className="section-header" style={{ marginBottom: '16px' }}>
                         <h3>Active Interventions</h3>
                     </div>
-                    <div className="card-body">
+                    <div>
                         {interventions.length > 0 ? (
-                            <div className="intervention-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <div className="intervention-list">
                                 {interventions.map(int => (
-                                    <div key={int.id} className="sensor-card intervention-card">
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                <h4 className="sensor-name" style={{ fontSize: '14px', marginBottom: '4px' }}>{int.title}</h4>
-                                                <span className={`status-badge ${int.status === 'Completed' ? 'active' : 'warn'}`}>
-                                                    {int.status}
-                                                </span>
-                                            </div>
-                                            <p className="sensor-status" style={{ fontSize: '12px' }}>
-                                                For: <strong>{int.student_name}</strong> • Due: {int.due_date || 'No date'}
+                                    <div key={int.id} className="intervention-card">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                            <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>{int.title}</h4>
+                                            <span className={`status-badge ${int.status === 'Completed' ? 'active' : 'warn'}`}>
+                                                {int.status}
+                                            </span>
+                                        </div>
+
+                                        <p className="text-sm" style={{ marginBottom: '8px' }}>
+                                            Student: <strong>{int.student_name}</strong> • Due: {int.due_date || 'No date'}
+                                        </p>
+
+                                        {int.description && (
+                                            <p style={{ fontSize: '13px', color: 'var(--c-text-secondary)', fontStyle: 'italic', marginBottom: '12px', background: 'var(--c-surface-muted)', padding: '8px', borderRadius: '4px' }}>
+                                                "{int.description}"
                                             </p>
-                                            {int.description && (
-                                                <p style={{ fontSize: '12px', color: '#555', marginTop: '6px', fontStyle: 'italic' }}>
-                                                    "{int.description}"
-                                                </p>
+                                        )}
+
+                                        {/* Action Row */}
+                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '12px', flexWrap: 'wrap' }}>
+                                            {int.file_path && (
+                                                <a
+                                                    href={`http://localhost:5000/api/uploads/interventions/${int.file_path}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="link-btn"
+                                                    style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                >
+                                                    <FileText size={14} /> View Attachment
+                                                </a>
                                             )}
 
-                                            {/* Action Row */}
-                                            <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
-                                                {int.file_path && (
-                                                    <a
-                                                        href={`http://localhost:5000/api/uploads/interventions/${int.file_path}`}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="link-btn"
-                                                        style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', color: '#2563EB', textDecoration: 'none' }}
-                                                    >
-                                                        <FileText size={14} /> View Document
-                                                    </a>
-                                                )}
-                                                {int.status !== 'Completed' && (
+                                            <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+                                                {int.status !== 'Completed' ? (
                                                     <button
                                                         className="action-btn"
-                                                        style={{ marginLeft: 'auto' }}
                                                         onClick={() => updateStatus(int.id, 'Completed')}
                                                     >
                                                         Mark Complete
                                                     </button>
-                                                )}
-                                                {int.status === 'Completed' && (
-                                                    <span style={{ fontSize: '11px', color: '#10B981', marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        <CheckCircle size={12} /> Done
+                                                ) : (
+                                                    <span style={{ fontSize: '12px', color: 'var(--c-status-safe)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
+                                                        <CheckCircle size={14} /> Completed
                                                     </span>
                                                 )}
                                             </div>
@@ -204,9 +204,9 @@ const Interventions = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="empty-state">
-                                <CheckCircle size={48} color="#10B981" style={{ marginBottom: '10px' }} />
-                                <p>No active interventions.</p>
+                            <div className="empty-state-small" style={{ background: 'transparent' }}>
+                                <Clock size={32} color="var(--c-text-tertiary)" />
+                                <p>No active interventions or assignments.</p>
                             </div>
                         )}
                     </div>
@@ -216,37 +216,43 @@ const Interventions = () => {
             {/* Assignment Modal */}
             {showModal && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '500px' }}>
+                    <div className="modal-content">
                         <div className="modal-header">
-                            <h3>Assign New Task</h3>
+                            <h3>Assign New Task / Intervention</h3>
                             <button className="close-btn" onClick={() => setShowModal(false)}><X size={20} /></button>
                         </div>
                         <form onSubmit={handleAssign} className="modal-form">
                             <div className="form-group">
-                                <label>Select Student</label>
-                                <select
-                                    className="form-input"
-                                    value={selectedStudent}
-                                    onChange={(e) => setSelectedStudent(e.target.value)}
-                                    required
-                                >
-                                    <option value="">-- Choose Student --</option>
-                                    {highRiskStudents.map(s => (
-                                        <option key={s.student_id} value={s.student_id}>
-                                            {s.name} (Risk: {s.risk_score})
-                                        </option>
-                                    ))}
-                                    <option disabled>--- Other Students ---</option>
-                                    {students.filter(s => s.risk_level !== 'High').map(s => (
-                                        <option key={s.student_id} value={s.student_id}>
-                                            {s.name}
-                                        </option>
-                                    ))}
-                                </select>
+                                <label>Select Student <span style={{ color: 'red' }}>*</span></label>
+                                <div className="select-wrapper">
+                                    <select
+                                        className="form-input"
+                                        value={selectedStudent}
+                                        onChange={(e) => setSelectedStudent(e.target.value)}
+                                        required
+                                        style={{ width: '100%' }}
+                                    >
+                                        <option value="">-- Choose Student --</option>
+                                        {highRiskStudents.length > 0 && <optgroup label="High Risk Students">
+                                            {highRiskStudents.map(s => (
+                                                <option key={s.student_id} value={s.student_id}>
+                                                    {s.name} (Risk: {s.risk_score})
+                                                </option>
+                                            ))}
+                                        </optgroup>}
+                                        <optgroup label="Other Students">
+                                            {students.filter(s => s.risk_level !== 'High').map(s => (
+                                                <option key={s.student_id} value={s.student_id}>
+                                                    {s.name}
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                    </select>
+                                </div>
                             </div>
 
                             <div className="form-group">
-                                <label>Task Title</label>
+                                <label>Task Title <span style={{ color: 'red' }}>*</span></label>
                                 <input
                                     type="text"
                                     className="form-input"
@@ -261,14 +267,16 @@ const Interventions = () => {
                                 <label>Description (Optional)</label>
                                 <textarea
                                     className="form-input"
-                                    rows="2"
+                                    rows="3"
+                                    placeholder="Instructions for the student..."
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
+                                    style={{ resize: 'vertical' }}
                                 ></textarea>
                             </div>
 
-                            <div className="form-row" style={{ display: 'flex', gap: '16px' }}>
-                                <div className="form-group" style={{ flex: 1 }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                <div className="form-group">
                                     <label>Due Date</label>
                                     <input
                                         type="date"
@@ -277,19 +285,18 @@ const Interventions = () => {
                                         onChange={(e) => setDueDate(e.target.value)}
                                     />
                                 </div>
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label>Attach PDF (Question Paper)</label>
+                                <div className="form-group">
+                                    <label>Attach PDF (Optional)</label>
                                     <input
                                         type="file"
                                         className="form-input"
                                         accept="application/pdf"
                                         onChange={(e) => setFile(e.target.files[0])}
-                                        style={{ padding: '7px' }}
                                     />
                                 </div>
                             </div>
 
-                            <div className="form-actions" style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #eee' }}>
+                            <div className="form-actions">
                                 <button type="button" className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
                                 <button type="submit" className="btn-primary">Assign Task</button>
                             </div>

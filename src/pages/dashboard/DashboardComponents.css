@@ -238,8 +238,12 @@
     bottom: 0;
     background: rgba(0, 0, 0, 0.4);
     display: flex;
-    justify-content: flex-end;
+    /* justify-content: flex-end; Removed to allow default centering or override */
     z-index: 1000;
+}
+
+.modal-overlay.sidebar-mode {
+    justify-content: flex-end;
 }
 
 .modal-sidebar {

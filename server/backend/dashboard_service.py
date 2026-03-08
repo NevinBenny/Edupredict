@@ -1,18 +1,34 @@
 from flask import Blueprint, jsonify, request, session
 from db_connect import get_connection
 import mysql.connector
+from utils import get_faculty_class_id, generate_student_id
 
 dashboard_bp = Blueprint("dashboard", __name__)
+
 
 @dashboard_bp.route("/api/dashboard/summary", methods=["GET"])
 def get_summary():
     conn = None
     try:
         conn = get_connection()
-        cur = conn.cursor(dictionary=True)
+        class_id = get_faculty_class_id(conn)
         
-        # Total Students
-        cur.execute("SELECT COUNT(*) as total FROM students")
+        # Security: If Faculty but no class assigned, return empty stats
+        if session.get("role") == "FACULTY" and not class_id:
+            conn.close()
+            return jsonify({
+                "total_students": 0,
+                "avg_attendance": 0,
+                "avg_sgpa": 0,
+                "high_risk_students": 0
+            })
+
+        cur = conn.cursor(dictionary=True)
+
+        where = "WHERE class_id = %s" if class_id else ""
+        params = (class_id,) if class_id else ()
+
+        cur.execute(f"SELECT COUNT(*) as total FROM students {where}", params)
         total = cur.fetchone()['total']
         
         # Average Attendance from academic records
@@ -28,14 +44,14 @@ def get_summary():
         # High Risk Count
         cur.execute("SELECT COUNT(*) as high_risk FROM students WHERE risk_level = 'High'")
         high_risk = cur.fetchone()['high_risk']
-        
+
         summary = {
             "total_students": total,
             "avg_attendance": round(avg_attendance, 1),
             "avg_sgpa": round(avg_sgpa, 2),
             "high_risk_students": high_risk
         }
-        
+
         cur.close()
         return jsonify(summary)
     except Exception as err:
@@ -44,41 +60,49 @@ def get_summary():
         if conn:
             conn.close()
 
+
 @dashboard_bp.route("/api/dashboard/risk-distribution", methods=["GET"])
 def get_risk_distribution():
     conn = None
     try:
         conn = get_connection()
+        class_id = get_faculty_class_id(conn)
+        
+        # Security: If Faculty but no class assigned, return empty distribution
+        if session.get("role") == "FACULTY" and not class_id:
+            conn.close()
+            return jsonify([])
+
         cur = conn.cursor(dictionary=True)
-        
-        cur.execute("""
-            SELECT risk_level, COUNT(*) as count 
-            FROM students 
+
+        where = "WHERE class_id = %s" if class_id else ""
+        params = (class_id,) if class_id else ()
+
+        cur.execute(f"""
+            SELECT risk_level, COUNT(*) as count
+            FROM students {where}
             GROUP BY risk_level
-        """)
+        """, params)
         rows = cur.fetchall()
-        
-        # Map to specific frontend format with restrained colors
+
         risk_map = {
-            "Low": {"color": "#10b981", "order": 1},
+            "Low":    {"color": "#10b981", "order": 1},
             "Medium": {"color": "#f59e0b", "order": 2},
-            "High": {"color": "#ef4444", "order": 3}
+            "High":   {"color": "#ef4444", "order": 3}
         }
-        
+
         distribution = []
         for row in rows:
             level = row['risk_level']
             if level in risk_map:
                 distribution.append({
-                    "name": level if "Risk" in level else f"{level} Risk",
+                    "name": f"{level} Risk",
                     "value": row['count'],
                     "color": risk_map[level]['color'],
                     "order": risk_map[level]['order']
                 })
-        
-        # Sort by predefined order
+
         distribution.sort(key=lambda x: x['order'])
-        
         cur.close()
         return jsonify(distribution)
     except mysql.connector.Error as err:
@@ -86,6 +110,7 @@ def get_risk_distribution():
     finally:
         if conn:
             conn.close()
+
 
 @dashboard_bp.route("/api/students", methods=["GET"])
 def get_students():
@@ -100,7 +125,7 @@ def get_students():
     conn = None
     try:
         conn = get_connection()
-        cur = conn.cursor(dictionary=True)
+        class_id = get_faculty_class_id(conn)
         
         if role == "ADMIN":
             cur.execute("""
@@ -151,15 +176,12 @@ def get_students():
         if conn:
             conn.close()
 
+
 @dashboard_bp.route("/api/students", methods=["POST"])
 def add_student():
     data = request.json
     required_fields = ["student_id", "name", "subject_id", "attendance_percentage"]
     
-    for field in required_fields:
-        if field not in data:
-            return jsonify({"error": f"Missing required field: {field}"}), 400
-            
     conn = None
     try:
         conn = get_connection()
@@ -184,8 +206,49 @@ def add_student():
         else:
             student_db_id = existing_student['id']
         
-        # Default calculations if not provided
-        internal_marks = data.get("internal_marks", 0)
+        # ── Faculty Scoping & Auto-Fill ───────────────────────────────────────
+        class_id = None
+        department = data.get("department", "").strip()
+        semester = data.get("semester", "").strip()
+
+        if session.get("role") == "FACULTY":
+            # Get full class details for the logged-in faculty
+            email = session.get("email")
+            cur.execute("""
+                SELECT c.id, c.department, c.semester 
+                FROM faculties f
+                JOIN classes c ON f.class_id = c.id
+                WHERE f.email = %s
+            """, (email,))
+            classroom = cur.fetchone()
+            
+            if not classroom:
+                cur.close()
+                return jsonify({"error": "You must be assigned to a class to add students."}), 403
+            
+            class_id = classroom["id"]
+            department = classroom["department"]
+            semester = classroom["semester"]
+        
+        # ── Usage & Logic Validation ──────────────────────────────────────────
+        # For non-faculty (e.g. legacy/admin), dept/sem must be in body
+        if not department or not semester:
+            cur.close()
+            return jsonify({"error": "Department and Semester are required."}), 400
+
+        required_fields = ["name", "attendance_percentage"]
+        for field in required_fields:
+            if not data.get(field):
+                cur.close()
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+
+        # Auto-generate ID if not provided
+        student_id = data.get("student_id")
+        if not student_id:
+            student_id = generate_student_id(conn, department)
+
+        # ── Risk Calculation ──────────────────────────────────────────────────
+        internal_marks   = data.get("internal_marks", 0)
         assignment_score = data.get("assignment_score", 0)
         
         # 3. Check if academic record already exists for this subject

@@ -26,21 +26,56 @@ const AIRiskPrediction = () => {
     }
   };
 
+  const runPredictions = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('http://localhost:5000/api/ai/run-predictions', {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || 'Failed to run ML predictions');
+      }
+      // Re-fetch the updated data to refresh charts
+      await fetchAnalysis();
+    } catch (err) {
+      setError(err.message);
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchAnalysis();
   }, []);
 
-  if (loading) return <div className="dash-page"><div className="loading-spinner">Analyzing data...</div></div>;
-  if (error) return <div className="dash-page"><div className="error-message">Error: {error} <button onClick={fetchAnalysis}>Retry</button></div></div>;
+  if (loading) return <div className="dash-loading"><div className="loading-spinner"></div><p>Analyzing student data...</p></div>;
+  if (error) return (
+    <div className="dash-container">
+      <div className="alert alert-error">
+        <AlertTriangle size={18} />
+        <span>Error: {error}</span>
+        <button onClick={fetchAnalysis} className="btn-sm btn-outline" style={{ marginLeft: 'auto' }}>Retry</button>
+      </div>
+    </div>
+  );
 
   const { summary, distribution, insights, high_risk_students } = data;
 
   return (
-    <div className="dash-page">
-      <div className="page-header">
+    <div className="dash-container">
+      <div className="section-header">
         <div>
-          <p className="eyebrow">AI Powered Insights</p>
-          <h2>Risk Analysis Dashboard</h2>
+          <h3>AI Powered Insights</h3>
+          <p>Risk analysis and predictive modeling</p>
+        </div>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={fetchAnalysis} className="btn-secondary-action">
+            <TrendingUp size={16} /> Refresh
+          </button>
+          <button onClick={runPredictions} className="primary-btn" style={{ margin: 0, padding: '8px 16px', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <BrainCircuit size={16} /> Run AI Diagnostics
+          </button>
         </div>
         <button onClick={fetchAnalysis} className="btn-secondary-action">
           <RefreshCw size={16} />
@@ -57,46 +92,63 @@ const AIRiskPrediction = () => {
             <p>Total Students</p>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: '#FEE2E2', color: '#EF4444' }}><AlertTriangle size={24} /></div>
-          <div className="stat-info">
-            <h3>{summary.high_risk_count}</h3>
-            <p>High Risk Students</p>
+
+        <div className="card-panel metric-card">
+          <div className="metric-header">
+            <span className="metric-label">High Risk</span>
+            <div className="metric-icon-box" style={{ background: '#FEE2E2', color: '#EF4444' }}>
+              <AlertTriangle size={20} />
+            </div>
+          </div>
+          <div className="metric-value" style={{ color: 'var(--c-status-danger)' }}>{summary.high_risk_count}</div>
+          <div className="metric-trend down">
+            <span className="trend-label">Require attention</span>
           </div>
         </div>
-        <div className="stat-card">
-          <div className="stat-icon" style={{ background: '#FEF3C7', color: '#D97706' }}><TrendingUp size={24} /></div>
-          <div className="stat-info">
-            <h3>{summary.avg_risk_score}</h3>
-            <p>Avg Risk Score</p>
+
+        <div className="card-panel metric-card">
+          <div className="metric-header">
+            <span className="metric-label">Avg Risk Score</span>
+            <div className="metric-icon-box" style={{ background: '#FEF3C7', color: '#D97706' }}>
+              <TrendingUp size={20} />
+            </div>
+          </div>
+          <div className="metric-value">{summary.avg_risk_score}</div>
+          <div className="metric-trend">
+            <span className="trend-label">Overall class health</span>
           </div>
         </div>
       </div>
 
-      <div className="dashboard-grid-2col" style={{ marginTop: '2rem' }}>
+      <div className="dashboard-grid-2col">
         {/* Left: AI Insights */}
-        <div className="card">
-          <div className="card-header">
+        <div className="card-panel">
+          <div className="section-header" style={{ marginBottom: '16px' }}>
             <h3>AI Insights</h3>
           </div>
-          <div className="card-body">
-            <ul className="insights-list">
+          <div>
+            <ul className="alert-list" style={{ gap: '12px' }}>
               {insights.map((insight, idx) => (
-                <li key={idx} className="insight-item">
-                  <span className="bullet">•</span> {insight}
+                <li key={idx} className="alert-item" style={{ alignItems: 'flex-start' }}>
+                  <div className="alert-icon" style={{ color: 'var(--c-accent-primary)', marginTop: '2px' }}>
+                    <CheckCircle size={18} />
+                  </div>
+                  <div className="alert-content">
+                    <p style={{ fontWeight: '400', fontSize: '14px', lineHeight: '1.5' }}>{insight}</p>
+                  </div>
                 </li>
               ))}
-              {insights.length === 0 && <p>No specific insights generated.</p>}
+              {insights.length === 0 && <p className="text-secondary">No specific insights generated.</p>}
             </ul>
           </div>
         </div>
 
         {/* Right: Risk Distribution Chart */}
-        <div className="card">
-          <div className="card-header">
+        <div className="card-panel">
+          <div className="section-header" style={{ marginBottom: '16px' }}>
             <h3>Risk Distribution</h3>
           </div>
-          <div className="card-body" style={{ height: '300px' }}>
+          <div style={{ height: '300px', width: '100%' }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
@@ -109,11 +161,13 @@ const AIRiskPrediction = () => {
                   dataKey="value"
                 >
                   {distribution.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                   ))}
                 </Pie>
-                <Tooltip />
-                <Legend verticalAlign="bottom" height={36} />
+                <Tooltip
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+                />
+                <Legend verticalAlign="bottom" height={36} iconType="circle" />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -121,12 +175,12 @@ const AIRiskPrediction = () => {
       </div>
 
       {/* Bottom: High Risk Students Table */}
-      <div className="card" style={{ marginTop: '2rem' }}>
-        <div className="card-header">
+      <div className="card-panel">
+        <div className="section-header" style={{ marginBottom: '20px' }}>
           <h3>Students Requiring Attention</h3>
         </div>
-        <div className="table-responsive">
-          <table className="data-table">
+        <div className="table-card-panel">
+          <table className="student-table modern">
             <thead>
               <tr>
                 <th>ID</th>
@@ -141,12 +195,27 @@ const AIRiskPrediction = () => {
               {high_risk_students.length > 0 ? (
                 high_risk_students.map(student => (
                   <tr key={student.student_id}>
-                    <td>{student.student_id}</td>
-                    <td>{student.name}</td>
-                    <td>{student.department}</td>
-                    <td>{student.attendance_percentage}%</td>
+                    <td className="font-mono text-sm">{student.student_id}</td>
+                    <td className="font-semibold">{student.name}</td>
+                    <td><span className="text-sm">{student.department}</span></td>
                     <td>
-                      <span className="badge badge-high">{student.risk_score}</span>
+                      <div className="progress-bar-cell">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px' }}>
+                          <span>{student.attendance_percentage}%</span>
+                        </div>
+                        <div className="progress-track">
+                          <div
+                            className="progress-fill"
+                            style={{
+                              width: `${student.attendance_percentage}%`,
+                              background: student.attendance_percentage < 75 ? 'var(--c-status-danger)' : 'var(--c-status-safe)'
+                            }}
+                          ></div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <span className="status-pill high">{student.risk_score}</span>
                     </td>
                     <td>
                       <button className="btn-sm btn-outline" onClick={() => setSelectedStudent(student)}>
@@ -157,9 +226,11 @@ const AIRiskPrediction = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '2rem' }}>
-                    <CheckCircle size={48} color="#10B981" style={{ marginBottom: '1rem' }} />
-                    <p>Great job! No students are currently in the High Risk category.</p>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '3rem' }}>
+                    <div className="empty-state-small" style={{ background: 'transparent' }}>
+                      <CheckCircle size={48} color="var(--c-status-safe)" style={{ marginBottom: '1rem' }} />
+                      <p>Great job! No students are currently in the High Risk category.</p>
+                    </div>
                   </td>
                 </tr>
               )}
