@@ -3,16 +3,14 @@ import './Dashboard.css';
 import MetricCard from './MetricCard';
 import StatDonutChart from './StatDonutChart';
 import StudentTable from './StudentTable';
-import AddStudentModal from './AddStudentModal';
 import RiskDrillDownModal from './RiskDrillDownModal';
-import { Users, Clock, GraduationCap, AlertTriangle, UserPlus, Play, FileUp } from 'lucide-react';
+import { Users, Clock, GraduationCap, AlertTriangle } from 'lucide-react';
 
 const DashboardHome = () => {
   const [summary, setSummary] = useState(null);
   const [distribution, setDistribution] = useState(null);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [selectedRiskLevel, setSelectedRiskLevel] = useState(null);
 
   const fetchData = async () => {
@@ -82,26 +80,6 @@ const DashboardHome = () => {
         />
       </div>
 
-      {/* 2. Faculty Actions Area */}
-      <div className="faculty-actions-bar">
-        <div className="action-group">
-          <button className="btn-action pulse">
-            <Play size={16} />
-            Run Risk Prediction
-          </button>
-        </div>
-        <div className="action-group">
-          <button className="btn-secondary-action">
-            <FileUp size={16} />
-            Import CSV
-          </button>
-          <button className="btn-secondary-action" onClick={() => setShowAddModal(true)}>
-            <UserPlus size={16} />
-            Add Student
-          </button>
-        </div>
-      </div>
-
       <div className="main-content-split">
         {/* 4. Student Records Table (Primary Focus) */}
         <div className="primary-section">
@@ -128,12 +106,6 @@ const DashboardHome = () => {
         </div>
       </div>
 
-      {showAddModal && (
-        <AddStudentModal
-          onClose={() => setShowAddModal(false)}
-          onStudentAdded={fetchData}
-        />
-      )}
 
       {selectedRiskLevel && (
         <RiskDrillDownModal

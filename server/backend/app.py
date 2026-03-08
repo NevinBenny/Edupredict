@@ -33,6 +33,7 @@ from admin_service import admin_bp
 from intervention_service import intervention_bp
 from report_service import report_bp
 from class_service import class_bp
+from student_service import student_bp
 
 load_dotenv()
 
@@ -57,6 +58,7 @@ app.register_blueprint(admin_bp)
 app.register_blueprint(intervention_bp)
 app.register_blueprint(report_bp)
 app.register_blueprint(class_bp)
+app.register_blueprint(student_bp)
 CORS(app, origins=get_cors_origins(), supports_credentials=True)
 app.secret_key = os.environ.get("FLASK_SECRET", "dev-secret-change")
 # Session cookie settings optimized for OAuth flow
@@ -90,39 +92,29 @@ def email_exists(conn, email: str) -> bool:
 
 def get_role_for_email(conn, email: str):
   """
-  Determine role based on the email domain — no hardcoded values.
-  Domain rules:
-    @admin.in   -> ADMIN   (must already exist in users table with role ADMIN)
-    @faculty.in -> FACULTY (must exist in faculties table)
-    @mca.ajce.in -> STUDENT (placeholder; student dashboard TBD)
-    Anything else -> None (unauthorized domain, reject login/signup)
+  Determine role based strictly on database pre-provisioning.
+  Users (Admins, Faculty, Students) must already exist in the database 
+  to be granted a role.
   Returns: (role_string) or None if unauthorized.
   """
-  domain = email.split("@")[-1].lower() if "@" in email else ""
+  cur = conn.cursor()
+  # 1. Check `users` table first (Covers Admins and Students provisioned via CSV)
+  cur.execute("SELECT role FROM users WHERE email=%s LIMIT 1", (email,))
+  row = cur.fetchone()
+  if row:
+      role = row[0]
+      cur.close()
+      return role
 
-  if domain == "admin.in":
-    # Verify this email exists in users table with ADMIN role
-    cur = conn.cursor()
-    cur.execute("SELECT role FROM users WHERE email=%s LIMIT 1", (email,))
-    row = cur.fetchone()
-    cur.close()
-    if row and row[0] == "ADMIN":
-      return "ADMIN"
-    # Domain is admin.in but not found/registered as ADMIN — reject
-    return None
+  # 2. Check `faculties` table (Legacy/Faculty fallback)
+  cur.execute("SELECT 1 FROM faculties WHERE email=%s LIMIT 1", (email,))
+  is_faculty = cur.fetchone() is not None
+  cur.close()
+  
+  if is_faculty:
+      return "FACULTY"
 
-  if domain == "faculty.in":
-    # Verify this email exists in the faculties table
-    cur = conn.cursor()
-    cur.execute("SELECT 1 FROM faculties WHERE email=%s LIMIT 1", (email,))
-    is_faculty = cur.fetchone() is not None
-    cur.close()
-    return "FACULTY" if is_faculty else None
-
-  if domain == "mca.ajce.in":
-    return "STUDENT"
-
-  # All other domains are unauthorized
+  # Unrecognized email, reject login
   return None
 
 
@@ -160,15 +152,10 @@ def upsert_google_user(conn, email: str):
     cur.close()
     return (user_id, current_role)
 
-  # New user — auto-create account via Google OAuth
-  cur.execute(
-    "INSERT INTO users (email, provider, role) VALUES (%s, %s, %s)",
-    (email, "google", target_role),
-  )
-  conn.commit()
-  new_id = cur.lastrowid
+  # DO NOT auto-create users out of nowhere if they don't already exist and aren't strictly authorized
+  # Since STUDENTS, FACULTY, and ADMINS all require pre-provisioning now, we just reject if they aren't found.
   cur.close()
-  return (new_id, target_role)
+  return None, None
 
 
 def get_user_with_password(conn, email: str):
