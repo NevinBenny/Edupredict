@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
-import { AlertTriangle, TrendingUp, Users, CheckCircle } from 'lucide-react'
+import { AlertTriangle, TrendingUp, Users, CheckCircle, RefreshCw } from 'lucide-react'
+import StudentDetailModal from './StudentDetailModal'
 import './Dashboard.css'
 
 const AIRiskPrediction = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState(null);
 
   const fetchAnalysis = async () => {
     setLoading(true);
@@ -40,11 +42,14 @@ const AIRiskPrediction = () => {
           <p className="eyebrow">AI Powered Insights</p>
           <h2>Risk Analysis Dashboard</h2>
         </div>
-        <button onClick={fetchAnalysis} className="btn-secondary">Refresh Analysis</button>
+        <button onClick={fetchAnalysis} className="btn-secondary-action">
+          <RefreshCw size={16} />
+          Refresh Analysis
+        </button>
       </div>
 
       {/* Top Stats Row */}
-      <div className="stats-grid">
+      <div className="stats-grid single-row" style={{ marginTop: '24px' }}>
         <div className="stat-card">
           <div className="stat-icon" style={{ background: '#E0F2FE', color: '#0284C7' }}><Users size={24} /></div>
           <div className="stat-info">
@@ -144,7 +149,9 @@ const AIRiskPrediction = () => {
                       <span className="badge badge-high">{student.risk_score}</span>
                     </td>
                     <td>
-                      <button className="btn-sm btn-outline">View Profile</button>
+                      <button className="btn-sm btn-outline" onClick={() => setSelectedStudent(student)}>
+                        View Profile
+                      </button>
                     </td>
                   </tr>
                 ))
@@ -160,6 +167,13 @@ const AIRiskPrediction = () => {
           </table>
         </div>
       </div>
+
+      {selectedStudent && (
+        <StudentDetailModal
+          student={selectedStudent}
+          onClose={() => setSelectedStudent(null)}
+        />
+      )}
     </div>
   )
 }
