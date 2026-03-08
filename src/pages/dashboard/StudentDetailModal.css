@@ -410,6 +410,8 @@
     outline: none;
     transition: all 0.2s;
     font-family: inherit;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .sd-input:focus {
@@ -516,10 +518,13 @@
 
 .sd-form-row>* {
     flex: 1;
+    min-width: 0;
 }
 
 .file-input {
     padding: 9px;
+    width: 100%;
+    max-width: 100%;
 }
 
 .popup-actions {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, X, Search, Filter, Calendar, FileText, Download, CheckCircle, Clock } from 'lucide-react'
+import { Plus, X, Search, Filter, Calendar, FileText, Download, CheckCircle, Clock, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import StudentDetailModal from './StudentDetailModal'
 import './Dashboard.css'
@@ -10,6 +10,8 @@ const Interventions = () => {
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
     const [profileStudent, setProfileStudent] = useState(null)
+    const [activeTab, setActiveTab] = useState('queue') // queue, students
+    const [statusFilter, setStatusFilter] = useState('all') // all, Pending, Completed
 
     // Form State
     const [selectedStudent, setSelectedStudent] = useState('')
@@ -85,13 +87,23 @@ const Interventions = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus })
             })
-            if (response.ok) fetchData()
+            if (response.ok) {
+                toast.success(`Status updated to ${newStatus}`)
+                fetchData()
+            }
         } catch (error) {
             console.error("Error updating status:", error)
         }
     }
 
     const highRiskStudents = students.filter(s => s.risk_level === 'High')
+    const pendingCount = interventions.filter(i => i.status === 'Pending').length
+    const completedCount = interventions.filter(i => i.status === 'Completed').length
+
+    const filteredInterventions = interventions.filter(i => {
+        if (statusFilter === 'all') return true
+        return i.status === statusFilter
+    })
 
     return (
         <div className="dash-page">
@@ -105,97 +117,113 @@ const Interventions = () => {
                 </button>
             </div>
 
-            <div className="dashboard-grid-2col" style={{ alignItems: 'start' }}>
-                {/* Left: High Risk Students - Compact List */}
-                <div className="card">
-                    <div className="card-header">
-                        <h3>High Risk Students</h3>
-                    </div>
-                    <div className="card-body" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-                        {highRiskStudents.length > 0 ? (
-                            <ul className="alert-list">
-                                {highRiskStudents.map(s => (
-                                    <li key={s.student_id} className="alert-item" style={{ alignItems: 'center', padding: '10px' }}>
-                                        <div className="alert-icon" style={{ color: '#EF4444' }}>
-                                            <AlertCircle size={18} />
-                                        </div>
-                                        <div className="alert-content" style={{ flex: 1 }}>
-                                            <p style={{ marginBottom: '2px', fontSize: '13px' }}>{s.name}</p>
-                                            <span className="user-role" style={{ fontSize: '11px', color: '#666' }}>
-                                                Score: {s.risk_score} • {s.department}
-                                            </span>
-                                        </div>
-                                        <button
-                                            className="btn-sm btn-outline"
-                                            style={{ fontSize: '11px', padding: '4px 8px' }}
-                                            onClick={() => setProfileStudent(s)}
-                                        >
-                                            View Profile
-                                        </button>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <div className="empty-state-small">
-                                <CheckCircle size={24} color="#10B981" />
-                                <p>No high risk students.</p>
-                            </div>
-                        )}
+            {/* Stats Overview */}
+            <div className="stats-grid single-row">
+                <div className="stat-card">
+                    <div className="stat-icon" style={{ background: '#e0f2fe', color: '#0369a1' }}><Clock size={20} /></div>
+                    <div className="stat-info">
+                        <h3>{pendingCount}</h3>
+                        <p>Pending Tasks</p>
                     </div>
                 </div>
+                <div className="stat-card">
+                    <div className="stat-icon" style={{ background: '#f0fdf4', color: '#15803d' }}><CheckCircle size={20} /></div>
+                    <div className="stat-info">
+                        <h3>{completedCount}</h3>
+                        <p>Resolved</p>
+                    </div>
+                </div>
+                <div className="stat-card">
+                    <div className="stat-icon" style={{ background: '#fef2f2', color: '#b91c1c' }}><AlertTriangle size={20} /></div>
+                    <div className="stat-info">
+                        <h3>{highRiskStudents.length}</h3>
+                        <p>Priority Students</p>
+                    </div>
+                </div>
+            </div>
 
-                {/* Right: Active Interventions - Detailed Cards */}
+            {/* Navigation Tabs */}
+            <div className="page-tabs" style={{ marginTop: '32px' }}>
+                <button
+                    className={`page-tab ${activeTab === 'queue' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('queue')}
+                >
+                    Intervention Queue
+                </button>
+                <button
+                    className={`page-tab ${activeTab === 'students' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('students')}
+                >
+                    Recommended (High Risk)
+                </button>
+            </div>
+
+            {activeTab === 'queue' && (
                 <div className="card">
-                    <div className="card-header">
-                        <h3>Active Interventions</h3>
+                    <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h3>Queue Filters</h3>
+                        <div className="action-group">
+                            {['all', 'Pending', 'Completed'].map(status => (
+                                <button
+                                    key={status}
+                                    className={`btn-sm ${statusFilter === status ? 'btn-primary' : 'btn-outline'}`}
+                                    onClick={() => setStatusFilter(status)}
+                                    style={{ fontSize: '11px', textTransform: 'capitalize' }}
+                                >
+                                    {status === 'all' ? 'All Tasks' : status}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                     <div className="card-body">
-                        {interventions.length > 0 ? (
-                            <div className="intervention-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {interventions.map(int => (
-                                    <div key={int.id} className="sensor-card intervention-card">
+                        {filteredInterventions.length > 0 ? (
+                            <div className="intervention-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '16px' }}>
+                                {filteredInterventions.map(int => (
+                                    <div key={int.id} className="sensor-card intervention-card" style={{ borderLeft: `4px solid ${int.status === 'Completed' ? '#10b981' : '#f59e0b'}` }}>
                                         <div style={{ flex: 1 }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                <h4 className="sensor-name" style={{ fontSize: '14px', marginBottom: '4px' }}>{int.title}</h4>
+                                                <h4 className="sensor-name" style={{ fontSize: '15px' }}>{int.title}</h4>
                                                 <span className={`status-badge ${int.status === 'Completed' ? 'active' : 'warn'}`}>
                                                     {int.status}
                                                 </span>
                                             </div>
-                                            <p className="sensor-status" style={{ fontSize: '12px' }}>
-                                                For: <strong>{int.student_name}</strong> • Due: {int.due_date || 'No date'}
+                                            <p className="sensor-status" style={{ margin: '8px 0' }}>
+                                                For: <strong>{int.student_name}</strong>
                                             </p>
+                                            <div className="sd-meta" style={{ marginBottom: '12px' }}>
+                                                <Calendar size={13} /> {int.due_date ? new Date(int.due_date).toLocaleDateString() : 'No Deadline'}
+                                            </div>
+
                                             {int.description && (
-                                                <p style={{ fontSize: '12px', color: '#555', marginTop: '6px', fontStyle: 'italic' }}>
-                                                    "{int.description}"
+                                                <p style={{ fontSize: '13px', color: '#64748b', background: '#f8fafc', padding: '8px', borderRadius: '4px', borderLeft: '2px solid #e2e8f0', marginBottom: '16px' }}>
+                                                    {int.description}
                                                 </p>
                                             )}
 
-                                            {/* Action Row */}
-                                            <div style={{ marginTop: '10px', display: 'flex', gap: '10px', alignItems: 'center' }}>
+                                            <div className="sd-actions" style={{ display: 'flex', gap: '12px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
                                                 {int.file_path && (
                                                     <a
                                                         href={`http://localhost:5000/api/uploads/interventions/${int.file_path}`}
                                                         target="_blank"
                                                         rel="noreferrer"
-                                                        className="link-btn"
-                                                        style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px', color: '#2563EB', textDecoration: 'none' }}
+                                                        className="sd-btn sd-btn-outline"
+                                                        style={{ padding: '6px 12px', fontSize: '12px', textDecoration: 'none' }}
                                                     >
-                                                        <FileText size={14} /> View Document
+                                                        <FileText size={14} /> View Doc
                                                     </a>
                                                 )}
-                                                {int.status !== 'Completed' && (
+                                                {int.status !== 'Completed' ? (
                                                     <button
-                                                        className="action-btn"
-                                                        style={{ marginLeft: 'auto' }}
+                                                        className="sd-btn sd-btn-primary"
+                                                        style={{ padding: '6px 12px', fontSize: '12px', marginLeft: 'auto' }}
                                                         onClick={() => updateStatus(int.id, 'Completed')}
                                                     >
-                                                        Mark Complete
+                                                        Mark Done
                                                     </button>
-                                                )}
-                                                {int.status === 'Completed' && (
-                                                    <span style={{ fontSize: '11px', color: '#10B981', marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                        <CheckCircle size={12} /> Done
-                                                    </span>
+                                                ) : (
+                                                    <div style={{ marginLeft: 'auto', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '600' }}>
+                                                        <CheckCircle size={14} /> Resolved
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
@@ -203,14 +231,48 @@ const Interventions = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="empty-state">
-                                <CheckCircle size={48} color="#10B981" style={{ marginBottom: '10px' }} />
-                                <p>No active interventions.</p>
+                            <div className="empty-state" style={{ padding: '64px 0' }}>
+                                <CheckCircle size={48} color="#10B981" style={{ marginBottom: '16px' }} />
+                                <p>No tasks found matching your filter.</p>
                             </div>
                         )}
                     </div>
                 </div>
-            </div>
+            )}
+
+            {activeTab === 'students' && (
+                <div className="card">
+                    <div className="card-header">
+                        <h3>Recommended Interventions</h3>
+                        <p className="eyebrow">Students requiring immediate attention based on AI risk analysis</p>
+                    </div>
+                    <div className="card-body">
+                        {highRiskStudents.length > 0 ? (
+                            <div className="sensor-list">
+                                {highRiskStudents.map(s => (
+                                    <div key={s.student_id} className="sensor-card" style={{ borderLeft: '4px solid #ef4444' }}>
+                                        <div className="sensor-info" style={{ flex: 1 }}>
+                                            <span className="sensor-name">{s.name}</span>
+                                            <span className="sensor-status">Risk Index: {s.risk_score} • {s.department}</span>
+                                        </div>
+                                        <button
+                                            className="btn-sm btn-outline"
+                                            onClick={() => setProfileStudent(s)}
+                                        >
+                                            View Profile
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="empty-state" style={{ padding: '64px 0' }}>
+                                <CheckCircle size={48} color="#10B981" style={{ marginBottom: '16px' }} />
+                                <p>Fantastic! No students currently fall into the high-risk category.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Assignment Modal */}
             {showModal && (
