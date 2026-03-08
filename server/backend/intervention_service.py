@@ -14,15 +14,23 @@ def get_interventions():
     try:
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
+        student_id = request.args.get('student_id')
         
         # Join with students table to get names
         query = """
         SELECT i.*, s.name as student_name, s.department, s.risk_level
         FROM interventions i
         JOIN students s ON i.student_id = s.student_id
-        ORDER BY i.assigned_date DESC
         """
-        cur.execute(query)
+        
+        params = []
+        if student_id:
+            query += " WHERE i.student_id = %s "
+            params.append(student_id)
+            
+        query += " ORDER BY i.assigned_date DESC"
+        
+        cur.execute(query, tuple(params))
         interventions = cur.fetchall()
         
         cur.close()
