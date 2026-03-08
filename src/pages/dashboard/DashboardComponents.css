@@ -399,7 +399,7 @@
     gap: 12px;
 }
 
-.btn-primary {
+.modal-actions .btn-primary {
     flex: 1;
     background: var(--text-primary);
     color: white;
@@ -410,7 +410,7 @@
     cursor: pointer;
 }
 
-.btn-secondary {
+.modal-actions .btn-secondary {
     flex: 1;
     background: white;
     color: var(--text-primary);

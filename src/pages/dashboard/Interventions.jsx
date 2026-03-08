@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, X, Search, Filter, Calendar, FileText, Download, CheckCircle, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
+import StudentDetailModal from './StudentDetailModal'
 import './Dashboard.css'
 
 const Interventions = () => {
@@ -8,6 +9,7 @@ const Interventions = () => {
     const [interventions, setInterventions] = useState([])
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
+    const [profileStudent, setProfileStudent] = useState(null)
 
     // Form State
     const [selectedStudent, setSelectedStudent] = useState('')
@@ -98,8 +100,8 @@ const Interventions = () => {
                     <p className="eyebrow">Student Support</p>
                     <h2>Interventions & Assignments</h2>
                 </div>
-                <button className="btn-primary" onClick={() => setShowModal(true)}>
-                    <Plus size={18} style={{ marginRight: '8px' }} /> Assign New Task
+                <button className="btn-action" onClick={() => setShowModal(true)}>
+                    <Plus size={18} /> Assign New Task
                 </button>
             </div>
 
@@ -126,12 +128,9 @@ const Interventions = () => {
                                         <button
                                             className="btn-sm btn-outline"
                                             style={{ fontSize: '11px', padding: '4px 8px' }}
-                                            onClick={() => {
-                                                setSelectedStudent(s.student_id)
-                                                setShowModal(true)
-                                            }}
+                                            onClick={() => setProfileStudent(s)}
                                         >
-                                            Assign
+                                            View Profile
                                         </button>
                                     </li>
                                 ))}
@@ -296,6 +295,13 @@ const Interventions = () => {
                         </form>
                     </div>
                 </div>
+            )}
+
+            {profileStudent && (
+                <StudentDetailModal
+                    student={profileStudent}
+                    onClose={() => setProfileStudent(null)}
+                />
             )}
         </div>
     )
