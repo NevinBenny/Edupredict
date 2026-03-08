@@ -151,7 +151,7 @@ const StudentDetailModal = ({ student, onClose }) => {
                                         <Calendar size={14} /> Attendance
                                     </div>
                                     <div className="sd-metric-value">
-                                        {student.attendance_percentage}<span>%</span>
+                                        {Number(student.attendance_percentage).toFixed(2)}<span>%</span>
                                     </div>
                                 </div>
                                 <div className="sd-metric-card">
@@ -159,7 +159,7 @@ const StudentDetailModal = ({ student, onClose }) => {
                                         <BookOpen size={14} /> CGPA
                                     </div>
                                     <div className="sd-metric-value">
-                                        {student.sgpa}
+                                        {Number(student.sgpa).toFixed(2)}
                                     </div>
                                 </div>
                                 <div className="sd-metric-card">
@@ -167,7 +167,7 @@ const StudentDetailModal = ({ student, onClose }) => {
                                         Internal Marks
                                     </div>
                                     <div className="sd-metric-value">
-                                        {student.internal_marks} <span>/ 50</span>
+                                        {Number(student.internal_marks).toFixed(2)} <span>/ 50</span>
                                     </div>
                                 </div>
                                 <div className="sd-metric-card">
@@ -187,13 +187,13 @@ const StudentDetailModal = ({ student, onClose }) => {
                                 </div>
                                 <div className={`sd-risk-card ${riskClass}`}>
                                     <div className="sd-risk-score">
-                                        <span className="sd-risk-val">{student.risk_score}</span>
+                                        <span className="sd-risk-val">{Number(student.risk_score).toFixed(2)}</span>
                                         <span className="sd-risk-lbl">Index</span>
                                     </div>
                                     <div className="sd-risk-details">
                                         <h4>{student.risk_level} Risk Trajectory</h4>
                                         <p>
-                                            Based on {student.attendance_percentage}% attendance stability combined with current SGPA of {student.sgpa} and {student.backlogs} recorded backlogs.
+                                            Based on {Number(student.attendance_percentage).toFixed(2)}% attendance stability combined with current SGPA of {Number(student.sgpa).toFixed(2)} and {student.backlogs} recorded backlogs.
                                         </p>
                                     </div>
                                 </div>

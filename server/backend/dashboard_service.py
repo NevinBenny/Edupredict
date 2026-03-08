@@ -120,28 +120,58 @@ def get_students():
             """)
             students = cur.fetchall()
         elif role == "FACULTY":
-            cur.execute("""
-                SELECT 
-                    s.student_id, s.name, s.department, s.semester, u.email,
-                    sar.attendance_percentage, sar.internal_marks, 
-                    sar.assignment_score, s.sgpa, s.backlogs, 
-                    s.risk_score, s.risk_level, sub.name as subject_name
-                FROM faculties f
-                JOIN faculty_subjects fs ON f.id = fs.faculty_id
-                JOIN subjects sub ON fs.subject_id = sub.id
-                JOIN student_academic_records sar ON sub.id = sar.subject_id
-                JOIN students s ON sar.student_id = s.student_id
-                LEFT JOIN users u ON s.user_id = u.id
-                WHERE f.email = (SELECT email FROM users WHERE id = %s)
-                ORDER BY sub.name ASC, s.name ASC
-            """, (user_id,))
-            students = cur.fetchall()
+            # First, get the faculty's department to show relevant students
+            cur.execute("SELECT department FROM faculties WHERE email = (SELECT email FROM users WHERE id = %s)", (user_id,))
+            f_row = cur.fetchone()
+            f_dept = f_row['department'] if f_row and f_row['department'] and f_row['department'].strip() else None
+            
+            students = []
+            if f_dept:
+                cur.execute("""
+                    SELECT 
+                        s.student_id, s.name, s.department, s.semester, u.email,
+                        COALESCE(AVG(sar.attendance_percentage), 0) as attendance_percentage,
+                        COALESCE(AVG(sar.internal_marks), 0) as internal_marks, 
+                        COALESCE(AVG(sar.assignment_score), 0) as assignment_score,
+                        s.sgpa, s.backlogs, 
+                        s.risk_score, s.risk_level,
+                        NULL as subject_name
+                    FROM students s
+                    LEFT JOIN users u ON s.user_id = u.id
+                    LEFT JOIN student_academic_records sar ON s.student_id = sar.student_id
+                    WHERE s.department = %s
+                    GROUP BY s.student_id, s.name, s.department, s.semester, u.email, s.sgpa, s.backlogs, s.risk_score, s.risk_level
+                    ORDER BY s.risk_score DESC, s.name ASC
+                """, (f_dept,))
+                students = cur.fetchall()
+            
+            if not students:
+                # Fallback to all students if no students found for dept or no dept
+                cur.execute("""
+                    SELECT 
+                        s.student_id, s.name, s.department, s.semester, u.email,
+                        COALESCE(AVG(sar.attendance_percentage), 0) as attendance_percentage,
+                        COALESCE(AVG(sar.internal_marks), 0) as internal_marks, 
+                        COALESCE(AVG(sar.assignment_score), 0) as assignment_score,
+                        s.sgpa, s.backlogs, 
+                        s.risk_score, s.risk_level,
+                        NULL as subject_name
+                    FROM students s
+                    LEFT JOIN users u ON s.user_id = u.id
+                    LEFT JOIN student_academic_records sar ON s.student_id = sar.student_id
+                    GROUP BY s.student_id, s.name, s.department, s.semester, u.email, s.sgpa, s.backlogs, s.risk_score, s.risk_level
+                    ORDER BY s.risk_score DESC, s.name ASC
+                """)
+                students = cur.fetchall()
         
         # Format decimals/floats for JSON compatibility
         for student in students:
-            student['attendance_percentage'] = float(student['attendance_percentage']) if student['attendance_percentage'] is not None else 0.0
-            student['sgpa'] = float(student['sgpa']) if student['sgpa'] is not None else 0.0
-            student['risk_score'] = float(student['risk_score']) if student['risk_score'] is not None else 0.0
+            student['attendance_percentage'] = round(float(student['attendance_percentage']), 2) if student['attendance_percentage'] is not None else 0.0
+            student['internal_marks'] = round(float(student['internal_marks']), 2) if student['internal_marks'] is not None else 0.0
+            student['assignment_score'] = round(float(student['assignment_score']), 2) if student['assignment_score'] is not None else 0.0
+            student['sgpa'] = round(float(student['sgpa']), 2) if student['sgpa'] is not None else 0.0
+            student['risk_score'] = round(float(student['risk_score']), 2) if student['risk_score'] is not None else 0.0
+            student['backlogs'] = int(student['backlogs']) if student['backlogs'] is not None else 0
             
         cur.close()
         return jsonify({"students": students, "total": len(students)})

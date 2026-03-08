@@ -14,11 +14,13 @@ const Interventions = () => {
     const [statusFilter, setStatusFilter] = useState('all') // all, Pending, Completed
 
     // Form State
-    const [selectedStudent, setSelectedStudent] = useState('')
+    const [selectedStudents, setSelectedStudents] = useState([])
     const [title, setTitle] = useState('')
     const [description, setDescription] = useState('')
     const [dueDate, setDueDate] = useState('')
     const [file, setFile] = useState(null)
+    const [modalSearch, setModalSearch] = useState('')
+    const [modalRiskFilter, setModalRiskFilter] = useState('All')
 
     useEffect(() => {
         fetchData()
@@ -27,11 +29,11 @@ const Interventions = () => {
     const fetchData = async () => {
         try {
             setLoading(true)
-            const studentRes = await fetch('http://localhost:5000/api/students')
+            const studentRes = await fetch('http://localhost:5000/api/students', { credentials: 'include' })
             const studentData = await studentRes.json()
             if (studentData.students) setStudents(studentData.students)
 
-            const intRes = await fetch('http://localhost:5000/api/interventions')
+            const intRes = await fetch('http://localhost:5000/api/interventions', { credentials: 'include' })
             const intData = await intRes.json()
             if (intData.interventions) setInterventions(intData.interventions)
 
@@ -44,10 +46,10 @@ const Interventions = () => {
 
     const handleAssign = async (e) => {
         e.preventDefault()
-        if (!selectedStudent || !title) return toast.error("Please select a student and enter a title.")
+        if (selectedStudents.length === 0 || !title) return toast.error("Please select at least one student and a title.")
 
         const formData = new FormData()
-        formData.append('student_id', selectedStudent)
+        formData.append('student_id', selectedStudents.join(','))
         formData.append('title', title)
         formData.append('description', description)
         formData.append('due_date', dueDate)
@@ -58,7 +60,8 @@ const Interventions = () => {
         try {
             const response = await fetch('http://localhost:5000/api/interventions', {
                 method: 'POST',
-                body: formData // No Content-Type header needed, browser sets it
+                body: formData, // No Content-Type header needed, browser sets it
+                credentials: 'include'
             })
 
             if (response.ok) {
@@ -69,8 +72,10 @@ const Interventions = () => {
                 setTitle('')
                 setDescription('')
                 setDueDate('')
-                setSelectedStudent('')
+                setSelectedStudents([])
                 setFile(null)
+                setModalSearch('')
+                setModalRiskFilter('All')
             } else {
                 toast.error("Failed to assign intervention.")
             }
@@ -85,7 +90,8 @@ const Interventions = () => {
             const response = await fetch(`http://localhost:5000/api/interventions/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ status: newStatus })
+                body: JSON.stringify({ status: newStatus }),
+                credentials: 'include'
             })
             if (response.ok) {
                 toast.success(`Status updated to ${newStatus}`)
@@ -104,6 +110,27 @@ const Interventions = () => {
         if (statusFilter === 'all') return true
         return i.status === statusFilter
     })
+
+    const modalFilteredStudents = students.filter(s => {
+        const matchesSearch = s.name.toLowerCase().includes(modalSearch.toLowerCase()) ||
+            s.student_id.toLowerCase().includes(modalSearch.toLowerCase());
+        const matchesRisk = modalRiskFilter === 'All' || s.risk_level === modalRiskFilter;
+        return matchesSearch && matchesRisk;
+    })
+
+    const toggleStudent = (id) => {
+        setSelectedStudents(prev =>
+            prev.includes(id) ? prev.filter(sid => sid !== id) : [...prev, id]
+        )
+    }
+
+    const toggleAllModal = () => {
+        if (selectedStudents.length === modalFilteredStudents.length) {
+            setSelectedStudents([])
+        } else {
+            setSelectedStudents(modalFilteredStudents.map(s => s.student_id))
+        }
+    }
 
     return (
         <div className="dash-page">
@@ -277,84 +304,157 @@ const Interventions = () => {
             {/* Assignment Modal */}
             {showModal && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '500px' }}>
+                    <div className="modal-content" style={{ maxWidth: '950px', width: '90%', height: '80vh', display: 'flex', flexDirection: 'column' }}>
                         <div className="modal-header">
-                            <h3>Assign New Task</h3>
+                            <div>
+                                <h3 style={{ margin: 0 }}>Assign Task / Material</h3>
+                                <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
+                                    Select students on the left and fill in task details on the right
+                                </p>
+                            </div>
                             <button className="close-btn" onClick={() => setShowModal(false)}><X size={20} /></button>
                         </div>
-                        <form onSubmit={handleAssign} className="modal-form">
-                            <div className="form-group">
-                                <label>Select Student</label>
-                                <select
-                                    className="form-input"
-                                    value={selectedStudent}
-                                    onChange={(e) => setSelectedStudent(e.target.value)}
-                                    required
-                                >
-                                    <option value="">-- Choose Student --</option>
-                                    {highRiskStudents.map(s => (
-                                        <option key={s.student_id} value={s.student_id}>
-                                            {s.name} (Risk: {s.risk_score})
-                                        </option>
-                                    ))}
-                                    <option disabled>--- Other Students ---</option>
-                                    {students.filter(s => s.risk_level !== 'High').map(s => (
-                                        <option key={s.student_id} value={s.student_id}>
-                                            {s.name}
-                                        </option>
-                                    ))}
-                                </select>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', padding: '24px', flex: 1, overflow: 'hidden' }}>
+
+                            {/* Left Side: Student Picker */}
+                            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '1px solid #f1f5f9', paddingRight: '24px' }}>
+                                <div className="modal-picking-header" style={{ marginBottom: '16px' }}>
+                                    <div className="search-box" style={{ width: '100%', marginBottom: '12px' }}>
+                                        <Search size={14} className="search-icon" />
+                                        <input
+                                            type="text"
+                                            placeholder="Search name or ID..."
+                                            value={modalSearch}
+                                            onChange={(e) => setModalSearch(e.target.value)}
+                                            style={{ paddingLeft: '32px', height: '36px' }}
+                                        />
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                                        {['All', 'High', 'Medium', 'Low'].map(lvl => (
+                                            <button
+                                                key={lvl}
+                                                className={`btn-sm ${modalRiskFilter === lvl ? 'btn-primary' : 'btn-outline'}`}
+                                                onClick={() => setModalRiskFilter(lvl)}
+                                                style={{ fontSize: '11px', flex: 1 }}
+                                            >
+                                                {lvl === 'All' ? 'Every Risk' : lvl + ' Risk'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontSize: '13px', fontWeight: '600' }}>
+                                            {selectedStudents.length} Selected
+                                        </span>
+                                        <button
+                                            className="btn-ghost"
+                                            style={{ fontSize: '12px', padding: '4px 8px' }}
+                                            onClick={toggleAllModal}
+                                        >
+                                            {selectedStudents.length === modalFilteredStudents.length ? 'Deselect All' : 'Select All Filtered'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
+                                    {modalFilteredStudents.length > 0 ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            {modalFilteredStudents.map(s => (
+                                                <label key={s.student_id} className={`picking-item ${selectedStudents.includes(s.student_id) ? 'selected' : ''}`} style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    padding: '10px 12px',
+                                                    borderRadius: '8px',
+                                                    cursor: 'pointer',
+                                                    transition: 'all 0.2s',
+                                                    background: selectedStudents.includes(s.student_id) ? '#f0f7ff' : '#fff',
+                                                    border: `1px solid ${selectedStudents.includes(s.student_id) ? '#3b82f6' : '#f1f5f9'}`
+                                                }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedStudents.includes(s.student_id)}
+                                                        onChange={() => toggleStudent(s.student_id)}
+                                                        style={{ marginRight: '12px', width: '16px', height: '16px' }}
+                                                    />
+                                                    <div style={{ flex: 1 }}>
+                                                        <div style={{ fontSize: '14px', fontWeight: '600' }}>{s.name}</div>
+                                                        <div style={{ fontSize: '12px', color: '#64748b' }}>{s.student_id} • {s.department}</div>
+                                                    </div>
+                                                    <span className={`risk-badge minimal ${s.risk_level.toLowerCase()}`} style={{ fontSize: '10px' }}>
+                                                        {s.risk_level}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="sd-empty" style={{ pointerEvents: 'none' }}>
+                                            No students found.
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
-                            <div className="form-group">
-                                <label>Task Title</label>
-                                <input
-                                    type="text"
-                                    className="form-input"
-                                    placeholder="e.g. Remedial Assignment 1"
-                                    value={title}
-                                    onChange={(e) => setTitle(e.target.value)}
-                                    required
-                                />
-                            </div>
-
-                            <div className="form-group">
-                                <label>Description (Optional)</label>
-                                <textarea
-                                    className="form-input"
-                                    rows="2"
-                                    value={description}
-                                    onChange={(e) => setDescription(e.target.value)}
-                                ></textarea>
-                            </div>
-
-                            <div className="form-row" style={{ display: 'flex', gap: '16px' }}>
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label>Due Date</label>
+                            {/* Right Side: Form Details */}
+                            <form onSubmit={handleAssign} className="modal-form" style={{ overflowY: 'auto', paddingRight: '8px' }}>
+                                <div className="form-group">
+                                    <label>Task Title</label>
                                     <input
-                                        type="date"
+                                        type="text"
                                         className="form-input"
-                                        value={dueDate}
-                                        onChange={(e) => setDueDate(e.target.value)}
+                                        placeholder="e.g. Remedial Reading Assignment"
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                        required
                                     />
                                 </div>
-                                <div className="form-group" style={{ flex: 1 }}>
-                                    <label>Attach PDF (Question Paper)</label>
-                                    <input
-                                        type="file"
-                                        className="form-input"
-                                        accept="application/pdf"
-                                        onChange={(e) => setFile(e.target.files[0])}
-                                        style={{ padding: '7px' }}
-                                    />
-                                </div>
-                            </div>
 
-                            <div className="form-actions" style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #eee' }}>
-                                <button type="button" className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
-                                <button type="submit" className="btn-primary">Assign Task</button>
-                            </div>
-                        </form>
+                                <div className="form-group">
+                                    <label>Detailed Instructions</label>
+                                    <textarea
+                                        className="form-input"
+                                        rows="4"
+                                        placeholder="Describe what the students need to do..."
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                    ></textarea>
+                                </div>
+
+                                <div className="form-row" style={{ display: 'flex', gap: '16px' }}>
+                                    <div className="form-group" style={{ flex: 1 }}>
+                                        <label>Due Date</label>
+                                        <input
+                                            type="date"
+                                            className="form-input"
+                                            value={dueDate}
+                                            onChange={(e) => setDueDate(e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="form-group" style={{ flex: 1 }}>
+                                        <label>Resource / Material (PDF)</label>
+                                        <input
+                                            type="file"
+                                            className="form-input"
+                                            accept="application/pdf"
+                                            onChange={(e) => setFile(e.target.files[0])}
+                                            style={{ padding: '7px' }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="form-actions" style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #f1f5f9', sticky: 'bottom' }}>
+                                    <button type="button" className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
+                                    <button
+                                        type="submit"
+                                        className="btn-primary"
+                                        disabled={selectedStudents.length === 0}
+                                        style={{ background: selectedStudents.length === 0 ? '#94a3b8' : '#3b82f6' }}
+                                    >
+                                        Assign to {selectedStudents.length} {selectedStudents.length === 1 ? 'Student' : 'Students'}
+                                    </button>
+                                </div>
+                            </form>
+
+                        </div>
                     </div>
                 </div>
             )}

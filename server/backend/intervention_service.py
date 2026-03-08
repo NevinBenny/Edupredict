@@ -44,20 +44,21 @@ def get_interventions():
 @intervention_bp.route('/api/interventions', methods=['POST'])
 def create_intervention():
     # Handle multipart/form-data
-    student_id = request.form.get('student_id')
+    student_id_str = request.form.get('student_id')
     title = request.form.get('title')
     description = request.form.get('description')
     due_date = request.form.get('due_date')
     file = request.files.get('file')
     
-    if not student_id or not title:
-        return jsonify({"error": "Student ID and Title are required"}), 400
+    if not student_id_str or not title:
+        return jsonify({"error": "Student IDs and Title are required"}), 400
         
+    # Split by comma to handle bulk. If it's just one, it works fine.
+    student_ids = [sid.strip() for sid in student_id_str.split(',') if sid.strip()]
+    
     file_path = None
     if file and file.filename:
         filename = secure_filename(file.filename)
-        # Ensure unique name or folder structure if needed
-        # For simplicity, just save
         save_path = os.path.join(UPLOAD_FOLDER, filename)
         file.save(save_path)
         file_path = filename
@@ -67,15 +68,21 @@ def create_intervention():
         conn = get_connection()
         cur = conn.cursor()
         
-        cur.execute(
-            "INSERT INTO interventions (student_id, title, description, due_date, status, file_path) VALUES (%s, %s, %s, %s, 'Pending', %s)",
-            (student_id, title, description, due_date, file_path)
-        )
+        # We'll use a transaction for all selected students
+        for sid in student_ids:
+            cur.execute(
+                "INSERT INTO interventions (student_id, title, description, due_date, status, file_path) VALUES (%s, %s, %s, %s, 'Pending', %s)",
+                (sid, title, description, due_date, file_path)
+            )
+        
         conn.commit()
         cur.close()
         
-        return jsonify({"message": "Intervention assigned successfully"}), 201
+        count = len(student_ids)
+        msg = "Intervention assigned successfully" if count == 1 else f"Interventions assigned to {count} students"
+        return jsonify({"message": msg}), 201
     except Exception as e:
+        if conn: conn.rollback()
         return jsonify({"error": str(e)}), 500
     finally:
         if conn:
