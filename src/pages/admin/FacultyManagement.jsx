@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react'
+import Modal from '../../components/admin/Modal'
 import { getFaculties, addFaculty, deleteFaculty } from '../../services/api'
+import toast from 'react-hot-toast'
+import { confirmToast } from '../../utils/confirmToast'
 import './AdminPanel.css'
 
 const FacultyManagement = () => {
@@ -13,8 +16,6 @@ const FacultyManagement = () => {
         designation: '',
         password: ''
     })
-    const [error, setError] = useState('')
-    const [success, setSuccess] = useState('')
 
     // File upload state for Batch CSV
     const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
@@ -32,7 +33,7 @@ const FacultyManagement = () => {
             const data = await getFaculties()
             setFaculties(data.faculties || [])
         } catch (err) {
-            setError('Failed to load faculties')
+            toast.error('Failed to load faculties')
             console.error(err)
         } finally {
             setLoading(false)
@@ -51,25 +52,25 @@ const FacultyManagement = () => {
 
         try {
             await addFaculty(newFaculty)
-            setSuccess('Faculty added successfully!')
+            toast.success('Faculty added successfully!')
             setNewFaculty({ name: '', email: '', department: '', designation: '' })
             setShowAddModal(false)
             fetchFaculties()
         } catch (err) {
-            setError(err.message || 'Failed to add faculty')
+            toast.error(err.message || 'Failed to add faculty')
         }
     }
 
     const handleDelete = async (id) => {
-        if (!window.confirm('Are you sure you want to delete this faculty member?')) return
-
-        try {
-            await deleteFaculty(id)
-            setSuccess('Faculty deleted successfully')
-            fetchFaculties()
-        } catch (err) {
-            setError('Failed to delete faculty')
-        }
+        confirmToast('Are you sure you want to delete this faculty member?', async () => {
+            try {
+                await deleteFaculty(id)
+                toast.success('Faculty deleted successfully')
+                fetchFaculties()
+            } catch (err) {
+                toast.error('Failed to delete faculty')
+            }
+        })
     }
 
     const handleFileUpload = async (e) => {
@@ -95,9 +96,9 @@ const FacultyManagement = () => {
 
             setCredentials(data.credentials)
             fetchFaculties()
-            setSuccess(`Successfully processed ${data.credentials?.length} faculty accounts.`)
+            toast.success(`Successfully processed ${data.credentials?.length} faculty accounts.`)
         } catch (err) {
-            setError(err.message)
+            toast.error(err.message)
         } finally {
             setUploading(false)
         }
@@ -131,9 +132,6 @@ const FacultyManagement = () => {
                     </button>
                 </div>
             </div>
-
-            {error && <div className="alert alert-error">{error}</div>}
-            {success && <div className="alert alert-success">{success}</div>}
 
             <div className="table-card">
                 {loading ? (

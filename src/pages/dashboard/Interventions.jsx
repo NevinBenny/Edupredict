@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Plus, CheckCircle, Clock, AlertCircle, FileText, Download, X } from 'lucide-react'
+import { Plus, X, Search, Filter, Calendar, FileText, Download, CheckCircle, Clock } from 'lucide-react'
+import toast from 'react-hot-toast'
 import './Dashboard.css'
 
 const Interventions = () => {
@@ -39,7 +40,7 @@ const Interventions = () => {
 
     const handleAssign = async (e) => {
         e.preventDefault()
-        if (!selectedStudent || !title) return alert("Please select a student and enter a title.")
+        if (!selectedStudent || !title) return toast.error("Please select a student and enter a title.")
 
         const formData = new FormData()
         formData.append('student_id', selectedStudent)
@@ -57,7 +58,7 @@ const Interventions = () => {
             })
 
             if (response.ok) {
-                alert("Intervention assigned successfully!")
+                toast.success("Intervention assigned successfully!")
                 setShowModal(false)
                 fetchData()
                 // Reset form
@@ -67,9 +68,10 @@ const Interventions = () => {
                 setSelectedStudent('')
                 setFile(null)
             } else {
-                alert("Failed to assign intervention.")
+                toast.error("Failed to assign intervention.")
             }
         } catch (error) {
+            toast.error("Error creating intervention.")
             console.error("Error creating intervention:", error)
         }
     }

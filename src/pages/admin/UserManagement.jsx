@@ -4,6 +4,8 @@ import Modal from '../../components/admin/Modal'
 import FormField from '../../components/admin/FormField'
 import { fetchAdmins, addAdmin, toggleAdminRetire, makeAdminDefault } from '../../services/api'
 import { Shield, ShieldAlert, ShieldCheck } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { confirmToast } from '../../utils/confirmToast'
 import './AdminPanel.css'
 
 /**
@@ -75,8 +77,9 @@ const UserManagement = () => {
       const resp = await addAdmin({ email: formData.email })
       setNewCredentials(resp.credentials)
       loadAdmins()
+      toast.success("Admin created successfully")
     } catch (err) {
-      alert(err.message || 'Failed to create admin')
+      toast.error(err.message || 'Failed to create admin')
     } finally {
       setIsCreating(false)
     }
@@ -84,33 +87,35 @@ const UserManagement = () => {
 
   const handleToggleRetire = async (admin) => {
     if (admin.isDefault) {
-      alert("Cannot retire the default admin account.")
+      toast.error("Cannot retire the default admin account.")
       return
     }
     const action = admin.status === 'ACTIVE' ? 'retire' : 'restore'
-    if (confirm(`Are you sure you want to ${action} ${admin.email}?`)) {
+    confirmToast(`Are you sure you want to ${action} ${admin.email}?`, async () => {
       try {
         await toggleAdminRetire(admin.id)
         loadAdmins()
+        toast.success(`Admin ${action}d successfully.`)
       } catch (err) {
-        alert(err.message || `Failed to ${action} admin`)
+        toast.error(err.message || `Failed to ${action} admin`)
       }
-    }
+    })
   }
 
   const handleMakeDefault = async (admin) => {
     if (admin.status === 'RETIRED') {
-      alert("Cannot make a retired admin the default admin.")
+      toast.error("Cannot make a retired admin the default admin.")
       return
     }
-    if (confirm(`Make ${admin.email} the default admin? This will remove default status from the current default.`)) {
+    confirmToast(`Make ${admin.email} the default admin? This will remove default status from the current default.`, async () => {
       try {
         await makeAdminDefault(admin.id)
         loadAdmins()
+        toast.success("Default admin updated.")
       } catch (err) {
-        alert(err.message || "Failed to make admin default")
+        toast.error(err.message || "Failed to make admin default")
       }
-    }
+    })
   }
 
   const columns = [

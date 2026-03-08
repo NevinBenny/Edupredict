@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import DataTable from '../../components/admin/DataTable'
 import Modal from '../../components/admin/Modal'
 import { Upload, Download, RefreshCw, Key } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { confirmToast } from '../../utils/confirmToast'
 
 const StudentManagement = () => {
     const [students, setStudents] = useState([])
@@ -69,9 +71,9 @@ const StudentManagement = () => {
 
             setCredentials(data.credentials) // List of object {email, password}
             fetchStudents()
-            alert(`Successfully processed ${data.credentials?.length} students.`)
+            toast.success(`Successfully processed ${data.credentials?.length} students.`)
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setUploading(false)
         }
@@ -100,7 +102,7 @@ const StudentManagement = () => {
             setIsUploadModalOpen(true) // Reuse the success screen
             setSingleStudentData({ name: '', email: '', department: 'MCA', semester: '1', sgpa: '', backlogs: 0 })
         } catch (err) {
-            alert(err.message)
+            toast.error(err.message)
         } finally {
             setUploading(false)
         }
@@ -119,23 +121,23 @@ const StudentManagement = () => {
     }
 
     const resetStudentPassword = async (student) => {
-        if (!confirm(`Are you sure you want to reset the password for ${student.email}?`)) return
+        confirmToast(`Are you sure you want to reset the password for ${student.email}?`, async () => {
+            try {
+                const token = localStorage.getItem('token')
+                const response = await fetch(`http://localhost:5000/api/admin/students/${student.student_id}/reset-password`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                })
+                const data = await response.json()
+                if (!response.ok) throw new Error(data.error || 'Failed to reset password')
 
-        try {
-            const token = localStorage.getItem('token')
-            const response = await fetch(`http://localhost:5000/api/admin/students/${student.student_id}/reset-password`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
-            const data = await response.json()
-            if (!response.ok) throw new Error(data.error || 'Failed to reset password')
-
-            alert(`Password has been reset for ${student.name}.\nNew Password: ${data.new_password}`)
-        } catch (err) {
-            alert(err.message)
-        }
+                toast.success(`Password has been reset for ${student.name}.\nNew Password: ${data.new_password}`, { duration: 10000 })
+            } catch (err) {
+                toast.error(err.message)
+            }
+        })
     }
 
     const filteredStudents = students.filter(

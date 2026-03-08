@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { FileText, Download, AlertCircle } from 'lucide-react'
+import toast from 'react-hot-toast'
 import './Dashboard.css'
 
 const Reports = () => {
@@ -29,7 +30,7 @@ const Reports = () => {
       document.body.removeChild(a)
     } catch (err) {
       setError(err.message)
-      alert(`Error: ${err.message}`)
+      toast.error(`Error: ${err.message}`)
     } finally {
       setLoading(false)
     }
@@ -57,7 +58,7 @@ const Reports = () => {
       document.body.removeChild(a)
     } catch (err) {
       setError(err.message)
-      alert(`Error: ${err.message}`)
+      toast.error(`Error: ${err.message}`)
     } finally {
       setLoading(false)
     }

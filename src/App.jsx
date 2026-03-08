@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import LoginPage from './pages/auth/LoginPage'
 import SignupPage from './pages/auth/SignupPage'
@@ -26,6 +27,7 @@ import { AuthProvider } from './context/AuthContext'
 function App() {
   return (
     <AuthProvider>
+      <Toaster position="top-right" />
       <Routes>
         <Route path="/" element={<Navigate to="/auth/login" replace />} />
         <Route path="/auth" element={<Navigate to="/auth/login" replace />} />
