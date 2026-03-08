@@ -1,57 +1,122 @@
-import React from 'react';
-import { X, User, GraduationCap, FileText, AlertCircle } from 'lucide-react';
-import './DashboardComponents.css';
+import React, { useEffect } from 'react';
+import { X, Calendar, BookOpen, AlertCircle, History, Stethoscope } from 'lucide-react';
+import './StudentDetailModal.css';
 
 const StudentDetailModal = ({ student, onClose }) => {
+    // Prevent scrolling on body when modal is open
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, []);
+
     if (!student) return null;
 
+    // Get initials for the avatar
+    const getInitials = (name) => {
+        return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    };
+
+    // Calculate dynamic risk level class
+    const riskClass = student.risk_level ? student.risk_level.toLowerCase() : 'low';
+
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-sidebar" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
-                    <div className="modal-title">
-                        <User size={20} />
-                        <h3>Student Profile</h3>
+        <div className="sd-modal-overlay" onClick={onClose}>
+            <div className="sd-modal-sidebar" onClick={e => e.stopPropagation()}>
+
+                {/* Visual Banner Header */}
+                <div className="sd-header-banner">
+                    <button className="sd-close-btn" onClick={onClose}>
+                        <X size={18} />
+                    </button>
+                    <div className="sd-avatar-wrapper">
+                        <div className="sd-avatar">
+                            {getInitials(student.name)}
+                        </div>
                     </div>
-                    <button className="close-btn" onClick={onClose}><X size={20} /></button>
                 </div>
 
-                <div className="modal-body">
-                    <div className="student-profile-summary">
-                        <div className="profile-id">{student.student_id}</div>
-                        <div className="profile-name">{student.name}</div>
-                        <div className="profile-dept">{student.department} • Semester {student.semester}</div>
+                <div className="sd-body">
+                    {/* Identification */}
+                    <div className="sd-profile-info">
+                        <div className="sd-meta">
+                            <span className="sd-meta-badge">{student.student_id}</span>
+                        </div>
+                        <h2 className="sd-name">{student.name}</h2>
+                        <div className="sd-meta" style={{ marginTop: '4px' }}>
+                            <BookOpen size={14} /> {student.department}
+                            <span style={{ color: '#cbd5e1' }}>|</span>
+                            Semester {student.semester}
+                        </div>
                     </div>
 
-                    <div className="detail-grid">
-                        <div className="detail-item">
-                            <label>Internal Marks</label>
-                            <div className="detail-value">{student.internal_marks} / 50</div>
+                    {/* Quick Analytics Grid */}
+                    <div className="sd-metrics-grid">
+                        <div className="sd-metric-card">
+                            <div className="sd-metric-label">
+                                <Calendar size={14} /> Attendance
+                            </div>
+                            <div className="sd-metric-value">
+                                {student.attendance_percentage}<span>%</span>
+                            </div>
                         </div>
-                        <div className="detail-item">
-                            <label>Assignment Score</label>
-                            <div className="detail-value">{student.assignment_score} / 25</div>
+                        <div className="sd-metric-card">
+                            <div className="sd-metric-label">
+                                <BookOpen size={14} /> CGPA
+                            </div>
+                            <div className="sd-metric-value">
+                                {student.sgpa}
+                            </div>
                         </div>
-                        <div className="detail-item full">
-                            <label>Academic Risk Analysis</label>
-                            <div className={`risk-indicator ${student.risk_level.toLowerCase()}`}>
-                                <div className="risk-score-circle">
-                                    <span className="score">{student.risk_score}</span>
-                                    <span className="label">Risk Score</span>
-                                </div>
-                                <div className="risk-explanation">
-                                    <strong>{student.risk_level} Risk Level</strong>
-                                    <p>Prediction based on {student.attendance_percentage}% attendance, {student.sgpa} SGPA, and {student.backlogs} backlogs.</p>
-                                </div>
+                        <div className="sd-metric-card">
+                            <div className="sd-metric-label">
+                                Internal Marks
+                            </div>
+                            <div className="sd-metric-value">
+                                {student.internal_marks} <span>/ 50</span>
+                            </div>
+                        </div>
+                        <div className="sd-metric-card">
+                            <div className="sd-metric-label">
+                                Backlogs
+                            </div>
+                            <div className="sd-metric-value" style={{ color: student.backlogs > 0 ? '#ef4444' : 'inherit' }}>
+                                {student.backlogs}
                             </div>
                         </div>
                     </div>
 
-                    <div className="modal-actions">
-                        <button className="btn-secondary">View History</button>
-                        <button className="btn-primary">Plan Intervention</button>
+                    {/* Deep Risk Analysis Card */}
+                    <div>
+                        <div className="sd-metric-label" style={{ marginBottom: '12px' }}>
+                            <AlertCircle size={14} /> Predictive Analysis
+                        </div>
+                        <div className={`sd-risk-card ${riskClass}`}>
+                            <div className="sd-risk-score">
+                                <span className="sd-risk-val">{student.risk_score}</span>
+                                <span className="sd-risk-lbl">Index</span>
+                            </div>
+                            <div className="sd-risk-details">
+                                <h4>{student.risk_level} Risk Trajectory</h4>
+                                <p>
+                                    Based on {student.attendance_percentage}% attendance stability combined with current SGPA of {student.sgpa} and {student.backlogs} recorded backlogs.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="sd-actions">
+                        <button className="sd-btn sd-btn-outline">
+                            <History size={16} /> History
+                        </button>
+                        <button className="sd-btn sd-btn-primary">
+                            <Stethoscope size={16} /> Intervene
+                        </button>
                     </div>
                 </div>
+
             </div>
         </div>
     );
