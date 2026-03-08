@@ -92,9 +92,9 @@ const AdminDashboard = () => {
         <h2>Quick Actions</h2>
         <div className="actions-grid">
           <a href="/admin/users" className="action-card">
-            <span className="action-icon">👥</span>
-            <h3>Manage Users</h3>
-            <p>Create, edit, or disable user accounts</p>
+            <span className="action-icon">🛡️</span>
+            <h3>Manage Admins</h3>
+            <p>Create, watch, or retire admin accounts</p>
           </a>
           <a href="/admin/faculty" className="action-card">
             <span className="action-icon">👨‍🏫</span>

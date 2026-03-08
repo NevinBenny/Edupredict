@@ -81,8 +81,27 @@ export const updateAccountProfile = async (profileData) => {
 }
 
 // Admin API
-export const fetchAllUsers = async () => {
-  return request('/users')
+export const fetchAdmins = async () => {
+  return request('/admin/admins')
+}
+
+export const addAdmin = async (adminData) => {
+  return request('/admin/admins/single', {
+    method: 'POST',
+    body: JSON.stringify(adminData)
+  })
+}
+
+export const toggleAdminRetire = async (id) => {
+  return request(`/admin/admins/${id}/retire`, {
+    method: 'PUT'
+  })
+}
+
+export const makeAdminDefault = async (id) => {
+  return request(`/admin/admins/${id}/default`, {
+    method: 'PUT'
+  })
 }
 
 export const fetchAdminStats = async () => {

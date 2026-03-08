@@ -19,6 +19,7 @@ import AdminDashboard from './pages/admin/AdminDashboard'
 import UserManagement from './pages/admin/UserManagement'
 import SystemSettings from './pages/admin/SystemSettings'
 import FacultyManagement from './pages/admin/FacultyManagement'
+import StudentManagement from './pages/admin/StudentManagement'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AuthProvider } from './context/AuthContext'
 
@@ -102,6 +103,7 @@ function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="users" element={<UserManagement />} />
           <Route path="faculty" element={<FacultyManagement />} />
+          <Route path="students" element={<StudentManagement />} />
           <Route path="settings" element={<SystemSettings />} />
         </Route>
 
