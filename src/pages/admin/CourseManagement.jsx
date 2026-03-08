@@ -102,7 +102,7 @@ const CourseManagement = () => {
             key: 'department',
             label: 'Department',
             width: '150px',
-            render: (c) => <span className="status-badge" style={{ background: '#f1f5f9', color: '#475569' }}>{c.department}</span>
+            render: (dept) => <span className="status-badge" style={{ background: '#f1f5f9', color: '#475569' }}>{dept}</span>
         },
         { key: 'semester', label: 'Semester', width: '100px' },
     ]
@@ -153,10 +153,8 @@ const CourseManagement = () => {
             <section className="page-content">
                 <DataTable
                     columns={columns}
-                    data={filteredCourses}
+                    rows={filteredCourses}
                     actions={actions}
-                    loading={loading}
-                    emptyMessage="No courses found."
                 />
             </section>
 

@@ -65,30 +65,30 @@ const DepartmentManagement = () => {
         {
             key: 'faculty_count',
             label: 'Faculty',
-            render: (dep) => (
+            render: (count) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Users size={16} color="#6b7280" />
-                    {dep.faculty_count}
+                    {count}
                 </div>
             )
         },
         {
             key: 'student_count',
             label: 'Students',
-            render: (dep) => (
+            render: (count) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <GraduationCap size={16} color="#6b7280" />
-                    {dep.student_count}
+                    {count}
                 </div>
             )
         },
         {
             key: 'course_count',
             label: 'Courses',
-            render: (dep) => (
+            render: (count) => (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <BookOpen size={16} color="#6b7280" />
-                    {dep.course_count}
+                    {count}
                 </div>
             )
         }
@@ -123,10 +123,8 @@ const DepartmentManagement = () => {
             <section className="page-content">
                 <DataTable
                     columns={columns}
-                    data={departments}
+                    rows={departments}
                     actions={actions}
-                    loading={loading}
-                    emptyMessage="No departments found. Departments are automatically created when you add users or courses."
                 />
             </section>
 
