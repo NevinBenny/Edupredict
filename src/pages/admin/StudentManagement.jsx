@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react'
 import DataTable from '../../components/admin/DataTable'
 import Modal from '../../components/admin/Modal'
+import PasswordRevealModal from '../../components/admin/PasswordRevealModal'
 import { Upload, Download, RefreshCw, Key } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmToast } from '../../utils/confirmToast'
+import { getStudents, addSingleStudent, batchUploadStudents, resetStudentPassword as resetApi } from '../../services/api'
+import './AdminPanel.css'
 
 const StudentManagement = () => {
     const [students, setStudents] = useState([])
@@ -24,21 +27,23 @@ const StudentManagement = () => {
     const [uploading, setUploading] = useState(false)
     const [credentials, setCredentials] = useState(null)
 
+    // Password reveal modal
+    const [revealModal, setRevealModal] = useState({ open: false, credentials: null, list: null })
+
+    const generatePassword = () => {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%'
+        return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+    }
+
     const fetchStudents = async () => {
         try {
             setLoading(true)
-            const token = localStorage.getItem('token')
-            const response = await fetch('http://localhost:5000/api/admin/students', {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
-            })
-            const data = await response.json()
-            if (!response.ok) throw new Error(data.error || 'Failed to fetch students')
+            const data = await getStudents()
             setStudents(data.students || [])
             setError(null)
         } catch (err) {
             setError(err.message)
+            toast.error(err.message)
         } finally {
             setLoading(false)
         }
@@ -57,18 +62,7 @@ const StudentManagement = () => {
         formData.append('file', csvFile)
 
         try {
-            const token = localStorage.getItem('token')
-            const response = await fetch('http://localhost:5000/api/admin/students/batch', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            })
-            const data = await response.json()
-
-            if (!response.ok) throw new Error(data.error || 'Failed to upload students')
-
+            const data = await batchUploadStudents(formData)
             setCredentials(data.credentials) // List of object {email, password}
             fetchStudents()
             toast.success(`Successfully processed ${data.credentials?.length} students.`)
@@ -83,24 +77,16 @@ const StudentManagement = () => {
         e.preventDefault()
         setUploading(true)
         try {
-            const token = localStorage.getItem('token')
-            const response = await fetch('http://localhost:5000/api/admin/students/single', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(singleStudentData)
-            })
-            const data = await response.json()
-
-            if (!response.ok) throw new Error(data.error || 'Failed to create student')
-
-            setCredentials([data.credentials])
+            const data = await addSingleStudent(singleStudentData)
             fetchStudents()
             setIsSingleModalOpen(false)
-            setIsUploadModalOpen(true) // Reuse the success screen
             setSingleStudentData({ name: '', email: '', department: 'MCA', semester: '1', sgpa: '', backlogs: 0 })
+            // Show the password reveal modal with CSV option
+            setRevealModal({
+                open: true,
+                credentials: data.credentials,
+                list: [data.credentials]
+            })
         } catch (err) {
             toast.error(err.message)
         } finally {
@@ -121,19 +107,14 @@ const StudentManagement = () => {
     }
 
     const resetStudentPassword = async (student) => {
-        confirmToast(`Are you sure you want to reset the password for ${student.email}?`, async () => {
+        confirmToast(`Reset password for ${student.email}?`, async () => {
             try {
-                const token = localStorage.getItem('token')
-                const response = await fetch(`http://localhost:5000/api/admin/students/${student.student_id}/reset-password`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                const data = await resetApi(student.student_id)
+                setRevealModal({
+                    open: true,
+                    credentials: { email: student.email, password: data.new_password },
+                    list: [{ email: student.email, password: data.new_password }]
                 })
-                const data = await response.json()
-                if (!response.ok) throw new Error(data.error || 'Failed to reset password')
-
-                toast.success(`Password has been reset for ${student.name}.\nNew Password: ${data.new_password}`, { duration: 10000 })
             } catch (err) {
                 toast.error(err.message)
             }
@@ -174,7 +155,7 @@ const StudentManagement = () => {
                     <button className="secondary-btn" onClick={fetchStudents}>
                         <RefreshCw size={16} /> Refresh
                     </button>
-                    <button className="primary-btn" style={{ background: 'var(--c-primary-light)', color: 'white', border: 'none' }} onClick={() => setIsSingleModalOpen(true)}>
+                    <button className="primary-btn" onClick={() => setIsSingleModalOpen(true)}>
                         + Add Single Student
                     </button>
                     <button className="primary-btn" onClick={() => setIsUploadModalOpen(true)}>
@@ -290,6 +271,15 @@ const StudentManagement = () => {
                     </div>
                 </form>
             </Modal>
+
+            <PasswordRevealModal
+                isOpen={revealModal.open}
+                credentials={revealModal.credentials}
+                credentialsList={revealModal.list}
+                onClose={() => setRevealModal({ open: false, credentials: null, list: null })}
+                showCsvDownload={true}
+                csvFilename={`student_credentials_${new Date().toISOString().split('T')[0]}.csv`}
+            />
         </div>
     )
 }

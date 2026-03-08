@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import FormField from '../../components/admin/FormField'
+import './AdminPanel.css'
 
 /**
  * SystemSettings - Admin page for system configuration

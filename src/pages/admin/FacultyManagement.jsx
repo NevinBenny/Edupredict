@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import Modal from '../../components/admin/Modal'
-import { getFaculties, addFaculty, deleteFaculty } from '../../services/api'
+import PasswordRevealModal from '../../components/admin/PasswordRevealModal'
+import { getFaculties, addFaculty, deleteFaculty, batchUploadFaculty, resetFacultyPassword } from '../../services/api'
 import toast from 'react-hot-toast'
 import { confirmToast } from '../../utils/confirmToast'
 import './AdminPanel.css'
@@ -23,6 +24,14 @@ const FacultyManagement = () => {
     const [uploading, setUploading] = useState(false)
     const [credentials, setCredentials] = useState(null)
 
+    // Password reveal state
+    const [revealModal, setRevealModal] = useState({ open: false, credentials: null })
+
+    const generatePassword = () => {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%'
+        return Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join('')
+    }
+
     useEffect(() => {
         fetchFaculties()
     }, [])
@@ -42,11 +51,9 @@ const FacultyManagement = () => {
 
     const handleAddFaculty = async (e) => {
         e.preventDefault()
-        setError('')
-        setSuccess('')
 
         if (!newFaculty.name || !newFaculty.email || !newFaculty.password) {
-            setError('Name, email, and password are required')
+            toast.error('Name, email, and password are required')
             return
         }
 
@@ -73,6 +80,17 @@ const FacultyManagement = () => {
         })
     }
 
+    const handleResetPassword = async (faculty) => {
+        confirmToast(`Reset password for ${faculty.email}?`, async () => {
+            try {
+                const data = await resetFacultyPassword(faculty.id)
+                setRevealModal({ open: true, credentials: { email: data.email, password: data.new_password } })
+            } catch (err) {
+                toast.error(err.message || 'Failed to reset password')
+            }
+        })
+    }
+
     const handleFileUpload = async (e) => {
         e.preventDefault()
         if (!csvFile) return
@@ -82,18 +100,7 @@ const FacultyManagement = () => {
         formData.append('file', csvFile)
 
         try {
-            const token = localStorage.getItem('token')
-            const response = await fetch('http://localhost:5000/api/admin/faculties/batch', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            })
-            const data = await response.json()
-
-            if (!response.ok) throw new Error(data.error || 'Failed to upload faculty')
-
+            const data = await batchUploadFaculty(formData)
             setCredentials(data.credentials)
             fetchFaculties()
             toast.success(`Successfully processed ${data.credentials?.length} faculty accounts.`)
@@ -124,7 +131,7 @@ const FacultyManagement = () => {
                     <p>View and manage academic staff members</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
-                    <button className="primary-btn" style={{ background: 'var(--c-primary-light)', color: 'white', border: 'none' }} onClick={() => setShowAddModal(true)}>
+                    <button className="primary-btn" onClick={() => setShowAddModal(true)}>
                         + Add Faculty
                     </button>
                     <button className="primary-btn" onClick={() => setIsUploadModalOpen(true)}>
@@ -163,9 +170,18 @@ const FacultyManagement = () => {
                                         <td>{f.designation || 'N/A'}</td>
                                         <td>{new Date(f.created_at).toLocaleDateString()}</td>
                                         <td>
-                                            <button className="action-btn delete" onClick={() => handleDelete(f.id)}>
-                                                🗑️
-                                            </button>
+                                            <div className="action-buttons">
+                                                <button
+                                                    className="action-btn action-btn-secondary"
+                                                    onClick={() => handleResetPassword(f)}
+                                                    title="Reset Password"
+                                                >
+                                                    Reset PWD
+                                                </button>
+                                                <button className="action-btn delete" onClick={() => handleDelete(f.id)} title="Delete">
+                                                    🗑️
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))
@@ -228,14 +244,25 @@ const FacultyManagement = () => {
                             </div>
                             <div className="form-group">
                                 <label>Temporary Password</label>
-                                <input
-                                    type="text"
-                                    value={newFaculty.password || ''}
-                                    onChange={(e) => setNewFaculty({ ...newFaculty, password: e.target.value })}
-                                    placeholder="Enter temporary password"
-                                    required
-                                    minLength={8}
-                                />
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <input
+                                        type="text"
+                                        value={newFaculty.password || ''}
+                                        onChange={(e) => setNewFaculty({ ...newFaculty, password: e.target.value })}
+                                        placeholder="Enter or generate a password"
+                                        required
+                                        minLength={8}
+                                        style={{ flex: 1 }}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="secondary-btn"
+                                        style={{ whiteSpace: 'nowrap' }}
+                                        onClick={() => setNewFaculty({ ...newFaculty, password: generatePassword() })}
+                                    >
+                                        Generate
+                                    </button>
+                                </div>
                                 <small style={{ display: 'block', marginTop: '4px', color: '#666' }}>
                                     User will be forced to change this on first login.
                                 </small>
@@ -296,6 +323,13 @@ const FacultyManagement = () => {
                     </div>
                 </div>
             )}
+
+            <PasswordRevealModal
+                isOpen={revealModal.open}
+                credentials={revealModal.credentials}
+                onClose={() => setRevealModal({ open: false, credentials: null })}
+                showCsvDownload={false}
+            />
         </div>
     )
 }

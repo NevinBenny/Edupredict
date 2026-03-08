@@ -156,6 +156,39 @@ def delete_faculty(faculty_id):
         if conn:
             conn.close()
 
+@admin_bp.route("/api/admin/faculties/<int:faculty_id>/reset-password", methods=["POST"])
+def reset_faculty_password(faculty_id):
+    is_admin, msg, code = check_admin()
+    if not is_admin:
+        return jsonify({"error": msg}), code
+
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT email FROM faculties WHERE id = %s", (faculty_id,))
+        faculty = cur.fetchone()
+        if not faculty:
+            return jsonify({"error": "Faculty not found"}), 404
+
+        cur.execute("SELECT id FROM users WHERE email = %s", (faculty["email"],))
+        user = cur.fetchone()
+        if not user:
+            return jsonify({"error": "No user account found for this faculty"}), 404
+
+        new_pwd = generate_random_password()
+        hashed = hash_password(new_pwd)
+        cur.execute("UPDATE users SET password_hash=%s, must_change_password=TRUE WHERE id=%s", (hashed, user["id"]))
+        conn.commit()
+        return jsonify({"message": "Password reset", "new_password": new_pwd, "email": faculty["email"]})
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if conn:
+            conn.close()
+
 @admin_bp.route("/api/admin/faculties/batch", methods=["POST"])
 def batch_upload_faculties():
     is_admin, msg, code = check_admin()
@@ -505,3 +538,155 @@ def make_admin_default(admin_id):
     finally:
         conn.close()
 
+# --- DEPARTMENTS MANAGEMENT ENDPOINTS ---
+
+@admin_bp.route("/api/admin/departments", methods=["GET"])
+def get_departments():
+    is_admin, msg, code = check_admin()
+    if not is_admin: return jsonify({"error": msg}), code
+
+    conn = get_connection()
+    try:
+        cur = conn.cursor(dictionary=True)
+        # Aggregate unique departments from students, faculties, subjects
+        query = """
+        SELECT d.department,
+               MAX(d.student_count) as student_count,
+               MAX(d.faculty_count) as faculty_count,
+               MAX(d.course_count) as course_count
+        FROM (
+            SELECT department, COUNT(id) as student_count, 0 as faculty_count, 0 as course_count FROM students GROUP BY department
+            UNION ALL
+            SELECT department, 0, COUNT(id), 0 FROM faculties GROUP BY department
+            UNION ALL
+            SELECT department, 0, 0, COUNT(id) FROM subjects GROUP BY department
+        ) d
+        WHERE d.department IS NOT NULL AND d.department != ''
+        GROUP BY d.department
+        ORDER BY d.department
+        """
+        cur.execute(query)
+        departments = cur.fetchall()
+        return jsonify({"departments": departments})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@admin_bp.route("/api/admin/departments/<string:old_name>", methods=["PUT"])
+def rename_department(old_name):
+    is_admin, msg, code = check_admin()
+    if not is_admin: return jsonify({"error": msg}), code
+    
+    data = request.json
+    new_name = data.get("new_name", "").strip()
+    if not new_name:
+        return jsonify({"error": "New name is required"}), 400
+
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        # Update references everywhere
+        cur.execute("UPDATE students SET department=%s WHERE department=%s", (new_name, old_name))
+        cur.execute("UPDATE faculties SET department=%s WHERE department=%s", (new_name, old_name))
+        cur.execute("UPDATE subjects SET department=%s WHERE department=%s", (new_name, old_name))
+        conn.commit()
+        return jsonify({"message": f"Department renamed to {new_name}"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+
+# --- COURSES MANAGEMENT ENDPOINTS ---
+
+@admin_bp.route("/api/admin/courses", methods=["GET"])
+def get_courses():
+    is_admin, msg, code = check_admin()
+    if not is_admin: return jsonify({"error": msg}), code
+    
+    conn = get_connection()
+    try:
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT * FROM subjects ORDER BY department, semester, code")
+        courses = cur.fetchall()
+        return jsonify({"courses": courses})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@admin_bp.route("/api/admin/courses", methods=["POST"])
+def add_course():
+    is_admin, msg, code = check_admin()
+    if not is_admin: return jsonify({"error": msg}), code
+    
+    data = request.json
+    code_val = data.get("code", "").strip()
+    name = data.get("name", "").strip()
+    dept = data.get("department", "").strip()
+    sem = data.get("semester", "")
+    
+    if not code_val or not name or not dept or not str(sem).strip():
+        return jsonify({"error": "All fields (code, name, department, semester) are required"}), 400
+        
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("INSERT INTO subjects (code, name, department, semester) VALUES (%s, %s, %s, %s)", 
+                   (code_val, name, dept, sem))
+        conn.commit()
+        return jsonify({"message": "Course created successfully"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@admin_bp.route("/api/admin/courses/<int:course_id>", methods=["PUT"])
+def update_course(course_id):
+    is_admin, msg, code = check_admin()
+    if not is_admin: return jsonify({"error": msg}), code
+    
+    data = request.json
+    code_val = data.get("code", "").strip()
+    name = data.get("name", "").strip()
+    dept = data.get("department", "").strip()
+    sem = data.get("semester", "")
+    
+    if not code_val or not name or not dept or not str(sem).strip():
+        return jsonify({"error": "All fields are required"}), 400
+        
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            UPDATE subjects 
+            SET code=%s, name=%s, department=%s, semester=%s 
+            WHERE id=%s
+        """, (code_val, name, dept, sem, course_id))
+        conn.commit()
+        return jsonify({"message": "Course updated successfully"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@admin_bp.route("/api/admin/courses/<int:course_id>", methods=["DELETE"])
+def delete_course(course_id):
+    is_admin, msg, code = check_admin()
+    if not is_admin: return jsonify({"error": msg}), code
+    
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM subjects WHERE id=%s", (course_id,))
+        conn.commit()
+        return jsonify({"message": "Course deleted successfully"})
+    except Exception as e:
+        conn.rollback()
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()

@@ -763,3 +763,178 @@
   color: #065f46;
   border: 1px solid #34d399;
 }
+
+/* ============================================================================
+   Admin Page Layout (shared by StudentManagement, UserManagement, etc.)
+   ========================================================================== */
+
+.admin-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 0;
+}
+
+.header-content h2 {
+  font-size: 24px;
+  font-weight: 800;
+  margin: 0;
+  color: var(--c-text-primary);
+  line-height: 1.2;
+}
+
+.header-subtitle {
+  color: var(--c-text-tertiary);
+  margin: 4px 0 0;
+  font-size: 14px;
+}
+
+/* Page Controls (search bar + stats row) */
+.page-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 180px;
+  padding: 8px 14px;
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  background: var(--c-surface);
+  color: var(--c-text-primary);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.search-input:focus {
+  border-color: var(--c-accent-primary);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+.control-stats {
+  font-size: 13px;
+  color: var(--c-text-secondary);
+  white-space: nowrap;
+}
+
+/* Page Content wrapper */
+.page-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Form input (used inside modals) */
+.form-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--c-border-strong);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--c-surface);
+  color: var(--c-text-primary);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.form-input:focus {
+  border-color: var(--c-accent-primary);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+}
+
+/* DataTable container */
+.data-table-container {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border-strong);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Action buttons inside DataTable */
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.15s;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.action-btn-primary {
+  background: var(--c-accent-primary);
+  color: white;
+  border-color: var(--c-accent-primary);
+}
+
+.action-btn-primary:hover {
+  background: var(--c-accent-hover);
+  border-color: var(--c-accent-hover);
+}
+
+.action-btn-secondary {
+  background: transparent;
+  color: var(--c-text-secondary);
+  border-color: var(--c-border-strong);
+}
+
+.action-btn-secondary:hover {
+  background: var(--c-text-primary);
+  color: white;
+  border-color: var(--c-text-primary);
+}
+
+/* Empty state (inside tables) */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--c-text-tertiary);
+  font-size: 14px;
+}
+
+/* Status badges (used in UserManagement) */
+.status-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+
+.status-active {
+  background: var(--c-status-safe-bg);
+  color: var(--c-status-safe);
+  border: 1px solid var(--c-status-safe);
+}
+
+.status-retired {
+  background: var(--c-status-danger-bg);
+  color: var(--c-status-danger);
+  border: 1px solid var(--c-status-danger);
+}
+
+/* Loading state */
+.loading-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--c-text-secondary);
+  font-size: 14px;
+}
