@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, UserPlus, Save } from 'lucide-react';
 import './DashboardComponents.css';
 
@@ -6,17 +6,38 @@ const AddStudentModal = ({ onClose, onStudentAdded }) => {
     const [formData, setFormData] = useState({
         student_id: '',
         name: '',
-        department: 'CSE',
-        semester: '1',
+        subject_id: '',
         attendance_percentage: '',
         internal_marks: '',
-        assignment_score: '',
-        sgpa: '',
-        backlogs: '0'
+        assignment_score: ''
     });
+
+    const [subjects, setSubjects] = useState([]);
 
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        // Fetch subjects assigned to this faculty member for the dropdown
+        const fetchSubjects = async () => {
+            try {
+                const response = await fetch('http://localhost:5000/api/faculty-subjects', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    setSubjects(data.subjects || []);
+                    if (data.subjects && data.subjects.length > 0) {
+                        setFormData(prev => ({ ...prev, subject_id: data.subjects[0].id }));
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch subjects:', err);
+                setError('Failed to load classes.');
+            }
+        };
+        fetchSubjects();
+    }, []);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -29,9 +50,13 @@ const AddStudentModal = ({ onClose, onStudentAdded }) => {
         setError('');
 
         try {
+            const token = localStorage.getItem('token');
             const response = await fetch('http://localhost:5000/api/students', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(formData)
             });
 
@@ -84,20 +109,18 @@ const AddStudentModal = ({ onClose, onStudentAdded }) => {
                                 required
                             />
                         </div>
-                        <div className="form-item">
-                            <label>Department</label>
-                            <select name="department" value={formData.department} onChange={handleChange}>
-                                <option value="CSE">CSE</option>
-                                <option value="ECE">ECE</option>
-                                <option value="ME">ME</option>
-                                <option value="EEE">EEE</option>
-                                <option value="CE">CE</option>
-                            </select>
-                        </div>
-                        <div className="form-item">
-                            <label>Semester</label>
-                            <select name="semester" value={formData.semester} onChange={handleChange}>
-                                {[1, 2, 3, 4, 5, 6, 7, 8].map(s => <option key={s} value={s}>{s}</option>)}
+                        <div className="form-item" style={{ gridColumn: 'span 2' }}>
+                            <label>Subject / Course</label>
+                            <select name="subject_id" value={formData.subject_id} onChange={handleChange} required>
+                                {subjects.length === 0 ? (
+                                    <option value="">No subjects assigned</option>
+                                ) : (
+                                    subjects.map(sub => (
+                                        <option key={sub.id} value={sub.id}>
+                                            {sub.code} - {sub.name} ({sub.department}, Sem {sub.semester})
+                                        </option>
+                                    ))
+                                )}
                             </select>
                         </div>
                         <div className="form-item">
@@ -112,17 +135,7 @@ const AddStudentModal = ({ onClose, onStudentAdded }) => {
                                 required
                             />
                         </div>
-                        <div className="form-item">
-                            <label>SGPA (Previous)</label>
-                            <input
-                                name="sgpa"
-                                type="number"
-                                step="0.01"
-                                value={formData.sgpa}
-                                onChange={handleChange}
-                                placeholder="0.00 - 10.00"
-                            />
-                        </div>
+
                         <div className="form-item">
                             <label>Internal Marks (/50)</label>
                             <input
@@ -141,15 +154,7 @@ const AddStudentModal = ({ onClose, onStudentAdded }) => {
                                 onChange={handleChange}
                             />
                         </div>
-                        <div className="form-item">
-                            <label>Backlogs</label>
-                            <input
-                                name="backlogs"
-                                type="number"
-                                value={formData.backlogs}
-                                onChange={handleChange}
-                            />
-                        </div>
+
                     </div>
 
                     <div className="modal-actions">

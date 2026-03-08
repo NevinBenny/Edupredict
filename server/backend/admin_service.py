@@ -681,7 +681,20 @@ def delete_course(course_id):
     
     conn = get_connection()
     try:
-        cur = conn.cursor()
+        cur = conn.cursor(dictionary=True)
+        
+        # 1. Check for linked faculty
+        cur.execute("SELECT COUNT(*) as count FROM faculty_subjects WHERE subject_id=%s", (course_id,))
+        faculty_count = cur.fetchone()['count']
+        if faculty_count > 0:
+            return jsonify({"error": f"Cannot delete course: {faculty_count} faculty member(s) are currently assigned to this subject."}), 400
+            
+        # 2. Check for linked student records
+        cur.execute("SELECT COUNT(*) as count FROM student_academic_records WHERE subject_id=%s", (course_id,))
+        student_count = cur.fetchone()['count']
+        if student_count > 0:
+            return jsonify({"error": f"Cannot delete course: {student_count} student grade record(s) are currently tied to this subject."}), 400
+
         cur.execute("DELETE FROM subjects WHERE id=%s", (course_id,))
         conn.commit()
         return jsonify({"message": "Course deleted successfully"})
