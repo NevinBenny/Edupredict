@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import './DashboardComponents.css';
 import StudentDetailModal from './StudentDetailModal';
 
-const StudentTable = ({ students }) => {
+const StudentTable = ({ students = [] }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterSubject, setFilterSubject] = useState('All');
     const [filterDept, setFilterDept] = useState('All');
     const [filterRisk, setFilterRisk] = useState('All');
     const [selectedStudent, setSelectedStudent] = useState(null);
 
-    const filteredStudents = students.filter(student => {
+    // Safety guard
+    const safeStudents = Array.isArray(students) ? students : [];
+
+    const filteredStudents = safeStudents.filter(student => {
         const matchesSearch = student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             student.student_id.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesDept = filterDept === 'All' || student.department === filterDept;
@@ -18,8 +21,8 @@ const StudentTable = ({ students }) => {
         return matchesSearch && matchesDept && matchesRisk && matchesSubject;
     });
 
-    const departments = ['All', ...new Set(students.map(s => s.department))];
-    const subjects = ['All', ...new Set(students.map(s => s.subject_name).filter(Boolean))];
+    const departments = ['All', ...new Set(safeStudents.map(s => s.department))];
+    const subjects = ['All', ...new Set(safeStudents.map(s => s.subject_name).filter(Boolean))];
 
     return (
         <div className="student-table-section">

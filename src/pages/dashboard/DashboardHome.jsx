@@ -6,6 +6,7 @@ import StudentTable from './StudentTable';
 import AddStudentModal from './AddStudentModal';
 import RiskDrillDownModal from './RiskDrillDownModal';
 import { Users, Clock, GraduationCap, AlertTriangle, UserPlus, Play, FileUp } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const DashboardHome = () => {
   const [summary, setSummary] = useState(null);
@@ -16,19 +17,37 @@ const DashboardHome = () => {
   const [selectedRiskLevel, setSelectedRiskLevel] = useState(null);
 
   const fetchData = async () => {
+    setLoading(true);
     try {
       const [summaryRes, distRes, studentsRes] = await Promise.all([
-        fetch('http://localhost:5000/api/dashboard/summary').then(res => res.json()),
-        fetch('http://localhost:5000/api/dashboard/risk-distribution').then(res => res.json()),
-        fetch('http://localhost:5000/api/students').then(res => res.json())
+        fetch('http://localhost:5000/api/dashboard/summary', { credentials: 'include' }).then(res => res.json()),
+        fetch('http://localhost:5000/api/dashboard/risk-distribution', { credentials: 'include' }).then(res => res.json()),
+        fetch('http://localhost:5000/api/students', { credentials: 'include' }).then(res => res.json())
       ]);
 
-      setSummary(summaryRes);
-      setDistribution(distRes);
-      setStudents(studentsRes.students);
-      setLoading(false);
+      if (summaryRes.error) {
+        console.error('Summary error:', summaryRes.error);
+      } else {
+        setSummary(summaryRes);
+      }
+
+      if (Array.isArray(distRes)) {
+        setDistribution(distRes);
+      } else if (distRes && !distRes.error) {
+        setDistribution(distRes);
+      }
+
+      // Guard: only set students if we got a valid response
+      if (studentsRes && Array.isArray(studentsRes.students)) {
+        setStudents(studentsRes.students);
+      } else if (studentsRes?.error) {
+        console.warn('Students fetch failed:', studentsRes.error);
+        // Don't toast here — user may not have students yet or role differs
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      toast.error('Failed to load dashboard data.');
+    } finally {
       setLoading(false);
     }
   };

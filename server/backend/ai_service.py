@@ -16,8 +16,16 @@ def predict_risk():
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
         
-        # Fetch all students
-        cur.execute("SELECT * FROM students")
+        # Fetch all students with their aggregated academic records
+        cur.execute("""
+            SELECT 
+                s.student_id, s.name, s.department, s.semester, s.risk_level, s.risk_score,
+                COALESCE(AVG(sar.attendance_percentage), 0) as attendance_percentage,
+                COALESCE(AVG(sar.internal_marks), 0) as internal_marks
+            FROM students s
+            LEFT JOIN student_academic_records sar ON s.student_id = sar.student_id
+            GROUP BY s.student_id, s.name, s.department, s.semester, s.risk_level, s.risk_score
+        """)
         students = cur.fetchall()
         
         if not students:

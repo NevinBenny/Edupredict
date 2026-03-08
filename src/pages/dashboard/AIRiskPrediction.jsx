@@ -12,10 +12,11 @@ const AIRiskPrediction = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://localhost:5000/api/ai/predict');
+      const response = await fetch('http://localhost:5000/api/ai/predict', { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch analysis');
       const result = await response.json();
       setData(result);
+      setLoading(false);
     } catch (err) {
       setError(err.message);
     } finally {

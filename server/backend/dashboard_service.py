@@ -15,13 +15,15 @@ def get_summary():
         cur.execute("SELECT COUNT(*) as total FROM students")
         total = cur.fetchone()['total']
         
-        # Average Attendance
-        cur.execute("SELECT AVG(attendance_percentage) as avg_attendance FROM students")
-        avg_attendance = cur.fetchone()['avg_attendance'] or 0
+        # Average Attendance from academic records
+        cur.execute("SELECT AVG(attendance_percentage) as avg_attendance FROM student_academic_records")
+        row = cur.fetchone()
+        avg_attendance = float(row['avg_attendance']) if row and row['avg_attendance'] is not None else 0.0
         
-        # Average SGPA
+        # Average SGPA from students
         cur.execute("SELECT AVG(sgpa) as avg_sgpa FROM students")
-        avg_sgpa = cur.fetchone()['avg_sgpa'] or 0
+        row = cur.fetchone()
+        avg_sgpa = float(row['avg_sgpa']) if row and row['avg_sgpa'] is not None else 0.0
         
         # High Risk Count
         cur.execute("SELECT COUNT(*) as high_risk FROM students WHERE risk_level = 'High'")
@@ -29,14 +31,14 @@ def get_summary():
         
         summary = {
             "total_students": total,
-            "avg_attendance": round(float(avg_attendance), 1),
-            "avg_sgpa": round(float(avg_sgpa), 2),
+            "avg_attendance": round(avg_attendance, 1),
+            "avg_sgpa": round(avg_sgpa, 2),
             "high_risk_students": high_risk
         }
         
         cur.close()
         return jsonify(summary)
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({"error": str(err)}), 500
     finally:
         if conn:
@@ -87,35 +89,40 @@ def get_risk_distribution():
 
 @dashboard_bp.route("/api/students", methods=["GET"])
 def get_students():
-    if not session.get("user_id"):
-        return jsonify({"error": "Unauthorized"}), 401
-        
     user_id = session.get("user_id")
     role = session.get("role")
     
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    if role not in ("ADMIN", "FACULTY"):
+        return jsonify({"error": "Forbidden"}), 403
+        
     conn = None
     try:
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
         
         if role == "ADMIN":
-            # Admins see all students (for Admin panel Student Management)
             cur.execute("""
                 SELECT 
-                    s.student_id, s.name, s.department, s.semester, s.email,
-                    s.attendance_percentage, s.internal_marks, 
-                    s.assignment_score, s.sgpa, s.backlogs, 
+                    s.student_id, s.name, s.department, s.semester, u.email,
+                    COALESCE(AVG(sar.attendance_percentage), 0) as attendance_percentage,
+                    COALESCE(AVG(sar.internal_marks), 0) as internal_marks, 
+                    COALESCE(AVG(sar.assignment_score), 0) as assignment_score,
+                    s.sgpa, s.backlogs, 
                     s.risk_score, s.risk_level,
                     NULL as subject_name
                 FROM students s
+                LEFT JOIN users u ON s.user_id = u.id
+                LEFT JOIN student_academic_records sar ON s.student_id = sar.student_id
+                GROUP BY s.student_id, s.name, s.department, s.semester, u.email, s.sgpa, s.backlogs, s.risk_score, s.risk_level
                 ORDER BY s.created_at DESC
             """)
             students = cur.fetchall()
         elif role == "FACULTY":
-            # Faculty only see students enrolled in their assigned subjects
             cur.execute("""
                 SELECT 
-                    s.student_id, s.name, s.department, s.semester, s.email,
+                    s.student_id, s.name, s.department, s.semester, u.email,
                     sar.attendance_percentage, sar.internal_marks, 
                     sar.assignment_score, s.sgpa, s.backlogs, 
                     s.risk_score, s.risk_level, sub.name as subject_name
@@ -124,12 +131,11 @@ def get_students():
                 JOIN subjects sub ON fs.subject_id = sub.id
                 JOIN student_academic_records sar ON sub.id = sar.subject_id
                 JOIN students s ON sar.student_id = s.student_id
+                LEFT JOIN users u ON s.user_id = u.id
                 WHERE f.email = (SELECT email FROM users WHERE id = %s)
                 ORDER BY sub.name ASC, s.name ASC
             """, (user_id,))
             students = cur.fetchall()
-        else:
-             return jsonify({"error": "Unauthorized role"}), 403
         
         # Format decimals/floats for JSON compatibility
         for student in students:
@@ -139,7 +145,7 @@ def get_students():
             
         cur.close()
         return jsonify({"students": students, "total": len(students)})
-    except mysql.connector.Error as err:
+    except Exception as err:
         return jsonify({"error": str(err)}), 500
     finally:
         if conn:
