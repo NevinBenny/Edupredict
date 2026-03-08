@@ -12,7 +12,7 @@ def check_admin():
     return True, None, None
 
 def get_faculty_class_id(conn):
-    """If the logged-in user is FACULTY, return their class_id; else None."""
+    """(Deprecated V1) If the logged-in user is FACULTY, return their class_id; else None."""
     if session.get("role") != "FACULTY":
         return None
     email = session.get("email")
@@ -23,6 +23,27 @@ def get_faculty_class_id(conn):
     row = cur.fetchone()
     cur.close()
     return row["class_id"] if row else None
+
+def get_faculty_subject_ids(conn):
+    """(V2) Returns a list of subject_ids assigned to the logged-in faculty."""
+    if session.get("role") != "FACULTY":
+        return []
+    email = session.get("email")
+    if not email:
+        return []
+        
+    cur = conn.cursor(dictionary=True)
+    # Get faculty ID from email first
+    cur.execute("SELECT id FROM faculties WHERE email = %s", (email,))
+    fac = cur.fetchone()
+    if not fac:
+        cur.close()
+        return []
+        
+    cur.execute("SELECT subject_id FROM faculty_subjects WHERE faculty_id = %s", (fac['id'],))
+    rows = cur.fetchall()
+    cur.close()
+    return [row['subject_id'] for row in rows]
 
 def generate_student_id(conn, department):
     """

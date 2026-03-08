@@ -192,9 +192,8 @@ def batch_upload_students():
         insert_query = """
             INSERT INTO students
                 (student_id, name, department, semester,
-                 attendance_percentage, internal_marks, assignment_score,
                  sgpa, backlogs, class_id, user_id)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s)
         """
         
         insert_user_query = """
@@ -240,12 +239,29 @@ def batch_upload_students():
                         cur.execute("SELECT id FROM users WHERE email=%s", (student_email,))
                         user_id_row = cur.fetchone()
                         user_id = user_id_row[0] if user_id_row else None
-                        
                     # 2. Insert the actual academic record
                     cur.execute(insert_query, (
-                        student_id, name, dept, sem, att, internal, assign, sgpa, backlogs, class_id, user_id
+                        student_id, name, dept, sem, sgpa, backlogs, class_id, user_id
                     ))
                     inserted_count += 1
+                    
+                    # 3. V2: Auto-enroll in Subjects and insert records
+                    if sem and dept:
+                        # Find subjects matching their dept and sem
+                        cur.execute("SELECT id FROM subjects WHERE department=%s AND semester=%s", (dept, sem))
+                        matching_subjects = cur.fetchall()
+                        
+                        if matching_subjects:
+                            insert_records_query = """
+                                INSERT IGNORE INTO student_academic_records 
+                                (student_id, subject_id, attendance_percentage, internal_marks, assignment_score)
+                                VALUES (%s, %s, %s, %s, %s)
+                            """
+                            # Insert the provided flat data into ALL their enrolled subjects as a baseline
+                            for sub in matching_subjects:
+                                cur.execute(insert_records_query, (
+                                    student_id, sub[0], att, internal, assign
+                                ))
                     
                     generated_credentials.append({
                         "name": name,

@@ -19,8 +19,16 @@ def predict_risk():
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
         
-        # Fetch all students
-        cur.execute("SELECT * FROM students")
+        # Fetch all students and their averaged academic records
+        cur.execute("""
+            SELECT 
+                s.*,
+                AVG(r.attendance_percentage) as attendance_percentage,
+                AVG(r.internal_marks) as internal_marks
+            FROM students s
+            LEFT JOIN student_academic_records r ON s.student_id = r.student_id
+            GROUP BY s.id
+        """)
         students = cur.fetchall()
         
         if not students:
@@ -109,9 +117,17 @@ def run_predictions():
         from db_connect import get_connection
         conn = get_connection()
         
-        # 1. Fetch Students
-        query = "SELECT id, attendance_percentage, internal_marks, assignment_score, sgpa, backlogs FROM students"
-        df = pd.read_sql(query, conn)
+        # 1. Fetch Students (Averaged across their enrolled subjects for the model)
+        query = """
+            SELECT 
+                s.id, s.sgpa, s.backlogs,
+                IFNULL(AVG(r.attendance_percentage), 0) as attendance_percentage, 
+                IFNULL(AVG(r.internal_marks), 0) as internal_marks, 
+                IFNULL(AVG(r.assignment_score), 0) as assignment_score
+            FROM students s
+            LEFT JOIN student_academic_records r ON s.student_id = r.student_id
+            GROUP BY s.id, s.sgpa, s.backlogs
+        """
         
         if df.empty:
             return jsonify({"message": "No students found to predict."}), 200

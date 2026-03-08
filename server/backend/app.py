@@ -34,6 +34,7 @@ from intervention_service import intervention_bp
 from report_service import report_bp
 from class_service import class_bp
 from student_service import student_bp
+from subject_service import subject_bp
 
 load_dotenv()
 
@@ -58,6 +59,7 @@ app.register_blueprint(admin_bp)
 app.register_blueprint(intervention_bp)
 app.register_blueprint(report_bp)
 app.register_blueprint(class_bp)
+app.register_blueprint(subject_bp)
 app.register_blueprint(student_bp)
 CORS(app, origins=get_cors_origins(), supports_credentials=True)
 app.secret_key = os.environ.get("FLASK_SECRET", "dev-secret-change")

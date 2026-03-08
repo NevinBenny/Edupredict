@@ -143,11 +143,14 @@ def get_class_students(class_id):
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
         cur.execute("""
-            SELECT student_id, name, department, semester,
-                   attendance_percentage, sgpa, risk_level, backlogs
-            FROM students
-            WHERE class_id = %s
-            ORDER BY name
+            SELECT s.student_id, s.name, s.department, s.semester,
+                   AVG(r.attendance_percentage) as attendance_percentage, 
+                   s.sgpa, s.risk_level, s.backlogs
+            FROM students s
+            LEFT JOIN student_academic_records r ON s.student_id = r.student_id
+            WHERE s.class_id = %s
+            GROUP BY s.student_id, s.name, s.department, s.semester, s.sgpa, s.risk_level, s.backlogs
+            ORDER BY s.name
         """, (class_id,))
         students = cur.fetchall()
         for s in students:
@@ -201,14 +204,29 @@ def add_student_to_class(class_id):
         cur.execute("""
             INSERT INTO students
                 (student_id, name, department, semester,
-                 attendance_percentage, internal_marks, assignment_score,
                  sgpa, backlogs, risk_score, risk_level, class_id)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
         """, (
             student_id, data["name"], department, semester,
-            attendance, internal_marks, assignment_score,
             sgpa, backlogs, risk_score, risk_level, class_id
         ))
+        
+        # V2: Auto-enroll in Subjects and insert records
+        if semester and department:
+            cur.execute("SELECT id FROM subjects WHERE department=%s AND semester=%s", (department, semester))
+            matching_subjects = cur.fetchall()
+            
+            if matching_subjects:
+                insert_records_query = """
+                    INSERT IGNORE INTO student_academic_records 
+                    (student_id, subject_id, attendance_percentage, internal_marks, assignment_score)
+                    VALUES (%s, %s, %s, %s, %s)
+                """
+                for sub in matching_subjects:
+                    cur.execute(insert_records_query, (
+                        student_id, sub[0], attendance, internal_marks, assignment_score
+                    ))
+                    
         conn.commit()
         cur.close()
         return jsonify({"message": "Student added to class", "student_id": student_id}), 201

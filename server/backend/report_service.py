@@ -8,7 +8,7 @@ from reportlab.lib.enums import TA_CENTER
 from io import BytesIO
 from datetime import datetime
 from db_connect import get_connection
-from utils import get_faculty_class_id
+from utils import get_faculty_class_id, get_faculty_subject_ids
 
 report_bp = Blueprint('report', __name__)
 
@@ -18,13 +18,30 @@ def generate_risk_report():
     conn = None
     try:
         conn = get_connection()
-        class_id = get_faculty_class_id(conn)
+        class_id = get_faculty_class_id(conn) # V1 fallback if needed
+        subject_ids = get_faculty_subject_ids(conn)
         cur = conn.cursor(dictionary=True)
 
-        if class_id:
-            cur.execute("SELECT * FROM students WHERE risk_level = 'High' AND class_id = %s ORDER BY risk_score DESC", (class_id,))
+        if subject_ids:
+            format_strings = ','.join(['%s'] * len(subject_ids))
+            cur.execute(f"""
+                SELECT s.*, AVG(r.attendance_percentage) as attendance_percentage
+                FROM students s
+                JOIN student_academic_records r ON s.student_id = r.student_id
+                WHERE s.risk_level = 'High' AND r.subject_id IN ({format_strings})
+                GROUP BY s.id
+                ORDER BY s.risk_score DESC
+            """, tuple(subject_ids))
         else:
-            cur.execute("SELECT * FROM students WHERE risk_level = 'High' ORDER BY risk_score DESC")
+            cur.execute("""
+                SELECT s.*, AVG(r.attendance_percentage) as attendance_percentage
+                FROM students s
+                LEFT JOIN student_academic_records r ON s.student_id = r.student_id
+                WHERE s.risk_level = 'High'
+                GROUP BY s.id
+                ORDER BY s.risk_score DESC
+            """)
+            
         high_risk_students = cur.fetchall()
         cur.close()
         
@@ -75,7 +92,7 @@ def generate_risk_report():
                 student['name'],
                 student['department'],
                 str(student['risk_score']),
-                f"{student['attendance_percentage']}%",
+                f"{float(student['attendance_percentage'] or 0):.0f}%",
                 str(student['backlogs'])
             ])
         
@@ -121,13 +138,27 @@ def generate_performance_report():
     conn = None
     try:
         conn = get_connection()
-        class_id = get_faculty_class_id(conn)
+        subject_ids = get_faculty_subject_ids(conn)
         cur = conn.cursor(dictionary=True)
 
-        if class_id:
-            cur.execute("SELECT * FROM students WHERE class_id = %s ORDER BY sgpa DESC", (class_id,))
+        if subject_ids:
+            format_strings = ','.join(['%s'] * len(subject_ids))
+            cur.execute(f"""
+                SELECT s.*, AVG(r.attendance_percentage) as attendance_percentage
+                FROM students s
+                JOIN student_academic_records r ON s.student_id = r.student_id
+                WHERE r.subject_id IN ({format_strings})
+                GROUP BY s.id
+                ORDER BY s.sgpa DESC
+            """, tuple(subject_ids))
         else:
-            cur.execute("SELECT * FROM students ORDER BY sgpa DESC")
+            cur.execute("""
+                SELECT s.*, AVG(r.attendance_percentage) as attendance_percentage
+                FROM students s
+                LEFT JOIN student_academic_records r ON s.student_id = r.student_id
+                GROUP BY s.id
+                ORDER BY s.sgpa DESC
+            """)
         students = cur.fetchall()
         cur.close()
         
@@ -135,8 +166,8 @@ def generate_performance_report():
             return jsonify({"error": "No student data found"}), 404
         
         # Calculate averages
-        avg_attendance = sum(s['attendance_percentage'] for s in students) / len(students)
-        avg_sgpa = sum(s['sgpa'] for s in students) / len(students)
+        avg_attendance = sum(float(s['attendance_percentage'] or 0) for s in students) / len(students)
+        avg_sgpa = sum(s['sgpa'] or 0 for s in students) / len(students)
         
         # Create PDF in memory
         buffer = BytesIO()
@@ -181,8 +212,8 @@ def generate_performance_report():
                 student['name'][:20],  # Truncate if too long
                 student['department'][:10],
                 student['semester'],
-                f"{student['sgpa']:.2f}",
-                f"{student['attendance_percentage']:.0f}%",
+                f"{float(student['sgpa'] or 0):.2f}",
+                f"{float(student['attendance_percentage'] or 0):.0f}%",
                 student['risk_level']
             ])
         

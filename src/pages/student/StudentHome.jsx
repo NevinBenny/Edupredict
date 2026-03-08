@@ -167,6 +167,37 @@ const StudentHome = () => {
                     </div>
                 </div>
 
+                {/* Enrolled Subjects */}
+                <div className="dashboard-panel" style={{ marginBottom: '2rem' }}>
+                    <h2><BookOpen size={20} /> My Enrolled Subjects</h2>
+                    {!data.subjects || data.subjects.length === 0 ? (
+                        <p style={{ color: 'var(--c-text-tertiary)', fontStyle: 'italic', marginTop: '1rem' }}>No subjects currently assigned.</p>
+                    ) : (
+                        <div style={{ overflowX: 'auto', marginTop: '1.5rem' }}>
+                            <table className="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Subject</th>
+                                        <th>Attendance</th>
+                                        <th>Internal Marks</th>
+                                        <th>Assignment Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {data.subjects.map((sub, idx) => (
+                                        <tr key={idx}>
+                                            <td><strong>{sub.code}</strong> - {sub.name}</td>
+                                            <td>{sub.attendance_percentage}%</td>
+                                            <td>{sub.internal_marks} / 50</td>
+                                            <td>{sub.assignment_score} / 100</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+
                 <div className="split-layout">
                     {/* Left Column */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>

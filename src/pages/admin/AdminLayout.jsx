@@ -31,7 +31,8 @@ const AdminLayout = () => {
       links: [
         { label: 'Students', to: '/admin/students', icon: <Users size={20} /> },
         { label: 'Faculty', to: '/admin/faculty', icon: <GraduationCap size={20} /> },
-        { label: 'Classes', to: '/admin/classes', icon: <BookOpen size={20} /> },
+        { label: 'Subjects', to: '/admin/subjects', icon: <BookOpen size={20} /> },
+        { label: 'Classes (V1)', to: '/admin/classes', icon: <BookOpen size={20} /> },
       ],
     },
     {

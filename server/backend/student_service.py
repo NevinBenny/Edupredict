@@ -28,8 +28,18 @@ def get_my_data():
     try:
         cur = conn.cursor(dictionary=True)
         
-        # 1. Fetch student academic record
-        cur.execute("SELECT * FROM students WHERE student_id = %s", (student_id,))
+        # 1. Fetch student master record and averaged academic stats
+        cur.execute("""
+            SELECT 
+                s.student_id, s.name, s.department, s.semester, s.sgpa, s.backlogs, s.risk_score, s.risk_level,
+                AVG(r.attendance_percentage) as attendance_percentage,
+                AVG(r.internal_marks) as internal_marks,
+                AVG(r.assignment_score) as assignment_score
+            FROM students s
+            LEFT JOIN student_academic_records r ON s.student_id = r.student_id
+            WHERE s.student_id = %s
+            GROUP BY s.student_id, s.name, s.department, s.semester, s.sgpa, s.backlogs, s.risk_score, s.risk_level
+        """, (student_id,))
         student_data = cur.fetchone()
         
         if not student_data:
@@ -40,11 +50,20 @@ def get_my_data():
             SELECT id, title, description, status, assigned_date, due_date 
             FROM interventions 
             WHERE student_id = %s 
-            ORDER BY created_at DESC
+            ORDER BY assigned_date DESC
         """, (student_id,))
         interventions = cur.fetchall()
         
-        # Format the response
+        # 3. Fetch specific subject scores
+        cur.execute("""
+            SELECT sub.code, sub.name, r.attendance_percentage, r.internal_marks, r.assignment_score
+            FROM student_academic_records r
+            JOIN subjects sub ON r.subject_id = sub.id
+            WHERE r.student_id = %s
+        """, (student_id,))
+        subjects = cur.fetchall()
+        
+        # 4. Format the response
         response = {
             "profile": {
                 "student_id": student_data["student_id"],
@@ -53,16 +72,17 @@ def get_my_data():
                 "semester": student_data["semester"],
             },
             "academics": {
-                "attendance": student_data["attendance_percentage"],
-                "internal_marks": student_data["internal_marks"],
-                "assignment_score": student_data["assignment_score"],
-                "sgpa": student_data["sgpa"],
+                "attendance": float(student_data["attendance_percentage"] or 0),
+                "internal_marks": float(student_data["internal_marks"] or 0),
+                "assignment_score": float(student_data["assignment_score"] or 0),
+                "sgpa": float(student_data["sgpa"] or 0),
                 "backlogs": student_data["backlogs"]
             },
             "ai_insights": {
                 "risk_score": student_data["risk_score"],
                 "risk_level": student_data["risk_level"]
             },
+            "subjects": subjects,
             "interventions": interventions
         }
         

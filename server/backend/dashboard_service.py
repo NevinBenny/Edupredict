@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request, session
 from db_connect import get_connection
 import mysql.connector
-from utils import get_faculty_class_id, generate_student_id
+from utils import get_faculty_class_id, get_faculty_subject_ids, generate_student_id
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -11,10 +11,10 @@ def get_summary():
     conn = None
     try:
         conn = get_connection()
-        class_id = get_faculty_class_id(conn)
+        subject_ids = get_faculty_subject_ids(conn)
         
-        # Security: If Faculty but no class assigned, return empty stats
-        if session.get("role") == "FACULTY" and not class_id:
+        # Security: If Faculty but no subjects assigned, return empty stats
+        if session.get("role") == "FACULTY" and not subject_ids:
             conn.close()
             return jsonify({
                 "total_students": 0,
@@ -25,20 +25,55 @@ def get_summary():
 
         cur = conn.cursor(dictionary=True)
 
-        where = "WHERE class_id = %s" if class_id else ""
-        params = (class_id,) if class_id else ()
+        if subject_ids:
+            format_strings = ','.join(['%s'] * len(subject_ids))
+            
+            # Fetch total distinct students enrolled in these subjects
+            cur.execute(f"""
+                SELECT COUNT(DISTINCT student_id) as total 
+                FROM student_academic_records 
+                WHERE subject_id IN ({format_strings})
+            """, tuple(subject_ids))
+            total = cur.fetchone()['total']
 
-        cur.execute(f"SELECT COUNT(*) as total FROM students {where}", params)
-        total = cur.fetchone()['total']
+            # Average attendance across these specific subjects
+            cur.execute(f"""
+                SELECT AVG(attendance_percentage) as avg_attendance 
+                FROM student_academic_records 
+                WHERE subject_id IN ({format_strings})
+            """, tuple(subject_ids))
+            avg_attendance = cur.fetchone()['avg_attendance'] or 0
 
-        cur.execute(f"SELECT AVG(attendance_percentage) as avg_attendance FROM students {where}", params)
-        avg_attendance = cur.fetchone()['avg_attendance'] or 0
+            # Average SGPA from the students enrolled in these subjects
+            cur.execute(f"""
+                SELECT AVG(s.sgpa) as avg_sgpa 
+                FROM students s
+                JOIN student_academic_records r ON s.student_id = r.student_id
+                WHERE r.subject_id IN ({format_strings})
+            """, tuple(subject_ids))
+            avg_sgpa = cur.fetchone()['avg_sgpa'] or 0
 
-        cur.execute(f"SELECT AVG(sgpa) as avg_sgpa FROM students {where}", params)
-        avg_sgpa = cur.fetchone()['avg_sgpa'] or 0
+            # High risk students in these subjects
+            cur.execute(f"""
+                SELECT COUNT(DISTINCT s.student_id) as high_risk 
+                FROM students s
+                JOIN student_academic_records r ON s.student_id = r.student_id
+                WHERE s.risk_level = 'High' AND r.subject_id IN ({format_strings})
+            """, tuple(subject_ids))
+            high_risk = cur.fetchone()['high_risk']
+        else:
+            # Admin sees everything (no subject_ids constraint)
+            cur.execute("SELECT COUNT(*) as total FROM students")
+            total = cur.fetchone()['total']
 
-        cur.execute(f"SELECT COUNT(*) as high_risk FROM students WHERE risk_level = 'High' {'AND class_id = %s' if class_id else ''}", params)
-        high_risk = cur.fetchone()['high_risk']
+            cur.execute("SELECT AVG(attendance_percentage) as avg_attendance FROM student_academic_records")
+            avg_attendance = cur.fetchone()['avg_attendance'] or 0
+
+            cur.execute("SELECT AVG(sgpa) as avg_sgpa FROM students")
+            avg_sgpa = cur.fetchone()['avg_sgpa'] or 0
+
+            cur.execute("SELECT COUNT(*) as high_risk FROM students WHERE risk_level = 'High'")
+            high_risk = cur.fetchone()['high_risk']
 
         summary = {
             "total_students": total,
@@ -61,23 +96,31 @@ def get_risk_distribution():
     conn = None
     try:
         conn = get_connection()
-        class_id = get_faculty_class_id(conn)
+        subject_ids = get_faculty_subject_ids(conn)
         
-        # Security: If Faculty but no class assigned, return empty distribution
-        if session.get("role") == "FACULTY" and not class_id:
+        # Security: If Faculty but no subjects assigned, return empty
+        if session.get("role") == "FACULTY" and not subject_ids:
             conn.close()
             return jsonify([])
 
         cur = conn.cursor(dictionary=True)
 
-        where = "WHERE class_id = %s" if class_id else ""
-        params = (class_id,) if class_id else ()
-
-        cur.execute(f"""
-            SELECT risk_level, COUNT(*) as count
-            FROM students {where}
-            GROUP BY risk_level
-        """, params)
+        if subject_ids:
+            format_strings = ','.join(['%s'] * len(subject_ids))
+            cur.execute(f"""
+                SELECT s.risk_level, COUNT(DISTINCT s.student_id) as count
+                FROM students s
+                JOIN student_academic_records r ON s.student_id = r.student_id
+                WHERE r.subject_id IN ({format_strings})
+                GROUP BY s.risk_level
+            """, tuple(subject_ids))
+        else:
+            cur.execute("""
+                SELECT risk_level, COUNT(*) as count
+                FROM students
+                GROUP BY risk_level
+            """)
+            
         rows = cur.fetchall()
 
         risk_map = {
@@ -112,37 +155,54 @@ def get_students():
     conn = None
     try:
         conn = get_connection()
-        class_id = get_faculty_class_id(conn)
+        subject_ids = get_faculty_subject_ids(conn)
         
-        # Security: If Faculty but no class assigned, return empty list
-        if session.get("role") == "FACULTY" and not class_id:
+        if session.get("role") == "FACULTY" and not subject_ids:
             conn.close()
             return jsonify({"students": [], "total": 0})
 
         cur = conn.cursor(dictionary=True)
 
-        where = "WHERE s.class_id = %s" if class_id else ""
-        params = (class_id,) if class_id else ()
-
-        cur.execute(f"""
-            SELECT
-                s.student_id, s.name, s.department, s.semester,
-                s.attendance_percentage, s.internal_marks,
-                s.assignment_score, s.sgpa, s.backlogs,
-                s.risk_score, s.risk_level,
-                s.class_id,
-                c.name AS class_name
-            FROM students s
-            LEFT JOIN classes c ON c.id = s.class_id
-            {where}
-            ORDER BY s.created_at DESC
-        """, params)
+        if subject_ids:
+            format_strings = ','.join(['%s'] * len(subject_ids))
+            # Get the students, along with their subject-specific records merged 
+            # If a faculty teaches multiple subjects to the same student, we'll group/average them for the top-level list
+            cur.execute(f"""
+                SELECT
+                    s.student_id, s.name, s.department, s.semester,
+                    AVG(r.attendance_percentage) as attendance_percentage, 
+                    AVG(r.internal_marks) as internal_marks,
+                    AVG(r.assignment_score) as assignment_score, 
+                    s.sgpa, s.backlogs,
+                    s.risk_score, s.risk_level
+                FROM students s
+                JOIN student_academic_records r ON s.student_id = r.student_id
+                WHERE r.subject_id IN ({format_strings})
+                GROUP BY s.student_id, s.name, s.department, s.semester, s.sgpa, s.backlogs, s.risk_score, s.risk_level
+                ORDER BY s.created_at DESC
+            """, tuple(subject_ids))
+        else:
+            # Admin view: all students with averages across all subjects
+            cur.execute(f"""
+                SELECT
+                    s.student_id, s.name, s.department, s.semester,
+                    AVG(r.attendance_percentage) as attendance_percentage, 
+                    AVG(r.internal_marks) as internal_marks,
+                    AVG(r.assignment_score) as assignment_score, 
+                    s.sgpa, s.backlogs,
+                    s.risk_score, s.risk_level
+                FROM students s
+                LEFT JOIN student_academic_records r ON s.student_id = r.student_id
+                GROUP BY s.student_id, s.name, s.department, s.semester, s.sgpa, s.backlogs, s.risk_score, s.risk_level
+                ORDER BY s.created_at DESC
+            """)
+            
         students = cur.fetchall()
 
         for student in students:
-            student['attendance_percentage'] = float(student['attendance_percentage'])
-            student['sgpa'] = float(student['sgpa'])
-            student['risk_score'] = float(student['risk_score'])
+            student['attendance_percentage'] = float(student['attendance_percentage'] or 0)
+            student['sgpa'] = float(student['sgpa'] or 0)
+            student['risk_score'] = float(student['risk_score'] or 0)
 
         cur.close()
         return jsonify({"students": students, "total": len(students)})
