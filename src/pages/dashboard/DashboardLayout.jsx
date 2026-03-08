@@ -6,16 +6,16 @@ import CompleteProfileModal from '../../components/CompleteProfileModal'
 import './Dashboard.css'
 import icon from '../../assets/icon.png'
 
-const navSections = [
-  {
-    links: [
-      { label: 'Dashboard', to: '/dashboard', end: true },
-      { label: 'Students', to: '/dashboard/students' },
-      { label: 'Risk Analysis', to: '/dashboard/ai-risk' },
-      { label: 'Interventions', to: '/dashboard/interventions' },
-      { label: 'Reports', to: '/dashboard/reports' },
-    ],
-  },
+const facultyNav = [
+  { label: 'Dashboard', to: '/dashboard', end: true },
+  { label: 'Students', to: '/dashboard/students' },
+  { label: 'Risk Analysis', to: '/dashboard/ai-risk' },
+  { label: 'Interventions', to: '/dashboard/interventions' },
+  { label: 'Reports', to: '/dashboard/reports' },
+]
+
+const studentNav = [
+  { label: 'My Courses', to: '/dashboard', end: true },
 ]
 
 const DashboardLayout = () => {
@@ -70,13 +70,15 @@ const DashboardLayout = () => {
           <div className="brand-mark">EP</div>
           <div>
             <p className="brand-title">EduPredict</p>
-            <p className="nav-section-title" style={{ margin: 0 }}>Faculty Portal</p>
+            <p className="nav-section-title" style={{ margin: 0 }}>
+              {userProfile.role === 'FACULTY' ? 'Faculty Portal' : 'Student Portal'}
+            </p>
           </div>
         </div>
 
         <nav className="sidebar-nav" aria-label="Dashboard navigation">
           <ul>
-            {navSections[0].links.map((link) => (
+            {(userProfile.role === 'FACULTY' ? facultyNav : studentNav).map((link) => (
               <li key={link.label}>
                 <NavLink
                   to={link.to}
@@ -113,7 +115,9 @@ const DashboardLayout = () => {
       <div className="dashboard-main">
         <header className="dashboard-topbar minimal">
           <div className="topbar-left">
-            <h1 className="portal-title">Faculty Portal</h1>
+            <h1 className="portal-title">
+              {userProfile.role === 'FACULTY' ? 'Faculty Portal' : 'Student Portal'}
+            </h1>
           </div>
           <div className="topbar-actions">
             <div className="notifications-icon">
@@ -124,7 +128,7 @@ const DashboardLayout = () => {
               <div className="avatar">{userProfile.name.charAt(0)}</div>
               <div className="info">
                 <span className="name">{userProfile.name}</span>
-                <span className="role">Faculty</span>
+                <span className="role">{userProfile.role === 'FACULTY' ? 'Faculty' : 'Student'}</span>
               </div>
             </NavLink>
           </div>

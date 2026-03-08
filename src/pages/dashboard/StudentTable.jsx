@@ -4,6 +4,7 @@ import StudentDetailModal from './StudentDetailModal';
 
 const StudentTable = ({ students }) => {
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterSubject, setFilterSubject] = useState('All');
     const [filterDept, setFilterDept] = useState('All');
     const [filterRisk, setFilterRisk] = useState('All');
     const [selectedStudent, setSelectedStudent] = useState(null);
@@ -13,10 +14,12 @@ const StudentTable = ({ students }) => {
             student.student_id.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesDept = filterDept === 'All' || student.department === filterDept;
         const matchesRisk = filterRisk === 'All' || student.risk_level === filterRisk;
-        return matchesSearch && matchesDept && matchesRisk;
+        const matchesSubject = filterSubject === 'All' || student.subject_name === filterSubject;
+        return matchesSearch && matchesDept && matchesRisk && matchesSubject;
     });
 
     const departments = ['All', ...new Set(students.map(s => s.department))];
+    const subjects = ['All', ...new Set(students.map(s => s.subject_name).filter(Boolean))];
 
     return (
         <div className="student-table-section">
@@ -30,8 +33,13 @@ const StudentTable = ({ students }) => {
                     />
                 </div>
                 <div className="filters">
+                    {subjects.length > 1 && (
+                        <select value={filterSubject} onChange={(e) => setFilterSubject(e.target.value)}>
+                            {subjects.map(sub => <option key={sub} value={sub}>{sub === 'All' ? 'All Subjects' : sub}</option>)}
+                        </select>
+                    )}
                     <select value={filterDept} onChange={(e) => setFilterDept(e.target.value)}>
-                        {departments.map(dept => <option key={dept} value={dept}>{dept} Dept</option>)}
+                        {departments.map(dept => <option key={dept} value={dept}>{dept === 'All' ? 'All Dept' : dept + ' Dept'}</option>)}
                     </select>
                     <select value={filterRisk} onChange={(e) => setFilterRisk(e.target.value)}>
                         <option value="All">All Risk</option>
@@ -48,6 +56,7 @@ const StudentTable = ({ students }) => {
                         <tr>
                             <th>ID</th>
                             <th>Name</th>
+                            {subjects.length > 1 && <th>Subject</th>}
                             <th>Department</th>
                             <th>Sem</th>
                             <th>Attendance</th>
@@ -61,6 +70,7 @@ const StudentTable = ({ students }) => {
                             <tr key={student.student_id} onClick={() => setSelectedStudent(student)}>
                                 <td className="st-id">{student.student_id}</td>
                                 <td className="st-name">{student.name}</td>
+                                {subjects.length > 1 && <td>{student.subject_name || '-'}</td>}
                                 <td>{student.department}</td>
                                 <td>{student.semester}</td>
                                 <td>{student.attendance_percentage}%</td>

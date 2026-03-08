@@ -2,14 +2,15 @@ import { useState, useEffect } from 'react'
 import DataTable from '../../components/admin/DataTable'
 import Modal from '../../components/admin/Modal'
 import PasswordRevealModal from '../../components/admin/PasswordRevealModal'
-import { Upload, Download, RefreshCw, Key } from 'lucide-react'
+import { Upload, Download, RefreshCw, Key, CheckSquare } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmToast } from '../../utils/confirmToast'
-import { getStudents, addSingleStudent, batchUploadStudents, resetStudentPassword as resetApi } from '../../services/api'
+import { getStudents, addSingleStudent, batchUploadStudents, resetStudentPassword as resetApi, getCourses } from '../../services/api'
 import './AdminPanel.css'
 
 const StudentManagement = () => {
     const [students, setStudents] = useState([])
+    const [courses, setCourses] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [searchTerm, setSearchTerm] = useState('')
@@ -21,7 +22,7 @@ const StudentManagement = () => {
     // Single Student state
     const [isSingleModalOpen, setIsSingleModalOpen] = useState(false)
     const [singleStudentData, setSingleStudentData] = useState({
-        name: '', email: '', department: 'MCA', semester: '1', sgpa: '', backlogs: 0
+        name: '', email: '', department: 'MCA', semester: '1', sgpa: '', backlogs: 0, subject_ids: []
     })
 
     const [uploading, setUploading] = useState(false)
@@ -38,8 +39,12 @@ const StudentManagement = () => {
     const fetchStudents = async () => {
         try {
             setLoading(true)
-            const data = await getStudents()
-            setStudents(data.students || [])
+            const [studentsData, coursesData] = await Promise.all([
+                getStudents(),
+                getCourses()
+            ])
+            setStudents(studentsData.students || [])
+            setCourses(coursesData.courses || [])
             setError(null)
         } catch (err) {
             setError(err.message)
@@ -75,12 +80,16 @@ const StudentManagement = () => {
 
     const handleSingleSubmit = async (e) => {
         e.preventDefault()
+        if (singleStudentData.subject_ids.length === 0) {
+            toast.error("Please select at least one course.")
+            return
+        }
         setUploading(true)
         try {
             const data = await addSingleStudent(singleStudentData)
             fetchStudents()
             setIsSingleModalOpen(false)
-            setSingleStudentData({ name: '', email: '', department: 'MCA', semester: '1', sgpa: '', backlogs: 0 })
+            setSingleStudentData({ name: '', email: '', department: 'MCA', semester: '1', sgpa: '', backlogs: 0, subject_ids: [] })
             // Show the password reveal modal with CSV option
             setRevealModal({
                 open: true,
@@ -253,6 +262,32 @@ const StudentManagement = () => {
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem' }}>Semester *</label>
                             <input className="form-input" required type="number" min="1" max="8" value={singleStudentData.semester} onChange={e => setSingleStudentData({ ...singleStudentData, semester: e.target.value })} />
+                        </div>
+                        <div style={{ gridColumn: '1 / -1' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Assign Courses *</label>
+                            <div className="form-input" style={{ maxHeight: '150px', overflowY: 'auto', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                {courses.length === 0 ? (
+                                    <span style={{ color: 'var(--c-text-secondary)', fontSize: '0.9rem' }}>No courses available. Please add courses first.</span>
+                                ) : (
+                                    courses.map(course => (
+                                        <label key={course.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={singleStudentData.subject_ids.includes(course.id)}
+                                                onChange={(e) => {
+                                                    const currentIds = singleStudentData.subject_ids;
+                                                    if (e.target.checked) {
+                                                        setSingleStudentData({ ...singleStudentData, subject_ids: [...currentIds, course.id] })
+                                                    } else {
+                                                        setSingleStudentData({ ...singleStudentData, subject_ids: currentIds.filter(id => id !== course.id) })
+                                                    }
+                                                }}
+                                            />
+                                            {course.name} ({course.course_code}) - Sem {course.semester}
+                                        </label>
+                                    ))
+                                )}
+                            </div>
                         </div>
                         <div>
                             <label style={{ display: 'block', marginBottom: '0.5rem' }}>Previous SGPA</label>

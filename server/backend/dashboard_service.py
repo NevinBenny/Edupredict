@@ -87,27 +87,55 @@ def get_risk_distribution():
 
 @dashboard_bp.route("/api/students", methods=["GET"])
 def get_students():
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    user_id = session.get("user_id")
+    role = session.get("role")
+    
     conn = None
     try:
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
         
-        cur.execute("""
-            SELECT 
-                student_id, name, department, semester, 
-                attendance_percentage, internal_marks, 
-                assignment_score, sgpa, backlogs, 
-                risk_score, risk_level 
-            FROM students
-            ORDER BY created_at DESC
-        """)
-        students = cur.fetchall()
+        if role == "ADMIN":
+            # Admins see all students (for Admin panel Student Management)
+            cur.execute("""
+                SELECT 
+                    s.student_id, s.name, s.department, s.semester, s.email,
+                    s.attendance_percentage, s.internal_marks, 
+                    s.assignment_score, s.sgpa, s.backlogs, 
+                    s.risk_score, s.risk_level,
+                    NULL as subject_name
+                FROM students s
+                ORDER BY s.created_at DESC
+            """)
+            students = cur.fetchall()
+        elif role == "FACULTY":
+            # Faculty only see students enrolled in their assigned subjects
+            cur.execute("""
+                SELECT 
+                    s.student_id, s.name, s.department, s.semester, s.email,
+                    sar.attendance_percentage, sar.internal_marks, 
+                    sar.assignment_score, s.sgpa, s.backlogs, 
+                    s.risk_score, s.risk_level, sub.name as subject_name
+                FROM faculties f
+                JOIN faculty_subjects fs ON f.id = fs.faculty_id
+                JOIN subjects sub ON fs.subject_id = sub.id
+                JOIN student_academic_records sar ON sub.id = sar.subject_id
+                JOIN students s ON sar.student_id = s.student_id
+                WHERE f.email = (SELECT email FROM users WHERE id = %s)
+                ORDER BY sub.name ASC, s.name ASC
+            """, (user_id,))
+            students = cur.fetchall()
+        else:
+             return jsonify({"error": "Unauthorized role"}), 403
         
         # Format decimals/floats for JSON compatibility
         for student in students:
-            student['attendance_percentage'] = float(student['attendance_percentage'])
-            student['sgpa'] = float(student['sgpa'])
-            student['risk_score'] = float(student['risk_score'])
+            student['attendance_percentage'] = float(student['attendance_percentage']) if student['attendance_percentage'] is not None else 0.0
+            student['sgpa'] = float(student['sgpa']) if student['sgpa'] is not None else 0.0
+            student['risk_score'] = float(student['risk_score']) if student['risk_score'] is not None else 0.0
             
         cur.close()
         return jsonify({"students": students, "total": len(students)})
@@ -186,4 +214,44 @@ def add_student():
     finally:
         if conn:
             cur.close()
+            conn.close()
+
+@dashboard_bp.route("/api/dashboard/my-courses", methods=["GET"])
+def get_my_courses():
+    if not session.get("user_id"):
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    user_id = session.get("user_id")
+    role = session.get("role")
+    
+    if role != "STUDENT":
+        return jsonify({"error": "Forbidden"}), 403
+        
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor(dictionary=True)
+        
+        cur.execute("""
+            SELECT 
+                sub.name as subject_name, sub.course_code, sub.department, sub.semester,
+                sar.attendance_percentage, sar.internal_marks, sar.assignment_score
+            FROM students s
+            JOIN student_academic_records sar ON s.student_id = sar.student_id
+            JOIN subjects sub ON sar.subject_id = sub.id
+            WHERE s.user_id = %s
+            ORDER BY sub.semester DESC, sub.name ASC
+        """, (user_id,))
+        courses = cur.fetchall()
+        
+        # Format decimals/floats
+        for row in courses:
+            row['attendance_percentage'] = float(row['attendance_percentage']) if row['attendance_percentage'] is not None else 0.0
+            
+        cur.close()
+        return jsonify({"courses": courses})
+    except mysql.connector.Error as err:
+        return jsonify({"error": str(err)}), 500
+    finally:
+        if conn:
             conn.close()

@@ -10,6 +10,7 @@ import ChangePasswordPage from './pages/auth/ChangePasswordPage'
 import AuthLayout from './pages/auth/AuthLayout'
 import DashboardLayout from './pages/dashboard/DashboardLayout'
 import DashboardHome from './pages/dashboard/DashboardHome'
+import DashboardRouter from './pages/dashboard/DashboardRouter'
 import StudentsPage from './pages/dashboard/StudentsPage'
 import AIRiskPrediction from './pages/dashboard/AIRiskPrediction'
 import Reports from './pages/dashboard/Reports'
@@ -86,7 +87,7 @@ function App() {
             </ProtectedRoute>
           }
         >
-          <Route index element={<DashboardHome />} />
+          <Route index element={<DashboardRouter />} />
           <Route path="students" element={<StudentsPage />} />
           <Route path="ai-risk" element={<AIRiskPrediction />} />
           <Route path="interventions" element={<Interventions />} />

@@ -277,12 +277,30 @@ def batch_upload_students():
     try:
         stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
         csv_input = csv.DictReader(stream)
+        rows = list(csv_input)
         
+        cur = conn.cursor(dictionary=True)
+        
+        # Pre-Validation Pass
+        unique_combinations = set()
+        for i, row in enumerate(rows, start=2): # Start at 2 to account for header
+            dept = row.get("department", "").strip()
+            sem = row.get("semester", "").strip()
+            if dept and sem:
+                unique_combinations.add((dept, sem, i))
+                
+        # Validate that each dept/sem combination has at least one subject
+        for dept, sem, row_num in unique_combinations:
+            cur.execute("SELECT COUNT(*) as count FROM subjects WHERE department=%s AND semester=%s", (dept, sem))
+            count = cur.fetchone()['count']
+            if count == 0:
+                return jsonify({"error": f"Row {row_num} specifies Department '{dept}' and Semester '{sem}', but no courses exist for this combination. Upload blocked."}), 400
+
         cur = conn.cursor()
         credentials_list = []
         
         import random
-        for row in csv_input:
+        for row in rows:
             email = row.get("email", "").strip()
             name = row.get("name", "").strip()
             dept = row.get("department", "").strip()
@@ -377,6 +395,7 @@ def add_single_student():
     sem = data.get("semester", "").strip()
     sgpa = float(data.get("sgpa", 0)) if data.get("sgpa") else 0.0
     backlogs = int(data.get("backlogs", 0)) if data.get("backlogs") else 0
+    subject_ids = data.get("subject_ids", [])
 
     if not email or not name or not dept or not sem:
         return jsonify({"error": "Name, email, department, and semester are required"}), 400
@@ -411,11 +430,8 @@ def add_single_student():
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         """, (s_id, user_id, name, dept, sem, sgpa, backlogs, risk_score, risk_level))
         
-        # Assign subjects
-        cur.execute("SELECT id FROM subjects WHERE department=%s AND semester=%s", (dept, sem))
-        subjects = cur.fetchall()
-        for sub in subjects:
-            sub_id = sub['id']
+        # Assign subjects manually from provided list
+        for sub_id in subject_ids:
             cur.execute("""
                 INSERT INTO student_academic_records (student_id, subject_id, attendance_percentage, internal_marks, assignment_score)
                 VALUES (%s, %s, 100, 0, 0)

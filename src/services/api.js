@@ -204,3 +204,8 @@ export const deleteCourse = async (courseId) => {
     method: 'DELETE'
   })
 }
+
+// --- STUDENT PORTAL ---
+export const getMyCourses = async () => {
+  return request('/dashboard/my-courses')
+}
