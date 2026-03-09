@@ -12,7 +12,7 @@ import { getAccountProfile } from '../services/api'
  * @param {string} requiredRole - Required role to access this route (ADMIN or USER)
  * @returns {React.ReactNode}
  */
-const ProtectedRoute = ({ children, requiredRole = 'USER' }) => {
+const ProtectedRoute = ({ children, requiredRole = 'STUDENT' }) => {
   const { user, loading, login } = useAuth()
   const [checking, setChecking] = useState(false)
   const [sessionChecked, setSessionChecked] = useState(false)
@@ -27,7 +27,7 @@ const ProtectedRoute = ({ children, requiredRole = 'USER' }) => {
             login({
               id: data.id || 0,
               email: data.email,
-              role: data.role || 'USER',
+              role: data.role || 'STUDENT',
               ...data.profile,
             })
           }
@@ -59,8 +59,8 @@ const ProtectedRoute = ({ children, requiredRole = 'USER' }) => {
       return <Navigate to="/admin" replace />
     }
 
-    // User trying to access admin route - redirect to user dashboard
-    if (user.role === 'USER') {
+    // Student trying to access admin route - redirect to student dashboard
+    if (user.role === 'STUDENT') {
       return <Navigate to="/dashboard" replace />
     }
   }

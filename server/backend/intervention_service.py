@@ -15,7 +15,17 @@ def get_interventions():
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
         student_id = request.args.get('student_id')
+        user_role = session.get('role')
+        user_id = session.get('user_id')
         
+        # If student, strictly filter by their own record
+        if user_role == 'STUDENT':
+            cur.execute("SELECT student_id FROM students WHERE user_id = %s", (user_id,))
+            s_row = cur.fetchone()
+            if not s_row:
+                return jsonify({"interventions": []})
+            student_id = s_row['student_id']
+
         # Join with students table to get names
         query = """
         SELECT i.*, s.name as student_name, s.department, s.risk_level
@@ -105,6 +115,19 @@ def update_intervention_status(id):
         conn = get_connection()
         cur = conn.cursor()
         
+        user_role = session.get('role')
+        user_id = session.get('user_id')
+        
+        if user_role == 'STUDENT':
+            # Ensure they are updating their own intervention
+            cur.execute("""
+                SELECT 1 FROM interventions i
+                JOIN students s ON i.student_id = s.student_id
+                WHERE i.id = %s AND s.user_id = %s
+            """, (id, user_id))
+            if not cur.fetchone():
+                return jsonify({"error": "Forbidden"}), 403
+
         cur.execute("UPDATE interventions SET status=%s WHERE id=%s", (status, id))
         conn.commit()
         cur.close()

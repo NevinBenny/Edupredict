@@ -37,12 +37,8 @@ const DashboardHome = () => {
         setDistribution(distRes);
       }
 
-      // Guard: only set students if we got a valid response
       if (studentsRes && Array.isArray(studentsRes.students)) {
         setStudents(studentsRes.students);
-      } else if (studentsRes?.error) {
-        console.warn('Students fetch failed:', studentsRes.error);
-        // Don't toast here — user may not have students yet or role differs
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -55,6 +51,51 @@ const DashboardHome = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleRunPrediction = async () => {
+    const loader = toast.loading('AI Engine warming up...');
+    try {
+      const res = await fetch('http://localhost:5000/api/ai/predict', { credentials: 'include' });
+      const data = await res.json();
+
+      if (data.error) throw new Error(data.error);
+
+      toast.success('Risk Analysis Updated!', { id: loader });
+      // Refresh to show newly calculated risk weights
+      fetchData();
+
+      if (data.insights && data.insights.length > 0) {
+        toast(data.insights[0], { icon: '💡', duration: 6000 });
+      }
+    } catch (error) {
+      toast.error('Prediction Engine failed: ' + error.message, { id: loader });
+    }
+  };
+
+  const handleImportCSV = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const loader = toast.loading('Importing students...');
+    try {
+      const res = await fetch('http://localhost:5000/api/students/import', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Import failed');
+
+      toast.success(data.message, { id: loader });
+      fetchData();
+    } catch (error) {
+      toast.error(error.message, { id: loader });
+    }
+  };
 
   if (loading) {
     return (
@@ -104,13 +145,20 @@ const DashboardHome = () => {
       {/* 2. Faculty Actions Area */}
       <div className="faculty-actions-bar">
         <div className="action-group">
-          <button className="btn-action pulse">
+          <button className="btn-action pulse" onClick={handleRunPrediction}>
             <Play size={16} />
             Run Risk Prediction
           </button>
         </div>
         <div className="action-group">
-          <button className="btn-secondary-action">
+          <input
+            type="file"
+            id="csv-import"
+            hidden
+            accept=".csv"
+            onChange={handleImportCSV}
+          />
+          <button className="btn-secondary-action" onClick={() => document.getElementById('csv-import').click()}>
             <FileUp size={16} />
             Import CSV
           </button>
@@ -139,13 +187,14 @@ const DashboardHome = () => {
           <div className="risk-chart-box">
             <StatDonutChart
               data={distribution || []}
-              centerText={`${summary?.total_students}`}
+              centerText={`${summary?.total_students || 0}`}
               onSegmentClick={(level) => setSelectedRiskLevel(level)}
             />
             <p className="chart-sub">Click a segment to view students</p>
           </div>
         </div>
       </div>
+
 
       {showAddModal && (
         <AddStudentModal

@@ -91,7 +91,8 @@ def get_role_for_email(conn, email: str) -> str:
   Determine role based on email.
   1. Specific Admin email -> ADMIN
   2. Exists in faculties table -> FACULTY
-  3. Default -> USER
+  3. Ends with @mca.ajce.in -> STUDENT
+  4. Default -> None (Unauthorized)
   """
   if email == "nevinbenny2028@mca.ajce.in":
     return "ADMIN"
@@ -101,7 +102,13 @@ def get_role_for_email(conn, email: str) -> str:
   is_faculty = cur.fetchone() is not None
   cur.close()
   
-  return "FACULTY" if is_faculty else "USER"
+  if is_faculty:
+    return "FACULTY"
+    
+  if email.lower().endswith("@mca.ajce.in"):
+    return "STUDENT"
+    
+  return None 
 
 
 def insert_user(conn, email: str, password_hash: str):
@@ -122,12 +129,17 @@ def upsert_google_user(conn, email: str):
   
   target_role = get_role_for_email(conn, email)
   
+  # Ensure target_role is valid for new/existing users
+  if not target_role:
+    # This might happen if domain restriction is strict. 
+    # For now, we'll allow it but you might want to throw an error here.
+    return None, None
+  
   if existing:
     user_id, current_role = existing
     
-    # Sync role if it should be ADMIN or FACULTY but isn't
-    # (e.g. user was added to faculty list AFTER signing up)
-    if current_role != target_role and target_role in ["ADMIN", "FACULTY"]:
+    # Sync role if it changed
+    if current_role != target_role:
       cur.execute("UPDATE users SET role=%s WHERE id=%s", (target_role, user_id))
       conn.commit()
       current_role = target_role
@@ -509,6 +521,9 @@ def google_callback():
   try:
     user_id, role = upsert_google_user(conn, email)
     
+    if not user_id:
+        return jsonify({"message": "Access denied. Only institution accounts (@mca.ajce.in) or registered faculty/admins are permitted."}), 403
+
     # establish session
     session["user_id"] = user_id
     session["email"] = email

@@ -23,6 +23,7 @@ const facultyNav = [
 
 const studentNav = [
   { label: 'My Courses', to: '/dashboard', icon: LayoutDashboard, end: true },
+  { label: 'My Interventions', to: '/dashboard/interventions', icon: Handshake },
 ]
 
 const DashboardLayout = () => {
@@ -31,7 +32,7 @@ const DashboardLayout = () => {
   const [userProfile, setUserProfile] = useState({
     name: 'User',
     email: '',
-    role: 'USER'
+    role: 'STUDENT'
   })
   const [showCompleteProfile, setShowCompleteProfile] = useState(false)
 
@@ -43,7 +44,7 @@ const DashboardLayout = () => {
       setUserProfile({
         name: profile.full_name || data.email?.split('@')[0] || 'User',
         email: data.email || '',
-        role: data.role || 'USER'
+        role: data.role || 'STUDENT'
       })
 
       const isProfileIncomplete = !profile.full_name || !profile.phone_number || !profile.country

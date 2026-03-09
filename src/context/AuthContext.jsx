@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react'
 
 /**
  * AuthContext provides global access to user authentication state and role information
- * Manages login/logout state and user role (ADMIN or USER)
+ * Manages login/logout state and user role (ADMIN or STUDENT)
  */
 const AuthContext = createContext(null)
 
@@ -26,12 +26,12 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Login user with role information
-   * @param {Object} userData - User object containing { id, email, role: 'ADMIN' | 'USER', ... }
+   * @param {Object} userData - User object containing { id, email, role: 'ADMIN' | 'STUDENT', ... }
    */
   const login = (userData) => {
     const user = {
       ...userData,
-      role: userData.role?.toUpperCase() || 'USER',
+      role: userData.role?.toUpperCase() || 'STUDENT',
     }
     setUser(user)
     localStorage.setItem('edupredict_user', JSON.stringify(user))
@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }) => {
 
   /**
    * Check if user has a specific role
-   * @param {string} role - Role to check (ADMIN or USER)
+   * @param {string} role - Role to check (ADMIN or STUDENT)
    * @returns {boolean}
    */
   const hasRole = (role) => {
