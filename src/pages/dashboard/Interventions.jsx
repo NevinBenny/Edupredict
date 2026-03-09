@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Plus, X, Search, Filter, Calendar, FileText, Download, CheckCircle, Clock, AlertTriangle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import StudentDetailModal from './StudentDetailModal'
+import MetricCard from './MetricCard'
 import './Dashboard.css'
 
 const Interventions = () => {
@@ -145,28 +146,34 @@ const Interventions = () => {
             </div>
 
             {/* Stats Overview */}
-            <div className="stats-grid single-row">
-                <div className="stat-card">
-                    <div className="stat-icon" style={{ background: '#e0f2fe', color: '#0369a1' }}><Clock size={20} /></div>
-                    <div className="stat-info">
-                        <h3>{pendingCount}</h3>
-                        <p>Pending Tasks</p>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon" style={{ background: '#f0fdf4', color: '#15803d' }}><CheckCircle size={20} /></div>
-                    <div className="stat-info">
-                        <h3>{completedCount}</h3>
-                        <p>Resolved</p>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon" style={{ background: '#fef2f2', color: '#b91c1c' }}><AlertTriangle size={20} /></div>
-                    <div className="stat-info">
-                        <h3>{highRiskStudents.length}</h3>
-                        <p>Priority Students</p>
-                    </div>
-                </div>
+            <div className="stats-grid single-row" style={{ marginTop: '24px' }}>
+                <MetricCard
+                    label="Pending Tasks"
+                    value={pendingCount}
+                    unit="Tasks"
+                    icon={<Clock size={20} />}
+                    color="#f59e0b"
+                    trend="up"
+                    trendValue="Active"
+                />
+                <MetricCard
+                    label="Resolved"
+                    value={completedCount}
+                    unit="Items"
+                    icon={<CheckCircle size={20} />}
+                    color="#10b981"
+                    trend="up"
+                    trendValue="Completed"
+                />
+                <MetricCard
+                    label="Priority Students"
+                    value={highRiskStudents.length}
+                    unit="Alerts"
+                    icon={<AlertTriangle size={20} />}
+                    color="#ef4444"
+                    trend={highRiskStudents.length > 0 ? "down" : "up"}
+                    trendValue="High Risk"
+                />
             </div>
 
             {/* Navigation Tabs */}
