@@ -1,25 +1,33 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useEffect, useState } from 'react'
+import {
+  LayoutDashboard,
+  Users,
+  PieChart,
+  Handshake,
+  FileBarChart,
+  LogOut
+} from 'lucide-react'
 import { getAccountProfile } from '../../services/api'
 import CompleteProfileModal from '../../components/CompleteProfileModal'
 import './Dashboard.css'
-import icon from '../../assets/icon.png'
 
 const facultyNav = [
-  { label: 'Dashboard', to: '/dashboard', end: true },
-  { label: 'Students', to: '/dashboard/students' },
-  { label: 'Risk Analysis', to: '/dashboard/ai-risk' },
-  { label: 'Interventions', to: '/dashboard/interventions' },
-  { label: 'Reports', to: '/dashboard/reports' },
+  { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard, end: true },
+  { label: 'Student Roster', to: '/dashboard/students', icon: Users },
+  { label: 'Risk Analysis', to: '/dashboard/ai-risk', icon: PieChart },
+  { label: 'Interventions', to: '/dashboard/interventions', icon: Handshake },
+  { label: 'Reports Centre', to: '/dashboard/reports', icon: FileBarChart },
 ]
 
 const studentNav = [
-  { label: 'My Courses', to: '/dashboard', end: true },
+  { label: 'My Courses', to: '/dashboard', icon: LayoutDashboard, end: true },
 ]
 
 const DashboardLayout = () => {
   const { logout } = useAuth()
+  const location = useLocation()
   const [userProfile, setUserProfile] = useState({
     name: 'User',
     email: '',
@@ -38,8 +46,6 @@ const DashboardLayout = () => {
         role: data.role || 'USER'
       })
 
-      // Check if profile is incomplete
-      // Consider it incomplete if full_name, phone_number, or country is missing
       const isProfileIncomplete = !profile.full_name || !profile.phone_number || !profile.country
       if (isProfileIncomplete) {
         setShowCompleteProfile(true)
@@ -54,8 +60,17 @@ const DashboardLayout = () => {
   }, [])
 
   const handleProfileComplete = () => {
-    loadProfile() // Reload to get updated name etc.
+    loadProfile()
   }
+
+  // Determine page title based on current path
+  const allNavs = [...facultyNav, ...studentNav]
+  const currentNav = allNavs.find(n => {
+    if (n.end) return location.pathname === n.to;
+    return location.pathname.startsWith(n.to);
+  })
+
+  const pageTitle = currentNav ? currentNav.label.toUpperCase() : (userProfile.role === 'FACULTY' ? 'FACULTY PORTAL' : 'STUDENT PORTAL')
 
   return (
     <div className="dashboard-shell">
@@ -66,7 +81,7 @@ const DashboardLayout = () => {
       />
 
       <aside className="dashboard-sidebar">
-        <div className="sidebar-brand">
+        <div className="sidebar-brand" style={{ borderBottom: '1px solid #f1f5f9' }}>
           <div className="brand-mark">EP</div>
           <div>
             <p className="brand-title">EduPredict</p>
@@ -86,7 +101,9 @@ const DashboardLayout = () => {
                   className={({ isActive }) =>
                     `nav-link ${isActive ? 'nav-link-active' : ''}`
                   }
+                  style={{ gap: '12px' }}
                 >
+                  <link.icon size={18} />
                   {link.label}
                 </NavLink>
               </li>
@@ -104,9 +121,11 @@ const DashboardLayout = () => {
               border: 'none',
               background: 'transparent',
               cursor: 'pointer',
-              color: '#d14343'
+              color: '#ef4444',
+              gap: '12px'
             }}
           >
+            <LogOut size={18} />
             Logout
           </button>
         </div>
@@ -116,21 +135,11 @@ const DashboardLayout = () => {
         <header className="dashboard-topbar minimal">
           <div className="topbar-left">
             <h1 className="portal-title">
-              {userProfile.role === 'FACULTY' ? 'Faculty Portal' : 'Student Portal'}
+              {pageTitle}
             </h1>
           </div>
           <div className="topbar-actions">
-            <div className="notifications-icon">
-              <span className="dot"></span>
-              🔔
-            </div>
-            <NavLink to="/dashboard/account" className="user-profile-chip">
-              <div className="avatar">{userProfile.name.charAt(0)}</div>
-              <div className="info">
-                <span className="name">{userProfile.name}</span>
-                <span className="role">{userProfile.role === 'FACULTY' ? 'Faculty' : 'Student'}</span>
-              </div>
-            </NavLink>
+            {/* Notifications and Profile removed as requested previously */}
           </div>
         </header>
 
