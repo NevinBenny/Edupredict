@@ -133,38 +133,55 @@ const Interventions = () => {
     }
 
     return (
-        <div className="dash-page">
-            <div className="page-header">
+        <div className="dash-container">
+            <div className="section-header">
                 <div>
-                    <p className="eyebrow">Student Support</p>
-                    <h2>Interventions & Assignments</h2>
+                    <h3>Interventions & Assignments</h3>
+                    <p>Manage student support and remedial tasks</p>
                 </div>
-                <button className="btn-action" onClick={() => setShowModal(true)}>
+                <button className="btn-primary" onClick={() => setShowModal(true)}>
                     <Plus size={18} /> Assign New Task
                 </button>
             </div>
 
-            {/* Stats Overview */}
-            <div className="stats-grid single-row">
-                <div className="stat-card">
-                    <div className="stat-icon" style={{ background: '#e0f2fe', color: '#0369a1' }}><Clock size={20} /></div>
-                    <div className="stat-info">
-                        <h3>{pendingCount}</h3>
-                        <p>Pending Tasks</p>
+            <div className="dashboard-grid-2col" style={{ alignItems: 'start' }}>
+                {/* Left: High Risk Students - Compact List */}
+                <div className="card-panel">
+                    <div className="section-header" style={{ marginBottom: '16px' }}>
+                        <h3>High Risk Students</h3>
                     </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon" style={{ background: '#f0fdf4', color: '#15803d' }}><CheckCircle size={20} /></div>
-                    <div className="stat-info">
-                        <h3>{completedCount}</h3>
-                        <p>Resolved</p>
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon" style={{ background: '#fef2f2', color: '#b91c1c' }}><AlertTriangle size={20} /></div>
-                    <div className="stat-info">
-                        <h3>{highRiskStudents.length}</h3>
-                        <p>Priority Students</p>
+                    <div style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '4px' }}>
+                        {highRiskStudents.length > 0 ? (
+                            <ul className="alert-list">
+                                {highRiskStudents.map(s => (
+                                    <li key={s.student_id} className="alert-item">
+                                        <div className="alert-icon" style={{ color: 'var(--c-status-danger)' }}>
+                                            <AlertCircle size={20} />
+                                        </div>
+                                        <div className="alert-content" style={{ flex: 1 }}>
+                                            <p>{s.name}</p>
+                                            <span className="text-sm">
+                                                Risk Score: <strong>{s.risk_score}</strong> • {s.department}
+                                            </span>
+                                        </div>
+                                        <button
+                                            className="btn-sm btn-outline"
+                                            onClick={() => {
+                                                setSelectedStudent(s.student_id)
+                                                setShowModal(true)
+                                            }}
+                                        >
+                                            Assign
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <div className="empty-state-small">
+                                <CheckCircle size={24} color="var(--c-status-safe)" />
+                                <p>No high risk students found.</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -185,72 +202,59 @@ const Interventions = () => {
                 </button>
             </div>
 
-            {activeTab === 'queue' && (
-                <div className="card">
-                    <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h3>Queue Filters</h3>
-                        <div className="action-group">
-                            {['all', 'Pending', 'Completed'].map(status => (
-                                <button
-                                    key={status}
-                                    className={`btn-sm ${statusFilter === status ? 'btn-primary' : 'btn-outline'}`}
-                                    onClick={() => setStatusFilter(status)}
-                                    style={{ fontSize: '11px', textTransform: 'capitalize' }}
-                                >
-                                    {status === 'all' ? 'All Tasks' : status}
-                                </button>
-                            ))}
-                        </div>
+                {/* Right: Active Interventions - Detailed Cards */}
+                <div className="card-panel">
+                    <div className="section-header" style={{ marginBottom: '16px' }}>
+                        <h3>Active Interventions</h3>
                     </div>
-                    <div className="card-body">
-                        {filteredInterventions.length > 0 ? (
-                            <div className="intervention-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '16px' }}>
-                                {filteredInterventions.map(int => (
-                                    <div key={int.id} className="sensor-card intervention-card" style={{ borderLeft: `4px solid ${int.status === 'Completed' ? '#10b981' : '#f59e0b'}` }}>
-                                        <div style={{ flex: 1 }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                                <h4 className="sensor-name" style={{ fontSize: '15px' }}>{int.title}</h4>
-                                                <span className={`status-badge ${int.status === 'Completed' ? 'active' : 'warn'}`}>
-                                                    {int.status}
-                                                </span>
-                                            </div>
-                                            <p className="sensor-status" style={{ margin: '8px 0' }}>
-                                                For: <strong>{int.student_name}</strong>
-                                            </p>
-                                            <div className="sd-meta" style={{ marginBottom: '12px' }}>
-                                                <Calendar size={13} /> {int.due_date ? new Date(int.due_date).toLocaleDateString() : 'No Deadline'}
-                                            </div>
+                    <div>
+                        {interventions.length > 0 ? (
+                            <div className="intervention-list">
+                                {interventions.map(int => (
+                                    <div key={int.id} className="intervention-card">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                            <h4 style={{ margin: 0, fontSize: '15px', fontWeight: '600' }}>{int.title}</h4>
+                                            <span className={`status-badge ${int.status === 'Completed' ? 'active' : 'warn'}`}>
+                                                {int.status}
+                                            </span>
+                                        </div>
 
-                                            {int.description && (
-                                                <p style={{ fontSize: '13px', color: '#64748b', background: '#f8fafc', padding: '8px', borderRadius: '4px', borderLeft: '2px solid #e2e8f0', marginBottom: '16px' }}>
-                                                    {int.description}
-                                                </p>
+                                        <p className="text-sm" style={{ marginBottom: '8px' }}>
+                                            Student: <strong>{int.student_name}</strong> • Due: {int.due_date || 'No date'}
+                                        </p>
+
+                                        {int.description && (
+                                            <p style={{ fontSize: '13px', color: 'var(--c-text-secondary)', fontStyle: 'italic', marginBottom: '12px', background: 'var(--c-surface-muted)', padding: '8px', borderRadius: '4px' }}>
+                                                "{int.description}"
+                                            </p>
+                                        )}
+
+                                        {/* Action Row */}
+                                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '12px', flexWrap: 'wrap' }}>
+                                            {int.file_path && (
+                                                <a
+                                                    href={`http://localhost:5000/api/uploads/interventions/${int.file_path}`}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="link-btn"
+                                                    style={{ fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                >
+                                                    <FileText size={14} /> View Attachment
+                                                </a>
                                             )}
 
-                                            <div className="sd-actions" style={{ display: 'flex', gap: '12px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
-                                                {int.file_path && (
-                                                    <a
-                                                        href={`http://localhost:5000/api/uploads/interventions/${int.file_path}`}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="sd-btn sd-btn-outline"
-                                                        style={{ padding: '6px 12px', fontSize: '12px', textDecoration: 'none' }}
-                                                    >
-                                                        <FileText size={14} /> View Doc
-                                                    </a>
-                                                )}
+                                            <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
                                                 {int.status !== 'Completed' ? (
                                                     <button
-                                                        className="sd-btn sd-btn-primary"
-                                                        style={{ padding: '6px 12px', fontSize: '12px', marginLeft: 'auto' }}
+                                                        className="action-btn"
                                                         onClick={() => updateStatus(int.id, 'Completed')}
                                                     >
                                                         Mark Done
                                                     </button>
                                                 ) : (
-                                                    <div style={{ marginLeft: 'auto', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '600' }}>
-                                                        <CheckCircle size={14} /> Resolved
-                                                    </div>
+                                                    <span style={{ fontSize: '12px', color: 'var(--c-status-safe)', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
+                                                        <CheckCircle size={14} /> Completed
+                                                    </span>
                                                 )}
                                             </div>
                                         </div>
@@ -258,9 +262,9 @@ const Interventions = () => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="empty-state" style={{ padding: '64px 0' }}>
-                                <CheckCircle size={48} color="#10B981" style={{ marginBottom: '16px' }} />
-                                <p>No tasks found matching your filter.</p>
+                            <div className="empty-state-small" style={{ background: 'transparent' }}>
+                                <Clock size={32} color="var(--c-text-tertiary)" />
+                                <p>No active interventions or assignments.</p>
                             </div>
                         )}
                     </div>
@@ -304,100 +308,68 @@ const Interventions = () => {
             {/* Assignment Modal */}
             {showModal && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ maxWidth: '950px', width: '90%', height: '80vh', display: 'flex', flexDirection: 'column' }}>
+                    <div className="modal-content">
                         <div className="modal-header">
-                            <div>
-                                <h3 style={{ margin: 0 }}>Assign Task / Material</h3>
-                                <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                                    Select students on the left and fill in task details on the right
-                                </p>
-                            </div>
+                            <h3>Assign New Task / Intervention</h3>
                             <button className="close-btn" onClick={() => setShowModal(false)}><X size={20} /></button>
                         </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px', padding: '24px', flex: 1, overflow: 'hidden' }}>
-
-                            {/* Left Side: Student Picker */}
-                            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', borderRight: '1px solid #f1f5f9', paddingRight: '24px' }}>
-                                <div className="modal-picking-header" style={{ marginBottom: '16px' }}>
-                                    <div className="search-box" style={{ width: '100%', marginBottom: '12px' }}>
-                                        <Search size={14} className="search-icon" />
-                                        <input
-                                            type="text"
-                                            placeholder="Search name or ID..."
-                                            value={modalSearch}
-                                            onChange={(e) => setModalSearch(e.target.value)}
-                                            style={{ paddingLeft: '32px', height: '36px' }}
-                                        />
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                                        {['All', 'High', 'Medium', 'Low'].map(lvl => (
-                                            <button
-                                                key={lvl}
-                                                className={`btn-sm ${modalRiskFilter === lvl ? 'btn-primary' : 'btn-outline'}`}
-                                                onClick={() => setModalRiskFilter(lvl)}
-                                                style={{ fontSize: '11px', flex: 1 }}
-                                            >
-                                                {lvl === 'All' ? 'Every Risk' : lvl + ' Risk'}
-                                            </button>
-                                        ))}
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <span style={{ fontSize: '13px', fontWeight: '600' }}>
-                                            {selectedStudents.length} Selected
-                                        </span>
-                                        <button
-                                            className="btn-ghost"
-                                            style={{ fontSize: '12px', padding: '4px 8px' }}
-                                            onClick={toggleAllModal}
-                                        >
-                                            {selectedStudents.length === modalFilteredStudents.length ? 'Deselect All' : 'Select All Filtered'}
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div style={{ flex: 1, overflowY: 'auto', paddingRight: '8px' }}>
-                                    {modalFilteredStudents.length > 0 ? (
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            {modalFilteredStudents.map(s => (
-                                                <label key={s.student_id} className={`picking-item ${selectedStudents.includes(s.student_id) ? 'selected' : ''}`} style={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    padding: '10px 12px',
-                                                    borderRadius: '8px',
-                                                    cursor: 'pointer',
-                                                    transition: 'all 0.2s',
-                                                    background: selectedStudents.includes(s.student_id) ? '#f0f7ff' : '#fff',
-                                                    border: `1px solid ${selectedStudents.includes(s.student_id) ? '#3b82f6' : '#f1f5f9'}`
-                                                }}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedStudents.includes(s.student_id)}
-                                                        onChange={() => toggleStudent(s.student_id)}
-                                                        style={{ marginRight: '12px', width: '16px', height: '16px' }}
-                                                    />
-                                                    <div style={{ flex: 1 }}>
-                                                        <div style={{ fontSize: '14px', fontWeight: '600' }}>{s.name}</div>
-                                                        <div style={{ fontSize: '12px', color: '#64748b' }}>{s.student_id} • {s.department}</div>
-                                                    </div>
-                                                    <span className={`risk-badge minimal ${s.risk_level.toLowerCase()}`} style={{ fontSize: '10px' }}>
-                                                        {s.risk_level}
-                                                    </span>
-                                                </label>
+                        <form onSubmit={handleAssign} className="modal-form">
+                            <div className="form-group">
+                                <label>Select Student <span style={{ color: 'red' }}>*</span></label>
+                                <div className="select-wrapper">
+                                    <select
+                                        className="form-input"
+                                        value={selectedStudent}
+                                        onChange={(e) => setSelectedStudent(e.target.value)}
+                                        required
+                                        style={{ width: '100%' }}
+                                    >
+                                        <option value="">-- Choose Student --</option>
+                                        {highRiskStudents.length > 0 && <optgroup label="High Risk Students">
+                                            {highRiskStudents.map(s => (
+                                                <option key={s.student_id} value={s.student_id}>
+                                                    {s.name} (Risk: {s.risk_score})
+                                                </option>
                                             ))}
-                                        </div>
-                                    ) : (
-                                        <div className="sd-empty" style={{ pointerEvents: 'none' }}>
-                                            No students found.
-                                        </div>
-                                    )}
+                                        </optgroup>}
+                                        <optgroup label="Other Students">
+                                            {students.filter(s => s.risk_level !== 'High').map(s => (
+                                                <option key={s.student_id} value={s.student_id}>
+                                                    {s.name}
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                    </select>
                                 </div>
                             </div>
 
-                            {/* Right Side: Form Details */}
-                            <form onSubmit={handleAssign} className="modal-form" style={{ overflowY: 'auto', paddingRight: '8px' }}>
+                            <div className="form-group">
+                                <label>Task Title <span style={{ color: 'red' }}>*</span></label>
+                                <input
+                                    type="text"
+                                    className="form-input"
+                                    placeholder="e.g. Remedial Assignment 1"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>Description (Optional)</label>
+                                <textarea
+                                    className="form-input"
+                                    rows="3"
+                                    placeholder="Instructions for the student..."
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    style={{ resize: 'vertical' }}
+                                ></textarea>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                                 <div className="form-group">
-                                    <label>Task Title</label>
+                                    <label>Due Date</label>
                                     <input
                                         type="text"
                                         className="form-input"
@@ -407,54 +379,21 @@ const Interventions = () => {
                                         required
                                     />
                                 </div>
-
                                 <div className="form-group">
-                                    <label>Detailed Instructions</label>
-                                    <textarea
+                                    <label>Attach PDF (Optional)</label>
+                                    <input
+                                        type="file"
                                         className="form-input"
-                                        rows="4"
-                                        placeholder="Describe what the students need to do..."
-                                        value={description}
-                                        onChange={(e) => setDescription(e.target.value)}
-                                    ></textarea>
+                                        accept="application/pdf"
+                                        onChange={(e) => setFile(e.target.files[0])}
+                                    />
                                 </div>
 
-                                <div className="form-row" style={{ display: 'flex', gap: '16px' }}>
-                                    <div className="form-group" style={{ flex: 1 }}>
-                                        <label>Due Date</label>
-                                        <input
-                                            type="date"
-                                            className="form-input"
-                                            value={dueDate}
-                                            onChange={(e) => setDueDate(e.target.value)}
-                                        />
-                                    </div>
-                                    <div className="form-group" style={{ flex: 1 }}>
-                                        <label>Resource / Material (PDF)</label>
-                                        <input
-                                            type="file"
-                                            className="form-input"
-                                            accept="application/pdf"
-                                            onChange={(e) => setFile(e.target.files[0])}
-                                            style={{ padding: '7px' }}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="form-actions" style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #f1f5f9', sticky: 'bottom' }}>
-                                    <button type="button" className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
-                                    <button
-                                        type="submit"
-                                        className="btn-primary"
-                                        disabled={selectedStudents.length === 0}
-                                        style={{ background: selectedStudents.length === 0 ? '#94a3b8' : '#3b82f6' }}
-                                    >
-                                        Assign to {selectedStudents.length} {selectedStudents.length === 1 ? 'Student' : 'Students'}
-                                    </button>
-                                </div>
-                            </form>
-
-                        </div>
+                            <div className="form-actions">
+                                <button type="button" className="btn-ghost" onClick={() => setShowModal(false)}>Cancel</button>
+                                <button type="submit" className="btn-primary">Assign Task</button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

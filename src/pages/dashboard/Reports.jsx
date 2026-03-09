@@ -51,27 +51,52 @@ const Reports = () => {
   }
 
   return (
-    <div className="dash-page minimal-theme">
-      <div className="page-header" style={{ border: 'none', marginBottom: '32px' }}>
+    <div className="dash-container">
+      <div className="section-header">
         <div>
-          <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#1e293b' }}>Academic Intelligence</h2>
-          <p style={{ color: '#64748b', fontSize: '14px', marginTop: '4px' }}>Generate and manage institutional academic reports.</p>
+          <h3>Reports Generation</h3>
+          <p>Download detailed insights and academic summaries</p>
         </div>
       </div>
 
       {error && (
-        <div className="alert alert-danger" style={{ marginBottom: '24px', borderRadius: '12px' }}>
+        <div className="alert alert-error" style={{ marginBottom: '20px' }}>
           <AlertCircle size={18} /> {error}
         </div>
       )}
 
       <div className="report-grid-minimal">
         {/* Risk Report Card */}
-        <div className="report-card-minimal risk">
-          <div className="report-type-badge">Action Required</div>
+        <div className="card-panel">
+          <div className="section-header" style={{ marginBottom: '16px' }}>
+            <h3>At-Risk Student Report</h3>
+          </div>
           <div>
-            <h3>At-Risk Roster</h3>
-            <p>A high-priority list of students identified as 'High Risk'. Includes participation deficits and backlog counts.</p>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+              <div className="metric-icon-box" style={{ background: '#FEE2E2', color: '#EF4444' }}>
+                <FileText size={24} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ marginBottom: '16px', color: 'var(--c-text-secondary)', lineHeight: '1.5', fontSize: '14px' }}>
+                  Generates a detailed list of students identified as 'High Risk'. Includes risk scores,
+                  attendance deficits, and backlog counts for immediate intervention.
+                </p>
+                <button
+                  className="btn-primary"
+                  onClick={downloadRiskReport}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>Generating...</>
+                  ) : (
+                    <>
+                      <Download size={18} />
+                      Download Risk Report
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
           <button
             className="btn-report-minimal primary"
@@ -83,11 +108,36 @@ const Reports = () => {
         </div>
 
         {/* Performance Report Card */}
-        <div className="report-card-minimal performance">
-          <div className="report-type-badge">Overview</div>
+        <div className="card-panel">
+          <div className="section-header" style={{ marginBottom: '16px' }}>
+            <h3>Class Performance Report</h3>
+          </div>
           <div>
-            <h3>Academic Summary</h3>
-            <p>Comprehensive summary including class averages for SGPA and Attendance, plus a full performance breakdown.</p>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '16px' }}>
+              <div className="metric-icon-box" style={{ background: '#DBEAFE', color: '#2563EB' }}>
+                <FileText size={24} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ marginBottom: '16px', color: 'var(--c-text-secondary)', lineHeight: '1.5', fontSize: '14px' }}>
+                  Comprehensive academic summary including class averages for SGPA and Attendance,
+                  along with a full roster performance breakdown.
+                </p>
+                <button
+                  className="btn-secondary-action"
+                  onClick={downloadPerformanceReport}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>Generating...</>
+                  ) : (
+                    <>
+                      <Download size={18} />
+                      Download Academic Report
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
           <button
             className="btn-report-minimal secondary"
@@ -99,23 +149,18 @@ const Reports = () => {
         </div>
       </div>
 
-      <div className="report-session-log">
-        <div className="log-header">
-          <Clock size={16} color="#64748b" />
-          <h4>Session Downloads</h4>
+      {/* Recent Reports Section (Placeholder) */}
+      <div className="card-panel">
+        <div className="section-header" style={{ marginBottom: '16px' }}>
+          <h3>Recent Reports</h3>
         </div>
-
-        {sessionReports.length > 0 ? (
-          <div>
-            {sessionReports.map(report => (
-              <div key={report.id} className="report-activity-item">
-                <div className="activity-icon-dot"></div>
-                <div className="activity-info">
-                  <span className="activity-name">{report.name}</span>
-                  <span className="activity-time">{report.time}</span>
-                </div>
-              </div>
-            ))}
+        <div>
+          <div className="empty-state-small" style={{ padding: '40px' }}>
+            <FileText size={48} color="var(--c-text-tertiary)" style={{ marginBottom: '12px' }} />
+            <p style={{ color: 'var(--c-text-secondary)' }}>No reports generated recently in this session.</p>
+            <p style={{ fontSize: '13px', color: 'var(--c-text-tertiary)', marginTop: '4px' }}>
+              Downloaded reports are saved to your browser's default download location.
+            </p>
           </div>
         ) : (
           <div className="activity-empty">

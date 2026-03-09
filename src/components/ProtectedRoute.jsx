@@ -52,17 +52,17 @@ const ProtectedRoute = ({ children, requiredRole = 'USER' }) => {
     return <Navigate to="/auth/login" replace />
   }
 
-  // Check if user has required role
-  if (user.role !== requiredRole.toUpperCase()) {
-    // Admin trying to access user route - redirect to admin panel
-    if (user.role === 'ADMIN') {
-      return <Navigate to="/admin" replace />
-    }
+  // Treat FACULTY and USER as having the same access for dashboard requiredRole="USER"
+  const isAuthorized = user.role === requiredRole.toUpperCase() ||
+    (requiredRole.toUpperCase() === 'USER' && user.role === 'FACULTY');
 
-    // User trying to access admin route - redirect to user dashboard
-    if (user.role === 'USER') {
-      return <Navigate to="/dashboard" replace />
-    }
+  // Check if user has required role
+  if (!isAuthorized) {
+    // Redirect each role to their own home if accessing a different portal
+    if (user.role === 'ADMIN') return <Navigate to="/admin" replace />
+    if (user.role === 'STUDENT') return <Navigate to="/student" replace />
+    // FACULTY and legacy USER both live in /dashboard
+    return <Navigate to="/dashboard" replace />
   }
 
   // User has required role - render the route

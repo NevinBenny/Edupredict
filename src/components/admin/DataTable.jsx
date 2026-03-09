@@ -4,8 +4,8 @@
  */
 const DataTable = ({ columns, rows, actions }) => {
   return (
-    <div className="data-table-container">
-      <table className="simple-table">
+    <div className="card-panel table-card-panel">
+      <table className="student-table modern">
         <thead>
           <tr>
             {columns.map((col) => (
@@ -19,7 +19,7 @@ const DataTable = ({ columns, rows, actions }) => {
         <tbody>
           {rows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length + (actions ? 1 : 0)} className="empty-state">
+              <td colSpan={columns.length + (actions ? 1 : 0)} className="empty-state" style={{ textAlign: 'center', padding: '32px', color: 'var(--c-text-tertiary)' }}>
                 No data available
               </td>
             </tr>
@@ -33,8 +33,8 @@ const DataTable = ({ columns, rows, actions }) => {
                 ))}
                 {actions && actions.length > 0 && (
                   <td className="action-cell">
-                    <div className="action-buttons">
-                      {actions.map((action) => (
+                    <div className="action-buttons" style={{ display: 'flex', gap: '8px' }}>
+                      {actions.map((action, i) => (
                         <button
                           key={typeof action.label === 'function' ? action.label(row) : action.label}
                           className={`action-btn action-btn-${action.variant || 'primary'}`}

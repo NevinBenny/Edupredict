@@ -170,7 +170,7 @@ const UserManagement = () => {
         <button className="primary-btn" onClick={() => { setIsModalOpen(true); setNewCredentials(null); setFormData({ email: '' }); }} disabled={loading}>
           + Create Admin
         </button>
-      </section>
+      </div>
 
       {error && (
         <section className="alert alert-error">
@@ -198,7 +198,7 @@ const UserManagement = () => {
             <div className="control-stats">
               Showing {filteredAdmins.length} of {admins.length} admins
             </div>
-          </section>
+          </div>
 
           <section className="page-content">
             <DataTable columns={columns} rows={filteredAdmins} actions={actions} />

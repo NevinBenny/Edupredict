@@ -32,6 +32,7 @@ from validators import validate_email, validate_password
 from admin_service import admin_bp
 from intervention_service import intervention_bp
 from report_service import report_bp
+from class_service import class_bp
 
 load_dotenv()
 
@@ -55,6 +56,7 @@ app.register_blueprint(dashboard_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(intervention_bp)
 app.register_blueprint(report_bp)
+app.register_blueprint(class_bp)
 CORS(app, origins=get_cors_origins(), supports_credentials=True)
 app.secret_key = os.environ.get("FLASK_SECRET", "dev-secret-change")
 # Session cookie settings optimized for OAuth flow
@@ -86,27 +88,49 @@ def email_exists(conn, email: str) -> bool:
 
 
 
-def get_role_for_email(conn, email: str) -> str:
+def get_role_for_email(conn, email: str):
   """
-  Determine role based on email.
-  1. Specific Admin email -> ADMIN
-  2. Exists in faculties table -> FACULTY
-  3. Default -> USER
+  Determine role based on the email domain — no hardcoded values.
+  Domain rules:
+    @admin.in   -> ADMIN   (must already exist in users table with role ADMIN)
+    @faculty.in -> FACULTY (must exist in faculties table)
+    @mca.ajce.in -> STUDENT (placeholder; student dashboard TBD)
+    Anything else -> None (unauthorized domain, reject login/signup)
+  Returns: (role_string) or None if unauthorized.
   """
-  if email == "nevinbenny2028@mca.ajce.in":
-    return "ADMIN"
-    
-  cur = conn.cursor()
-  cur.execute("SELECT 1 FROM faculties WHERE email=%s LIMIT 1", (email,))
-  is_faculty = cur.fetchone() is not None
-  cur.close()
-  
-  return "FACULTY" if is_faculty else "USER"
+  domain = email.split("@")[-1].lower() if "@" in email else ""
+
+  if domain == "admin.in":
+    # Verify this email exists in users table with ADMIN role
+    cur = conn.cursor()
+    cur.execute("SELECT role FROM users WHERE email=%s LIMIT 1", (email,))
+    row = cur.fetchone()
+    cur.close()
+    if row and row[0] == "ADMIN":
+      return "ADMIN"
+    # Domain is admin.in but not found/registered as ADMIN — reject
+    return None
+
+  if domain == "faculty.in":
+    # Verify this email exists in the faculties table
+    cur = conn.cursor()
+    cur.execute("SELECT 1 FROM faculties WHERE email=%s LIMIT 1", (email,))
+    is_faculty = cur.fetchone() is not None
+    cur.close()
+    return "FACULTY" if is_faculty else None
+
+  if domain == "mca.ajce.in":
+    return "STUDENT"
+
+  # All other domains are unauthorized
+  return None
 
 
 def insert_user(conn, email: str, password_hash: str):
-  cur = conn.cursor()
   role = get_role_for_email(conn, email)
+  if role is None:
+    raise ValueError("Unauthorized email domain.")
+  cur = conn.cursor()
   cur.execute(
     "INSERT INTO users (email, password_hash, provider, role) VALUES (%s, %s, %s, %s)",
     (email, password_hash, "password", role),
@@ -116,25 +140,27 @@ def insert_user(conn, email: str, password_hash: str):
 
 
 def upsert_google_user(conn, email: str):
+  target_role = get_role_for_email(conn, email)
+
+  # Reject unauthorized domains outright
+  if target_role is None:
+    return None, None
+
   cur = conn.cursor()
   cur.execute("SELECT id, role FROM users WHERE email=%s", (email,))
   existing = cur.fetchone()
-  
-  target_role = get_role_for_email(conn, email)
-  
+
   if existing:
     user_id, current_role = existing
-    
-    # Sync role if it should be ADMIN or FACULTY but isn't
-    # (e.g. user was added to faculty list AFTER signing up)
-    if current_role != target_role and target_role in ["ADMIN", "FACULTY"]:
+    # Sync role if domain-based role changed (e.g. faculty added after first login)
+    if current_role != target_role and target_role in ["ADMIN", "FACULTY", "STUDENT"]:
       cur.execute("UPDATE users SET role=%s WHERE id=%s", (target_role, user_id))
       conn.commit()
       current_role = target_role
-      
     cur.close()
     return (user_id, current_role)
-  
+
+  # New user — auto-create account via Google OAuth
   cur.execute(
     "INSERT INTO users (email, provider, role) VALUES (%s, %s, %s)",
     (email, "google", target_role),
@@ -252,7 +278,10 @@ def signup_user():
       return jsonify({"message": "Email already registered."}), 409
 
     pw_hash = hash_password(password)  # Hashing happens here (backend only)
-    insert_user(conn, email, pw_hash)   # DB write happens here
+    try:
+      insert_user(conn, email, pw_hash)   # DB write happens here
+    except ValueError as e:
+      return jsonify({"message": str(e)}), 403
 
     return jsonify({"message": "Signup successful."}), 201
   except Exception:
@@ -288,15 +317,6 @@ def login_user():
 
     if not bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8")):
       return jsonify({"message": "Invalid credentials."}), 401
-
-    # Final safety check for admin role override
-    if email == "nevinbenny2028@mca.ajce.in" and role != "ADMIN":
-      role = "ADMIN"
-      # Sync in DB if needed
-      temp_cur = conn.cursor()
-      temp_cur.execute("UPDATE users SET role='ADMIN' WHERE id=%s", (user_id,))
-      conn.commit()
-      temp_cur.close()
 
     session["user_id"] = user_id
     session["email"] = email
@@ -504,11 +524,17 @@ def google_callback():
   email = id_info.get("email")
   if not email:
     return jsonify({"message": "Google token missing email."}), 400
+  
+  origin = os.environ.get("CORS_ORIGIN", "http://localhost:5173").split(",")[0].strip()
 
   conn = get_connection()
   try:
     user_id, role = upsert_google_user(conn, email)
     
+    if not user_id:
+        # User is unauthorized (strict mode)
+        return redirect(f"{origin}/login?error=unauthorized_email")
+
     # establish session
     session["user_id"] = user_id
     session["email"] = email
@@ -517,7 +543,6 @@ def google_callback():
     conn.close()
 
   # Redirect to frontend dashboard after successful Google auth
-  origin = os.environ.get("CORS_ORIGIN", "http://localhost:5173").split(",")[0].strip()
   target = f"{origin}/welcome"
   return redirect(target)
 

@@ -207,10 +207,10 @@ const FacultyManagement = () => {
     ]
 
     return (
-        <div className="admin-page-container fade-in">
-            <div className="page-header">
-                <div className="header-text">
-                    <h2>Faculty Management</h2>
+        <div className="dash-container minimal">
+            <div className="section-header">
+                <div>
+                    <h3>Faculty Management</h3>
                     <p>View and manage academic staff members</p>
                 </div>
                 <div style={{ display: 'flex', gap: '1rem' }}>
@@ -259,7 +259,7 @@ const FacultyManagement = () => {
 
             <div className="page-content">
                 {loading ? (
-                    <div className="loading-state">Loading staff records...</div>
+                    <div className="dash-loading">Loading staff records...</div>
                 ) : (
                     <DataTable
                         columns={columns}
@@ -277,6 +277,7 @@ const FacultyManagement = () => {
                             <div className="form-group">
                                 <label>Full Name</label>
                                 <input
+                                    className="form-input"
                                     type="text"
                                     value={newFaculty.name}
                                     onChange={(e) => setNewFaculty({ ...newFaculty, name: e.target.value })}
@@ -287,6 +288,7 @@ const FacultyManagement = () => {
                             <div className="form-group">
                                 <label>Email Address</label>
                                 <input
+                                    className="form-input"
                                     type="email"
                                     value={newFaculty.email}
                                     onChange={(e) => setNewFaculty({ ...newFaculty, email: e.target.value })}
@@ -299,20 +301,24 @@ const FacultyManagement = () => {
                             </div>
                             <div className="form-group">
                                 <label>Department</label>
-                                <select
-                                    value={newFaculty.department}
-                                    onChange={(e) => setNewFaculty({ ...newFaculty, department: e.target.value })}
-                                >
-                                    <option value="">Select Department</option>
-                                    <option value="Computer Science">Computer Science</option>
-                                    <option value="Information Technology">Information Technology</option>
-                                    <option value="Electronics">Electronics</option>
-                                    <option value="Mechanical">Mechanical</option>
-                                </select>
+                                <div className="select-wrapper">
+                                    <select
+                                        className="form-input"
+                                        value={newFaculty.department}
+                                        onChange={(e) => setNewFaculty({ ...newFaculty, department: e.target.value })}
+                                    >
+                                        <option value="">Select Department</option>
+                                        <option value="Computer Science">Computer Science</option>
+                                        <option value="Information Technology">Information Technology</option>
+                                        <option value="Electronics">Electronics</option>
+                                        <option value="Mechanical">Mechanical</option>
+                                    </select>
+                                </div>
                             </div>
                             <div className="form-group">
                                 <label>Designation</label>
                                 <input
+                                    className="form-input"
                                     type="text"
                                     value={newFaculty.designation}
                                     onChange={(e) => setNewFaculty({ ...newFaculty, designation: e.target.value })}

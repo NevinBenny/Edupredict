@@ -12,6 +12,16 @@ import {
 import { getAccountProfile } from '../../services/api'
 import CompleteProfileModal from '../../components/CompleteProfileModal'
 import './Dashboard.css'
+import {
+  LayoutDashboard,
+  Users,
+  BrainCircuit,
+  Stethoscope,
+  FileText,
+  LogOut,
+  Bell,
+  User
+} from 'lucide-react'
 
 const facultyNav = [
   { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard, end: true },
@@ -103,48 +113,46 @@ const DashboardLayout = () => {
                   }
                   style={{ gap: '12px' }}
                 >
-                  <link.icon size={18} />
-                  {link.label}
+                  {link.icon}
+                  <span>{link.label}</span>
                 </NavLink>
               </li>
             ))}
           </ul>
         </nav>
 
-        <div style={{ marginTop: 'auto' }}>
-          <button
-            onClick={logout}
-            className="nav-link"
-            style={{
-              width: '100%',
-              justifyContent: 'flex-start',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              color: '#ef4444',
-              gap: '12px'
-            }}
-          >
-            <LogOut size={18} />
-            Logout
-          </button>
-        </div>
+        <button onClick={logout} className="nav-link logout-btn">
+          <LogOut size={20} />
+          <span>Logout</span>
+        </button>
       </aside>
 
       <div className="dashboard-main">
-        <header className="dashboard-topbar minimal">
+        <header className="dashboard-topbar">
           <div className="topbar-left">
             <h1 className="portal-title">
               {pageTitle}
             </h1>
           </div>
           <div className="topbar-actions">
-            {/* Notifications and Profile removed as requested previously */}
+            <div className="notifications-icon">
+              <span className="dot"></span>
+              <Bell size={20} />
+            </div>
+            <NavLink to="/dashboard/account" className="user-profile-chip">
+              <div className="avatar">
+                {userProfile.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="info">
+                <span className="name">{userProfile.name}</span>
+                <span className="role">{userProfile.role === 'FACULTY' ? 'Faculty' : 'Student'}</span>
+              </div>
+            </NavLink>
           </div>
         </header>
 
         <main className="dashboard-content">
-          <Outlet />
+          <Outlet context={{ userProfile }} />
         </main>
       </div>
     </div >

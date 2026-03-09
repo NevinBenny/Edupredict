@@ -1,16 +1,34 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { handleLogin, startGoogleOAuth } from '../../services/api'
 import { validateUserInput } from '../../utils/validation'
 import toast from 'react-hot-toast'
 
+/** Returns the home route for a given role string */
+const getRoleTarget = (role) => {
+    if (role === 'ADMIN') return '/admin'
+    if (role === 'STUDENT') return '/student'
+    return '/dashboard' // FACULTY and any legacy USER role
+}
+
 const LoginPage = () => {
     const navigate = useNavigate()
+    const [searchParams] = useSearchParams()
     const { login } = useAuth()
     const [form, setForm] = useState({ email: '', password: '' })
     const [errors, setErrors] = useState({})
     const [submitting, setSubmitting] = useState(false)
+
+    useEffect(() => {
+        const errorType = searchParams.get('error')
+        if (errorType === 'unauthorized_email') {
+            setStatus({
+                type: 'error',
+                message: 'Access Denied: Your email is not authorized to access this system.'
+            })
+        }
+    }, [searchParams])
 
     const onInput = (e) => {
         const { name, value } = e.target
