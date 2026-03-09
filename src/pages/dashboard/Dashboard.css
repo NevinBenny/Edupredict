@@ -148,10 +148,17 @@ p {
   transform: translateX(4px);
 }
 
-.nav-link-active {
-  background: #3b82f6;
-  color: white !important;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+.nav-link-active,
+.nav-link-active:hover {
+  background: #1d4ed8 !important;
+  /* Strong, clear blue */
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(29, 78, 216, 0.25);
+}
+
+/* Ensure icons in active tab are also white */
+.nav-link-active svg {
+  stroke: #ffffff !important;
 }
 
 /* --- Topbar --- */
