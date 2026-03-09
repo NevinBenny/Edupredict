@@ -19,8 +19,17 @@ def generate_risk_report():
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
         
-        # Fetch high-risk students
-        cur.execute("SELECT * FROM students WHERE risk_level = 'High' ORDER BY risk_score DESC")
+        # Fetch high-risk students with calculated attendance
+        cur.execute("""
+            SELECT 
+                s.student_id, s.name, s.department, s.risk_score, s.backlogs,
+                COALESCE(AVG(sar.attendance_percentage), 0) as attendance_percentage
+            FROM students s
+            LEFT JOIN student_academic_records sar ON s.student_id = sar.student_id
+            WHERE s.risk_level = 'High'
+            GROUP BY s.student_id, s.name, s.department, s.risk_score, s.backlogs
+            ORDER BY s.risk_score DESC
+        """)
         high_risk_students = cur.fetchall()
         cur.close()
         
@@ -66,13 +75,17 @@ def generate_risk_report():
         # Table Data
         data = [['ID', 'Name', 'Department', 'Risk Score', 'Attendance', 'Backlogs']]
         for student in high_risk_students:
+            # Safe float conversion and rounding
+            risk_score = round(float(student['risk_score']), 2) if student['risk_score'] is not None else 0.0
+            attendance = round(float(student['attendance_percentage']), 2) if student['attendance_percentage'] is not None else 0.0
+            
             data.append([
                 student['student_id'],
                 student['name'],
-                student['department'],
-                str(student['risk_score']),
-                f"{student['attendance_percentage']}%",
-                str(student['backlogs'])
+                student['department'] or 'N/A',
+                f"{risk_score}",
+                f"{attendance}%",
+                str(student['backlogs'] or 0)
             ])
         
         # Create Table
@@ -119,17 +132,25 @@ def generate_performance_report():
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
         
-        # Fetch all students
-        cur.execute("SELECT * FROM students ORDER BY sgpa DESC")
+        # Fetch all students with calculated attendance
+        cur.execute("""
+            SELECT 
+                s.student_id, s.name, s.department, s.semester, s.sgpa, s.risk_level,
+                COALESCE(AVG(sar.attendance_percentage), 0) as attendance_percentage
+            FROM students s
+            LEFT JOIN student_academic_records sar ON s.student_id = sar.student_id
+            GROUP BY s.student_id, s.name, s.department, s.semester, s.sgpa, s.risk_level
+            ORDER BY s.sgpa DESC
+        """)
         students = cur.fetchall()
         cur.close()
         
         if not students:
             return jsonify({"error": "No student data found"}), 404
         
-        # Calculate averages
-        avg_attendance = sum(s['attendance_percentage'] for s in students) / len(students)
-        avg_sgpa = sum(s['sgpa'] for s in students) / len(students)
+        # Calculate averages with float conversion for safety
+        avg_attendance = sum(float(s['attendance_percentage'] or 0) for s in students) / len(students)
+        avg_sgpa = sum(float(s['sgpa'] or 0) for s in students) / len(students)
         
         # Create PDF in memory
         buffer = BytesIO()
@@ -169,14 +190,18 @@ def generate_performance_report():
         # Table Data
         data = [['ID', 'Name', 'Dept', 'Sem', 'SGPA', 'Attendance', 'Risk']]
         for student in students:
+            # Safe float conversion and rounding
+            sgpa = round(float(student['sgpa']), 2) if student['sgpa'] is not None else 0.0
+            attendance = round(float(student['attendance_percentage']), 2) if student['attendance_percentage'] is not None else 0.0
+            
             data.append([
                 student['student_id'],
-                student['name'][:20],  # Truncate if too long
-                student['department'][:10],
-                student['semester'],
-                f"{student['sgpa']:.2f}",
-                f"{student['attendance_percentage']:.0f}%",
-                student['risk_level']
+                student['name'][:20] if student['name'] else 'N/A',
+                student['department'][:10] if student['department'] else 'N/A',
+                student['semester'] or '1',
+                f"{sgpa}",
+                f"{attendance}%",
+                student['risk_level'] or 'Low'
             ])
         
         # Create Table
