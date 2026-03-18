@@ -232,15 +232,34 @@
   background: #fef2f2;
 }
 
-.input-icon {
+.input-icon,
+.password-toggle {
   position: absolute;
   right: 14px;
   top: 50%;
   transform: translateY(-50%);
-  pointer-events: none;
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.password-toggle {
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: #94a3b8;
+  transition: color 0.2s ease;
+  z-index: 2;
+}
+
+.password-toggle:hover {
+  color: #196ae5;
+}
+
+.form-field input[type="password"],
+.form-field input[type="text"].password-input {
+  padding-right: 44px;
 }
 
 .input-error {

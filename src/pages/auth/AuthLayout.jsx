@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import heroImage from '../../assets/edu.png'
 import icon from '../../assets/icon.png'
 import './authpages.css'
@@ -19,9 +19,6 @@ const AuthLayout = ({ children, heading }) => {
       </div>
 
       <div className="form-side">
-        <div className="admin-chip">
-          <Link to="/auth/admin-login">Admin panel</Link>
-        </div>
 
         <div className="auth-card">
           <div className="brand-row">

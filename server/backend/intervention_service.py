@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, request, jsonify, send_from_directory
+from flask import Blueprint, request, jsonify, send_from_directory, session
 from werkzeug.utils import secure_filename
 from db_connect import get_connection
 import mysql.connector
@@ -102,14 +102,35 @@ def create_intervention():
 def serve_intervention_file(filename):
     return send_from_directory(UPLOAD_FOLDER, filename)
 
+@intervention_bp.route('/api/uploads/interventions/submissions/<filename>')
+def serve_submission_file(filename):
+    SUBMISSIONS_FOLDER = os.path.join(UPLOAD_FOLDER, 'submissions')
+    return send_from_directory(SUBMISSIONS_FOLDER, filename)
+
 @intervention_bp.route('/api/interventions/<int:id>', methods=['PUT'])
 def update_intervention_status(id):
-    data = request.json
-    status = data.get('status')
-    
-    if status not in ['Pending', 'In Progress', 'Completed']:
+    # Support both JSON (just status change) and multipart/form-data (status + file)
+    if request.is_json:
+        status = request.json.get('status')
+        file = None
+    else:
+        status = request.form.get('status')
+        file = request.files.get('file')
+        
+    if status not in ['Pending', 'In Progress', 'Submitted', 'Completed']:
         return jsonify({"error": "Invalid status"}), 400
         
+    submission_path = None
+    if file and file.filename:
+        SUBMISSIONS_FOLDER = os.path.join(UPLOAD_FOLDER, 'submissions')
+        os.makedirs(SUBMISSIONS_FOLDER, exist_ok=True)
+        filename = secure_filename(file.filename)
+        # Prefix with ID to avoid collisions
+        safe_filename = f"{id}_{filename}"
+        save_path = os.path.join(SUBMISSIONS_FOLDER, safe_filename)
+        file.save(save_path)
+        submission_path = safe_filename
+
     conn = None
     try:
         conn = get_connection()
@@ -128,7 +149,11 @@ def update_intervention_status(id):
             if not cur.fetchone():
                 return jsonify({"error": "Forbidden"}), 403
 
-        cur.execute("UPDATE interventions SET status=%s WHERE id=%s", (status, id))
+        if submission_path:
+            cur.execute("UPDATE interventions SET status=%s, submission_file_path=%s WHERE id=%s", (status, submission_path, id))
+        else:
+            cur.execute("UPDATE interventions SET status=%s WHERE id=%s", (status, id))
+            
         conn.commit()
         cur.close()
         

@@ -48,13 +48,17 @@ const StudentsPage = () => {
     }
 
     return (
-        <div className="dash-container minimal">
-            <div className="primary-section" style={{ width: '100%' }}>
-                <div className="section-header">
-                    <h3>Student Academic Records</h3>
-                    <p>Displaying {students.length} student{students.length !== 1 ? 's' : ''} assigned to your courses</p>
+        <div className="dash-page">
+            <div className="primary-section">
+                <div className="section-main">
+                    <div className="panel-header">
+                        <h3 className="panel-title">Student Academic Records</h3>
+                        <span className="metric-footer" style={{ marginTop: 0 }}>
+                            Displaying {students.length} student{students.length !== 1 ? 's' : ''} assigned to your courses
+                        </span>
+                    </div>
+                    <StudentTable students={students} />
                 </div>
-                <StudentTable students={students} />
             </div>
         </div>
     );

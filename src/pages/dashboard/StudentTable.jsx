@@ -72,16 +72,38 @@ const StudentTable = ({ students = [] }) => {
                     <tbody>
                         {filteredStudents.map((student, index) => (
                             <tr key={`${student.student_id}-${student.subject_name || index}`} onClick={() => setSelectedStudent(student)}>
-                                <td className="st-id">{student.student_id}</td>
-                                <td className="st-name">{student.name}</td>
-                                {subjects.length > 1 && <td>{student.subject_name || '-'}</td>}
-                                <td>{student.department}</td>
-                                <td>{student.semester}</td>
-                                <td>{student.attendance_percentage}%</td>
-                                <td className="st-sgpa">{student.sgpa}</td>
-                                <td className={`st-backlogs ${student.backlogs > 0 ? 'warning' : ''}`}>{student.backlogs}</td>
+                                <td className="st-id">#{index + 1}</td>
                                 <td>
-                                    <span className={`risk-badge minimal ${student.risk_level.toLowerCase()}`}>
+                                    <div className="user-info-cell">
+                                        <div className="user-avatar-sm">
+                                            {student.name ? student.name[0].toUpperCase() : 'S'}
+                                        </div>
+                                        <div className="user-details">
+                                            <span className="st-name">{student.name}</span>
+                                            <span className="sub-detail">{student.student_id}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                {subjects.length > 1 && <td>{student.subject_name || '-'}</td>}
+                                <td>
+                                    <span className="status-badge status-secondary">{student.department}</span>
+                                </td>
+                                <td>
+                                    <span className="pill-badge pill-info">{student.semester}</span>
+                                </td>
+                                <td>
+                                    <div style={{ fontWeight: 700, color: 'var(--c-text-primary)' }}>
+                                        {student.attendance_percentage}%
+                                    </div>
+                                </td>
+                                <td className="st-sgpa">{student.sgpa}</td>
+                                <td className={`st-backlogs ${student.backlogs > 0 ? 'warning' : ''}`}>
+                                    {student.backlogs > 0 ? (
+                                        <span className="pill-badge pill-warning">{student.backlogs}</span>
+                                    ) : '0'}
+                                </td>
+                                <td>
+                                    <span className={`risk-badge ${student.risk_level.toLowerCase()}`}>
                                         {student.risk_level}
                                     </span>
                                 </td>

@@ -7,6 +7,7 @@ import string
 import secrets
 import bcrypt
 import os
+import random
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -324,67 +325,130 @@ def batch_upload_students():
                 unique_combinations.add((dept, sem, i))
                 
         # Validate that each dept/sem combination has at least one subject
-        for dept, sem, row_num in unique_combinations:
-            cur.execute("SELECT COUNT(*) as count FROM subjects WHERE department=%s AND semester=%s", (dept, sem))
-            count = cur.fetchone()['count']
-            if count == 0:
-                return jsonify({"error": f"Row {row_num} specifies Department '{dept}' and Semester '{sem}', but no courses exist for this combination. Upload blocked."}), 400
+        # for dept, sem, row_num in unique_combinations:
+        #     cur.execute("SELECT COUNT(*) as count FROM subjects WHERE department=%s AND semester=%s", (dept, sem))
+        #     count = cur.fetchone()['count']
+        #     if count == 0:
+        #         return jsonify({"error": f"Row {row_num} specifies Department '{dept}' and Semester '{sem}', but no courses exist for this combination. Upload blocked."}), 400
+        # Robust helper to find column values (BOM-safe, case-insensitive, trimmed)
+        def get_val(row_dict, *keys):
+            for k, v in row_dict.items():
+                if k is None: continue
+                ck = str(k).lower().strip().replace('\ufeff', '')
+                if ck in keys:
+                    return str(v).strip() if v is not None else ""
+            return ""
+
+        print(f"\n--- [DEBUG] Batch Student Upload Started ---")
+        print(f"Total Rows: {len(rows)}")
+        if rows:
+            headers = [str(k).strip() for k in rows[0].keys() if k is not None]
+            print(f"Detected Headers: {headers}")
 
         cur = conn.cursor()
         credentials_list = []
+        processed_count = 0
+        skipped_count = 0
         
-        import random
-        for row in rows:
-            email = row.get("email", "").strip()
-            name = row.get("name", "").strip()
-            dept = row.get("department", "").strip()
-            sem = row.get("semester", "").strip()
-            sgpa = float(row.get("sgpa", 0)) if row.get("sgpa") else 0.0
-            backlogs = int(row.get("backlogs", 0)) if row.get("backlogs") else 0
+        for i, row in enumerate(rows):
+            email = get_val(row, "email")
+            name = get_val(row, "name", "full name")
+            dept = get_val(row, "department", "dept")
+            sem = get_val(row, "semester", "sem")
+            sgpa_str = get_val(row, "sgpa")
+            backlogs_str = get_val(row, "backlogs")
+            
+            try:
+                sgpa = float(sgpa_str) if sgpa_str else 0.0
+            except:
+                sgpa = 0.0
+            try:
+                backlogs = int(backlogs_str) if backlogs_str else 0
+            except:
+                backlogs = 0
             
             if not email or not name:
+                print(f"Row {i+2}: SKIPPED (email='{email}', name='{name}')")
+                skipped_count += 1
                 continue
 
-            # Check existing
-            cur.execute("SELECT id FROM users WHERE email=%s", (email,))
-            if cur.fetchone():
-                continue # Skip existing users
-                
-            # Create User
-            temp_pwd = generate_random_password()
-            hashed_pwd = hash_password(temp_pwd)
-            cur.execute("INSERT INTO users (email, password_hash, role, must_change_password) VALUES (%s, %s, 'STUDENT', TRUE)",
-                        (email, hashed_pwd))
-            user_id = cur.lastrowid
+            print(f"Row {i+2}: Processing {email} ({name}) - {dept}, Sem {sem}")
+
+            # Check existing user
+            cur.execute("SELECT id, role FROM users WHERE email=%s", (email,))
+            existing_user = cur.fetchone()
             
-            # Risk calc
+            user_id = None
+            s_id = None
+            is_new = False
+            
+            if existing_user:
+                user_id = existing_user[0]
+                print(f"  Existing user found (ID: {user_id})")
+                cur.execute("SELECT student_id FROM students WHERE user_id=%s", (user_id,))
+                student_row = cur.fetchone()
+                if student_row:
+                    s_id = student_row[0]
+                    print(f"  Existing student record: {s_id}")
+                cur.execute("UPDATE users SET role='STUDENT' WHERE id=%s", (user_id,))
+            else:
+                print(f"  Creating new user...")
+                temp_pwd = generate_random_password()
+                hashed_pwd = hash_password(temp_pwd)
+                cur.execute("INSERT INTO users (email, password_hash, role, must_change_password) VALUES (%s, %s, 'STUDENT', TRUE)",
+                            (email, hashed_pwd))
+                user_id = cur.lastrowid
+                is_new = True
+                credentials_list.append({"email": email, "password": temp_pwd, "student_id": ""}) 
+
+            # Risk calculation
             risk_score = 0
             if sgpa < 6.5: risk_score += 30
             if backlogs > 0: risk_score += 30
             risk_level = "High" if risk_score >= 60 else ("Medium" if risk_score >= 30 else "Low")
             
-            # Generate student ID loosely
-            s_id = f"{dept}{sem}{random.randint(1000,9999)}"
+            if not s_id:
+                # New student record
+                prefix = email.split('@')[0].upper()[:8]
+                s_id = f"{prefix}{random.randint(100, 999)}"
+                print(f"  Inserting student: {s_id}")
+                cur.execute("""
+                    INSERT INTO students (student_id, user_id, name, department, semester, sgpa, backlogs, risk_score, risk_level)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (s_id, user_id, name, dept, sem, sgpa, backlogs, risk_score, risk_level))
+            else:
+                # Existing student record update
+                print(f"  Updating student: {s_id}")
+                cur.execute("""
+                    UPDATE students 
+                    SET name=%s, department=%s, semester=%s, sgpa=%s, backlogs=%s, risk_score=%s, risk_level=%s
+                    WHERE student_id=%s
+                """, (name, dept, sem, sgpa, backlogs, risk_score, risk_level, s_id))
             
-            cur.execute("""
-                INSERT INTO students (student_id, user_id, name, department, semester, sgpa, backlogs, risk_score, risk_level)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """, (s_id, user_id, name, dept, sem, sgpa, backlogs, risk_score, risk_level))
+            if is_new:
+                for cred in credentials_list:
+                    if cred["email"] == email:
+                        cred["student_id"] = s_id
+                        break
             
-            credentials_list.append({"email": email, "password": temp_pwd, "student_id": s_id})
-            
-            # Assign subjects
+            # Auto-assign courses for this dept/sem
             cur.execute("SELECT id FROM subjects WHERE department=%s AND semester=%s", (dept, sem))
             subjects = cur.fetchall()
+            print(f"  Assigned {len(subjects)} subjects for {dept} semester {sem}")
             for sub in subjects:
-                sub_id = sub[0]
                 cur.execute("""
-                    INSERT INTO student_academic_records (student_id, subject_id, attendance_percentage, internal_marks, assignment_score)
+                    INSERT IGNORE INTO student_academic_records (student_id, subject_id, attendance_percentage, internal_marks, assignment_score)
                     VALUES (%s, %s, 100, 0, 0)
-                """, (s_id, sub_id))
+                """, (s_id, sub[0]))
+            
+            processed_count += 1
 
         conn.commit()
-        return jsonify({"message": "Batch processed successfully", "credentials": credentials_list})
+        print(f"--- [DEBUG] Batch Upload Complete. Processed: {processed_count}, Skipped: {skipped_count} ---")
+        return jsonify({
+            "message": f"Successfully processed {processed_count} student records ({len(credentials_list)} new records created).", 
+            "credentials": credentials_list
+        })
     except Exception as e:
         conn.rollback()
         return jsonify({"error": str(e)}), 500
@@ -437,42 +501,67 @@ def add_single_student():
     conn = get_connection()
     try:
         cur = conn.cursor(dictionary=True)
-        # Check existing
-        cur.execute("SELECT id FROM users WHERE email=%s", (email,))
-        if cur.fetchone():
-            return jsonify({"error": "User with this email already exists"}), 409
-
-        # Create User
-        temp_pwd = generate_random_password()
-        hashed_pwd = hash_password(temp_pwd)
-        cur.execute("INSERT INTO users (email, password_hash, role, must_change_password) VALUES (%s, %s, 'STUDENT', TRUE)",
-                    (email, hashed_pwd))
-        user_id = cur.lastrowid
+        user_id = None
+        s_id = None
+        is_update = False
+        temp_pwd = "N/A"
         
+        # Check existing user
+        cur.execute("SELECT id, role FROM users WHERE email=%s", (email,))
+        existing_user = cur.fetchone()
+        
+        if existing_user:
+            user_id = existing_user['id']
+            # Check if student record already exists
+            cur.execute("SELECT student_id FROM students WHERE user_id=%s", (user_id,))
+            student_row = cur.fetchone()
+            if student_row:
+                s_id = student_row['student_id']
+                is_update = True
+                # Update existing student
+                cur.execute("""
+                    UPDATE students 
+                    SET name=%s, department=%s, semester=%s, sgpa=%s, backlogs=%s, risk_score=%s, risk_level=%s
+                    WHERE student_id=%s
+                """, (name, dept, sem, sgpa, backlogs, 0, "Low", s_id)) # Risk recalculated below
+            else:
+                cur.execute("UPDATE users SET role='STUDENT' WHERE id=%s", (user_id,))
+        else:
+            # Create User
+            temp_pwd = generate_random_password()
+            hashed_pwd = hash_password(temp_pwd)
+            cur.execute("INSERT INTO users (email, password_hash, role, must_change_password) VALUES (%s, %s, 'STUDENT', TRUE)",
+                        (email, hashed_pwd))
+            user_id = cur.lastrowid
+            
         # Risk calc
         risk_score = 0
         if sgpa < 6.5: risk_score += 30
         if backlogs > 0: risk_score += 30
         risk_level = "High" if risk_score >= 60 else ("Medium" if risk_score >= 30 else "Low")
         
-        # Generate student ID loosely
-        import random
-        s_id = f"{dept}{sem}{random.randint(1000,9999)}"
-        
-        cur.execute("""
-            INSERT INTO students (student_id, user_id, name, department, semester, sgpa, backlogs, risk_score, risk_level)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (s_id, user_id, name, dept, sem, sgpa, backlogs, risk_score, risk_level))
-        
-        # Assign subjects manually from provided list
-        for sub_id in subject_ids:
+        if not s_id:
+            # Generate student ID loosely
+            s_id = f"{dept}{sem}{random.randint(1000,9999)}"
             cur.execute("""
-                INSERT INTO student_academic_records (student_id, subject_id, attendance_percentage, internal_marks, assignment_score)
-                VALUES (%s, %s, 100, 0, 0)
-            """, (s_id, sub_id))
+                INSERT INTO students (student_id, user_id, name, department, semester, sgpa, backlogs, risk_score, risk_level)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (s_id, user_id, name, dept, sem, sgpa, backlogs, risk_score, risk_level))
+        else:
+            # Update risk for existing student
+            cur.execute("UPDATE students SET risk_score=%s, risk_level=%s WHERE student_id=%s", (risk_score, risk_level, s_id))
+        
+        # Assign subjects manually from provided list (only if provided)
+        if subject_ids:
+            for sub_id in subject_ids:
+                cur.execute("""
+                    INSERT IGNORE INTO student_academic_records (student_id, subject_id, attendance_percentage, internal_marks, assignment_score)
+                    VALUES (%s, %s, 100, 0, 0)
+                """, (s_id, sub_id))
 
         conn.commit()
-        return jsonify({"message": "Student created successfully", "credentials": {"email": email, "password": temp_pwd}})
+        msg = "Student updated successfully" if is_update else "Student created successfully"
+        return jsonify({"message": msg, "credentials": {"email": email, "password": temp_pwd if not existing_user else "Existing User"}})
     except Exception as e:
         conn.rollback()
         return jsonify({"error": str(e)}), 500
@@ -511,13 +600,14 @@ def update_student(student_id):
             WHERE student_id=%s
         """, (name, dept, sem, sgpa, backlogs, risk_score, risk_level, student_id))
         
-        # Update subjects: remove old, add new
-        cur.execute("DELETE FROM student_academic_records WHERE student_id=%s", (student_id,))
-        for sub_id in subject_ids:
-            cur.execute("""
-                INSERT INTO student_academic_records (student_id, subject_id, attendance_percentage, internal_marks, assignment_score)
-                VALUES (%s, %s, 100, 0, 0)
-            """, (student_id, sub_id))
+        # Update subjects: only if explicit list is provided
+        if subject_ids:
+            cur.execute("DELETE FROM student_academic_records WHERE student_id=%s", (student_id,))
+            for sub_id in subject_ids:
+                cur.execute("""
+                    INSERT INTO student_academic_records (student_id, subject_id, attendance_percentage, internal_marks, assignment_score)
+                    VALUES (%s, %s, 100, 0, 0)
+                """, (student_id, sub_id))
 
         conn.commit()
         return jsonify({"message": "Student updated successfully"})
@@ -676,26 +766,46 @@ def get_departments():
     conn = get_connection()
     try:
         cur = conn.cursor(dictionary=True)
-        # Aggregate unique departments from students, faculties, subjects
+        # Query from centralized departments table and left join counts
         query = """
-        SELECT d.department,
-               MAX(d.student_count) as student_count,
-               MAX(d.faculty_count) as faculty_count,
-               MAX(d.course_count) as course_count
-        FROM (
-            SELECT department, COUNT(id) as student_count, 0 as faculty_count, 0 as course_count FROM students GROUP BY department
-            UNION ALL
-            SELECT department, 0, COUNT(id), 0 FROM faculties GROUP BY department
-            UNION ALL
-            SELECT department, 0, 0, COUNT(id) FROM subjects GROUP BY department
-        ) d
-        WHERE d.department IS NOT NULL AND d.department != ''
-        GROUP BY d.department
-        ORDER BY d.department
+        SELECT dep.name as department,
+               COALESCE(s_count.count, 0) as student_count,
+               COALESCE(f_count.count, 0) as faculty_count,
+               COALESCE(sub_count.count, 0) as course_count
+        FROM departments dep
+        LEFT JOIN (SELECT department, COUNT(*) as count FROM students GROUP BY department) s_count ON dep.name = s_count.department
+        LEFT JOIN (SELECT department, COUNT(*) as count FROM faculties GROUP BY department) f_count ON dep.name = f_count.department
+        LEFT JOIN (SELECT department, COUNT(*) as count FROM subjects GROUP BY department) sub_count ON dep.name = sub_count.department
+        ORDER BY dep.name
         """
         cur.execute(query)
         departments = cur.fetchall()
         return jsonify({"departments": departments})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+
+@admin_bp.route("/api/admin/departments", methods=["POST"])
+def add_department():
+    is_admin, msg, code = check_admin()
+    if not is_admin: return jsonify({"error": msg}), code
+    
+    data = request.json
+    name = data.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "Department name is required"}), 400
+        
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("INSERT INTO departments (name) VALUES (%s)", (name,))
+        conn.commit()
+        return jsonify({"message": f"Department '{name}' added successfully"})
+    except mysql.connector.Error as err:
+        if err.errno == 1062:
+            return jsonify({"error": "Department already exists"}), 409
+        return jsonify({"error": str(err)}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     finally:
@@ -714,6 +824,9 @@ def rename_department(old_name):
     conn = get_connection()
     try:
         cur = conn.cursor()
+        # Update centralized table first
+        cur.execute("UPDATE departments SET name=%s WHERE name=%s", (new_name, old_name))
+        
         # Update references everywhere
         cur.execute("UPDATE students SET department=%s WHERE department=%s", (new_name, old_name))
         cur.execute("UPDATE faculties SET department=%s WHERE department=%s", (new_name, old_name))

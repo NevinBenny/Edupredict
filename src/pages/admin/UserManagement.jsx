@@ -119,18 +119,30 @@ const UserManagement = () => {
   }
 
   const columns = [
-    { key: 'email', label: 'Email', width: '250px' },
+    {
+      key: 'email',
+      label: 'Email',
+      width: '250px',
+      render: (email, admin) => (
+        <div className="user-info-cell">
+          <div className="user-avatar-sm" style={{ background: admin.isDefault ? 'var(--c-accent-primary)' : 'var(--c-surface-muted)', color: admin.isDefault ? 'white' : 'var(--c-text-primary)' }}>
+            {email[0].toUpperCase()}
+          </div>
+          <span style={{ fontWeight: 600 }}>{email}</span>
+        </div>
+      )
+    },
     {
       key: 'isDefault',
       label: 'Role Level',
       width: '150px',
       render: (isDefault) => isDefault ? (
-        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--c-primary)', fontWeight: 600 }}>
-          <ShieldCheck size={16} /> Default
+        <span className="status-badge status-info" style={{ gap: '6px' }}>
+          <ShieldCheck size={12} /> System Admin
         </span>
       ) : (
-        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--c-text-secondary)' }}>
-          <Shield size={16} /> Standard
+        <span className="status-badge status-neutral" style={{ gap: '6px' }}>
+          <Shield size={12} /> Admin
         </span>
       )
     },
@@ -139,7 +151,7 @@ const UserManagement = () => {
       label: 'Status',
       width: '120px',
       render: (status) => (
-        <span className={`status-badge status-${status.toLowerCase()}`}>
+        <span className={`status-badge status-${status.toLowerCase() === 'active' ? 'active' : 'danger'}`}>
           {status}
         </span>
       ),
@@ -212,9 +224,9 @@ const UserManagement = () => {
         onClose={() => setIsModalOpen(false)}
       >
         {!newCredentials ? (
-          <form onSubmit={handleCreateAdmin} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem' }}>Email Address *</label>
+          <form onSubmit={handleCreateAdmin} className="modal-form">
+            <div className="form-field">
+              <label>Email Address *</label>
               <input
                 type="email"
                 className="form-input"
@@ -223,9 +235,9 @@ const UserManagement = () => {
                 onChange={e => { setFormData({ email: e.target.value }); setErrors({}); }}
                 placeholder="admin@ajce.in"
               />
-              {errors.email && <small style={{ color: 'red' }}>{errors.email}</small>}
+              {errors.email && <small className="text-danger">{errors.email}</small>}
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+            <div className="form-footer">
               <button type="button" className="secondary-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
               <button type="submit" className="primary-btn" disabled={isCreating}>
                 {isCreating ? 'Creating...' : 'Create Admin'}
@@ -235,17 +247,17 @@ const UserManagement = () => {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', alignItems: 'center', padding: '1rem' }}>
             <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22c55e' }}>
-              <ShieldAlert size={32} />
+              <ShieldCheck size={32} />
             </div>
-            <h3 style={{ margin: 0 }}>Provisioning Complete</h3>
+            <h3 style={{ margin: 0, fontWeight: 800 }}>Provisioning Complete</h3>
             <p style={{ textAlign: 'center', color: 'var(--c-text-secondary)' }}>
-              Admin account created for <b>{newCredentials.email}</b>
+              Successfully created admin account for <b>{newCredentials.email}</b>
             </p>
-            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '8px', width: '100%', textAlign: 'center', border: '1px solid #e2e8f0' }}>
-              <p style={{ margin: '0 0 0.5rem 0', color: '#64748b' }}>Temporary Password</p>
-              <code style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#0f172a' }}>{newCredentials.password}</code>
+            <div style={{ background: 'var(--c-bg-app)', padding: '1.5rem', borderRadius: '16px', width: '100%', textAlign: 'center', border: '1px solid var(--c-border-subtle)' }}>
+              <p style={{ margin: '0 0 0.5rem 0', color: 'var(--c-text-tertiary)', fontSize: '11px', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>Temporary Password</p>
+              <code style={{ fontSize: '1.5rem', fontWeight: '800', color: 'var(--c-accent-primary)', fontFamily: 'var(--font-mono)' }}>{newCredentials.password}</code>
             </div>
-            <button className="secondary-btn" onClick={() => setIsModalOpen(false)} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+            <button className="primary-btn" onClick={() => setIsModalOpen(false)} style={{ width: '100%', justifyContent: 'center' }}>
               Done
             </button>
           </div>

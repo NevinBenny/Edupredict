@@ -6,27 +6,56 @@ dashboard_bp = Blueprint("dashboard", __name__)
 
 @dashboard_bp.route("/api/dashboard/summary", methods=["GET"])
 def get_summary():
+    user_id = session.get("user_id")
+    role = session.get("role")
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+        
     conn = None
     try:
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
         
+        dept_filter = None
+        if role == "FACULTY":
+            cur.execute("SELECT department FROM faculties WHERE email = (SELECT email FROM users WHERE id = %s)", (user_id,))
+            f_row = cur.fetchone()
+            dept_filter = f_row['department'] if f_row and f_row['department'] else None
+
         # Total Students
-        cur.execute("SELECT COUNT(*) as total FROM students")
+        if dept_filter:
+            cur.execute("SELECT COUNT(*) as total FROM students WHERE department = %s", (dept_filter,))
+        else:
+            cur.execute("SELECT COUNT(*) as total FROM students")
         total = cur.fetchone()['total']
         
-        # Average Attendance from academic records
-        cur.execute("SELECT AVG(attendance_percentage) as avg_attendance FROM student_academic_records")
+        # Average Attendance
+        if dept_filter:
+            cur.execute("""
+                SELECT AVG(sar.attendance_percentage) as avg_attendance 
+                FROM student_academic_records sar
+                JOIN students s ON sar.student_id = s.student_id
+                WHERE s.department = %s
+            """, (dept_filter,))
+        else:
+            cur.execute("SELECT AVG(attendance_percentage) as avg_attendance FROM student_academic_records")
         row = cur.fetchone()
         avg_attendance = float(row['avg_attendance']) if row and row['avg_attendance'] is not None else 0.0
         
-        # Average SGPA from students
-        cur.execute("SELECT AVG(sgpa) as avg_sgpa FROM students")
+        # Average SGPA
+        if dept_filter:
+            cur.execute("SELECT AVG(sgpa) as avg_sgpa FROM students WHERE department = %s", (dept_filter,))
+        else:
+            cur.execute("SELECT AVG(sgpa) as avg_sgpa FROM students")
         row = cur.fetchone()
         avg_sgpa = float(row['avg_sgpa']) if row and row['avg_sgpa'] is not None else 0.0
         
         # High Risk Count
-        cur.execute("SELECT COUNT(*) as high_risk FROM students WHERE risk_level = 'High'")
+        if dept_filter:
+            cur.execute("SELECT COUNT(*) as high_risk FROM students WHERE risk_level = 'High' AND department = %s", (dept_filter,))
+        else:
+            cur.execute("SELECT COUNT(*) as high_risk FROM students WHERE risk_level = 'High'")
         high_risk = cur.fetchone()['high_risk']
         
         summary = {
@@ -46,16 +75,36 @@ def get_summary():
 
 @dashboard_bp.route("/api/dashboard/risk-distribution", methods=["GET"])
 def get_risk_distribution():
+    user_id = session.get("user_id")
+    role = session.get("role")
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+        
     conn = None
     try:
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
         
-        cur.execute("""
-            SELECT risk_level, COUNT(*) as count 
-            FROM students 
-            GROUP BY risk_level
-        """)
+        dept_filter = None
+        if role == "FACULTY":
+            cur.execute("SELECT department FROM faculties WHERE email = (SELECT email FROM users WHERE id = %s)", (user_id,))
+            f_row = cur.fetchone()
+            dept_filter = f_row['department'] if f_row and f_row['department'] else None
+
+        if dept_filter:
+            cur.execute("""
+                SELECT risk_level, COUNT(*) as count 
+                FROM students 
+                WHERE department = %s
+                GROUP BY risk_level
+            """, (dept_filter,))
+        else:
+            cur.execute("""
+                SELECT risk_level, COUNT(*) as count 
+                FROM students 
+                GROUP BY risk_level
+            """)
         rows = cur.fetchall()
         
         # Map to specific frontend format with restrained colors
@@ -120,12 +169,11 @@ def get_students():
             """)
             students = cur.fetchall()
         elif role == "FACULTY":
-            # First, get the faculty's department to show relevant students
+            # Get the faculty's department to show relevant students
             cur.execute("SELECT department FROM faculties WHERE email = (SELECT email FROM users WHERE id = %s)", (user_id,))
             f_row = cur.fetchone()
             f_dept = f_row['department'] if f_row and f_row['department'] and f_row['department'].strip() else None
             
-            students = []
             if f_dept:
                 cur.execute("""
                     SELECT 
@@ -144,25 +192,8 @@ def get_students():
                     ORDER BY s.risk_score DESC, s.name ASC
                 """, (f_dept,))
                 students = cur.fetchall()
-            
-            if not students:
-                # Fallback to all students if no students found for dept or no dept
-                cur.execute("""
-                    SELECT 
-                        s.student_id, s.name, s.department, s.semester, u.email,
-                        COALESCE(AVG(sar.attendance_percentage), 0) as attendance_percentage,
-                        COALESCE(AVG(sar.internal_marks), 0) as internal_marks, 
-                        COALESCE(AVG(sar.assignment_score), 0) as assignment_score,
-                        s.sgpa, s.backlogs, 
-                        s.risk_score, s.risk_level,
-                        NULL as subject_name
-                    FROM students s
-                    LEFT JOIN users u ON s.user_id = u.id
-                    LEFT JOIN student_academic_records sar ON s.student_id = sar.student_id
-                    GROUP BY s.student_id, s.name, s.department, s.semester, u.email, s.sgpa, s.backlogs, s.risk_score, s.risk_level
-                    ORDER BY s.risk_score DESC, s.name ASC
-                """)
-                students = cur.fetchall()
+            else:
+                students = []
         
         # Format decimals/floats for JSON compatibility
         for student in students:
@@ -251,7 +282,7 @@ def add_student():
         if conn:
             conn.close()
 
-@dashboard_bp.route("/api/faculty-subjects", methods=["GET"])
+@dashboard_bp.route("/api/dashboard/faculty-subjects", methods=["GET"])
 def get_faculty_subjects():
     user_id = session.get("user_id")
     if not user_id:
@@ -263,7 +294,7 @@ def get_faculty_subjects():
         cur = conn.cursor(dictionary=True)
         # Assuming faculty_subjects table maps faculty (via email/user_id) to subjects
         cur.execute("""
-            SELECT s.id, s.name, s.course_code as code, s.department, s.semester
+            SELECT s.id, s.name, s.code, s.department, s.semester
             FROM subjects s
             JOIN faculty_subjects fs ON s.id = fs.subject_id
             JOIN faculties f ON fs.faculty_id = f.id
@@ -428,6 +459,29 @@ def get_my_courses():
         cur.close()
         return jsonify({"courses": courses})
     except mysql.connector.Error as err:
+        return jsonify({"error": str(err)}), 500
+    finally:
+        if conn:
+            conn.close()
+@dashboard_bp.route("/api/dashboard/faculty-profile", methods=["GET"])
+def get_faculty_profile():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    conn = None
+    try:
+        conn = get_connection()
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT name, department, designation FROM faculties WHERE email = (SELECT email FROM users WHERE id = %s)", (user_id,))
+        faculty = cur.fetchone()
+        cur.close()
+        
+        if not faculty:
+            return jsonify({"error": "Faculty record not found"}), 404
+            
+        return jsonify(faculty)
+    except Exception as err:
         return jsonify({"error": str(err)}), 500
     finally:
         if conn:

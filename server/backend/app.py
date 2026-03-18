@@ -94,7 +94,7 @@ def get_role_for_email(conn, email: str) -> str:
   3. Ends with @mca.ajce.in -> STUDENT
   4. Default -> None (Unauthorized)
   """
-  if email == "nevinbenny2028@mca.ajce.in":
+  if email == "nevin@admin.in":
     return "ADMIN"
     
   cur = conn.cursor()
@@ -105,7 +105,17 @@ def get_role_for_email(conn, email: str) -> str:
   if is_faculty:
     return "FACULTY"
     
-  if email.lower().endswith("@mca.ajce.in"):
+  # Check if student record exists and is linked to this email
+  cur = conn.cursor()
+  cur.execute("""
+    SELECT 1 FROM users u 
+    JOIN students s ON u.id = s.user_id 
+    WHERE u.email = %s LIMIT 1
+  """, (email,))
+  is_student = cur.fetchone() is not None
+  cur.close()
+  
+  if is_student:
     return "STUDENT"
     
   return None 

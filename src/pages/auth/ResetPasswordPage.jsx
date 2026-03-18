@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { resetPassword } from '../../services/api'
 import { validateUserInput } from '../../utils/validation'
 import toast from 'react-hot-toast'
+import { Eye, EyeOff } from 'lucide-react'
 
 const ResetPasswordPage = () => {
   const navigate = useNavigate()
@@ -11,6 +12,8 @@ const ResetPasswordPage = () => {
   const [token, setToken] = useState('')
   const [errors, setErrors] = useState({})
   const [submitting, setSubmitting] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   useEffect(() => {
     const urlToken = search.get('token') || ''
@@ -56,29 +59,51 @@ const ResetPasswordPage = () => {
 
       <div className="form-field">
         <label htmlFor="password">New Password</label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          placeholder="Enter new password"
-          value={form.password}
-          onChange={onInput}
-          aria-invalid={Boolean(errors.password)}
-        />
+        <div className={`input-shell ${errors.password ? 'has-error' : ''}`}>
+          <input
+            id="password"
+            name="password"
+            type={showPassword ? 'text' : 'password'}
+            className={showPassword ? 'password-input' : ''}
+            placeholder="Enter new password"
+            value={form.password}
+            onChange={onInput}
+            aria-invalid={Boolean(errors.password)}
+          />
+          <button
+            type="button"
+            className="password-toggle"
+            onClick={() => setShowPassword(!showPassword)}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
         {errors.password ? <p className="input-error">{errors.password}</p> : null}
       </div>
 
       <div className="form-field">
         <label htmlFor="confirmPassword">Confirm Password</label>
-        <input
-          id="confirmPassword"
-          name="confirmPassword"
-          type="password"
-          placeholder="Re-enter new password"
-          value={form.confirmPassword}
-          onChange={onInput}
-          aria-invalid={Boolean(errors.confirmPassword)}
-        />
+        <div className={`input-shell ${errors.confirmPassword ? 'has-error' : ''}`}>
+          <input
+            id="confirmPassword"
+            name="confirmPassword"
+            type={showConfirmPassword ? 'text' : 'password'}
+            className={showConfirmPassword ? 'password-input' : ''}
+            placeholder="Re-enter new password"
+            value={form.confirmPassword}
+            onChange={onInput}
+            aria-invalid={Boolean(errors.confirmPassword)}
+          />
+          <button
+            type="button"
+            className="password-toggle"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+          >
+            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
         {errors.confirmPassword ? <p className="input-error">{errors.confirmPassword}</p> : null}
       </div>
 

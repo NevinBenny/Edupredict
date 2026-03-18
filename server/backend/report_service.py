@@ -1,4 +1,4 @@
-from flask import Blueprint, send_file, jsonify
+from flask import Blueprint, send_file, jsonify, session
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib import colors
 from reportlab.lib.units import inch
@@ -7,6 +7,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from io import BytesIO
 from datetime import datetime
+from io import BytesIO
 from db_connect import get_connection
 
 report_bp = Blueprint('report', __name__)
@@ -14,22 +15,45 @@ report_bp = Blueprint('report', __name__)
 @report_bp.route('/api/reports/risk', methods=['GET'])
 def generate_risk_report():
     """Generate PDF report for high-risk students"""
+    user_id = session.get("user_id")
+    role = session.get("role")
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+        
     conn = None
     try:
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
         
+        # Determine department filter for faculty
+        dept_filter = None
+        if role == "FACULTY":
+            cur.execute("SELECT department FROM faculties WHERE email = (SELECT email FROM users WHERE id = %s)", (user_id,))
+            f_row = cur.fetchone()
+            dept_filter = f_row['department'] if f_row and f_row['department'] else None
+        
         # Fetch high-risk students with calculated attendance
-        cur.execute("""
+        query = """
             SELECT 
                 s.student_id, s.name, s.department, s.risk_score, s.backlogs,
                 COALESCE(AVG(sar.attendance_percentage), 0) as attendance_percentage
             FROM students s
             LEFT JOIN student_academic_records sar ON s.student_id = sar.student_id
             WHERE s.risk_level = 'High'
+        """
+        
+        params = []
+        if dept_filter:
+            query += " AND s.department = %s"
+            params.append(dept_filter)
+            
+        query += """
             GROUP BY s.student_id, s.name, s.department, s.risk_score, s.backlogs
             ORDER BY s.risk_score DESC
-        """)
+        """
+        
+        cur.execute(query, tuple(params))
         high_risk_students = cur.fetchall()
         cur.close()
         
@@ -127,21 +151,44 @@ def generate_risk_report():
 @report_bp.route('/api/reports/performance', methods=['GET'])
 def generate_performance_report():
     """Generate PDF report for class performance"""
+    user_id = session.get("user_id")
+    role = session.get("role")
+    
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+        
     conn = None
     try:
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
         
+        # Determine department filter for faculty
+        dept_filter = None
+        if role == "FACULTY":
+            cur.execute("SELECT department FROM faculties WHERE email = (SELECT email FROM users WHERE id = %s)", (user_id,))
+            f_row = cur.fetchone()
+            dept_filter = f_row['department'] if f_row and f_row['department'] else None
+            
         # Fetch all students with calculated attendance
-        cur.execute("""
+        query = """
             SELECT 
                 s.student_id, s.name, s.department, s.semester, s.sgpa, s.risk_level,
                 COALESCE(AVG(sar.attendance_percentage), 0) as attendance_percentage
             FROM students s
             LEFT JOIN student_academic_records sar ON s.student_id = sar.student_id
+        """
+        
+        params = []
+        if dept_filter:
+            query += " WHERE s.department = %s"
+            params.append(dept_filter)
+            
+        query += """
             GROUP BY s.student_id, s.name, s.department, s.semester, s.sgpa, s.risk_level
             ORDER BY s.sgpa DESC
-        """)
+        """
+        
+        cur.execute(query, tuple(params))
         students = cur.fetchall()
         cur.close()
         

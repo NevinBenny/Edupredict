@@ -16,6 +16,7 @@ import AIRiskPrediction from './pages/dashboard/AIRiskPrediction'
 import Reports from './pages/dashboard/Reports'
 import InterventionsRouter from './pages/dashboard/InterventionsRouter'
 import UserAccount from './pages/UserAccount'
+import MyCourses from './pages/dashboard/MyCourses'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import UserManagement from './pages/admin/UserManagement'
@@ -94,6 +95,7 @@ function App() {
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Reports />} /> {/* Placeholder for now */}
           <Route path="account" element={<UserAccount />} />
+          <Route path="my-courses" element={<MyCourses />} />
         </Route>
 
         {/* Admin Panel - Protected for ADMIN role */}
@@ -112,6 +114,7 @@ function App() {
           <Route path="departments" element={<DepartmentManagement />} />
           <Route path="courses" element={<CourseManagement />} />
           <Route path="settings" element={<SystemSettings />} />
+          <Route path="account" element={<UserAccount />} />
         </Route>
 
         {/* Catch-all route */}

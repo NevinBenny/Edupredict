@@ -12,7 +12,7 @@ const Interventions = () => {
     const [showModal, setShowModal] = useState(false)
     const [profileStudent, setProfileStudent] = useState(null)
     const [activeTab, setActiveTab] = useState('queue') // queue, students
-    const [statusFilter, setStatusFilter] = useState('all') // all, Pending, Completed
+    const [statusFilter, setStatusFilter] = useState('all') // all, Pending, In Progress, Submitted, Completed
 
     // Form State
     const [selectedStudents, setSelectedStudents] = useState([])
@@ -104,7 +104,7 @@ const Interventions = () => {
     }
 
     const highRiskStudents = students.filter(s => s.risk_level === 'High')
-    const pendingCount = interventions.filter(i => i.status === 'Pending').length
+    const pendingCount = interventions.filter(i => ['Pending', 'In Progress', 'Submitted'].includes(i.status)).length
     const completedCount = interventions.filter(i => i.status === 'Completed').length
 
     const filteredInterventions = interventions.filter(i => {
@@ -197,12 +197,11 @@ const Interventions = () => {
                     <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <h3>Queue Filters</h3>
                         <div className="action-group">
-                            {['all', 'Pending', 'Completed'].map(status => (
+                            {['all', 'Pending', 'In Progress', 'Submitted', 'Completed'].map(status => (
                                 <button
                                     key={status}
                                     className={`btn-sm ${statusFilter === status ? 'btn-primary' : 'btn-outline'}`}
                                     onClick={() => setStatusFilter(status)}
-                                    style={{ fontSize: '11px', textTransform: 'capitalize' }}
                                 >
                                     {status === 'all' ? 'All Tasks' : status}
                                 </button>
@@ -213,11 +212,11 @@ const Interventions = () => {
                         {filteredInterventions.length > 0 ? (
                             <div className="intervention-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '16px' }}>
                                 {filteredInterventions.map(int => (
-                                    <div key={int.id} className="sensor-card intervention-card" style={{ borderLeft: `4px solid ${int.status === 'Completed' ? '#10b981' : '#f59e0b'}` }}>
+                                    <div key={int.id} className="sensor-card intervention-card" style={{ borderLeft: `4px solid ${int.status?.toLowerCase() === 'completed' ? '#10b981' : (int.status?.toLowerCase() === 'submitted' ? '#3b82f6' : '#f59e0b')}` }}>
                                         <div style={{ flex: 1 }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                                                 <h4 className="sensor-name" style={{ fontSize: '15px' }}>{int.title}</h4>
-                                                <span className={`status-badge ${int.status === 'Completed' ? 'active' : 'warn'}`}>
+                                                <span className={`status-badge ${int.status?.toLowerCase() === 'completed' ? 'active' : (int.status?.toLowerCase() === 'submitted' ? 'info' : 'warn')}`}>
                                                     {int.status}
                                                 </span>
                                             </div>
@@ -234,31 +233,49 @@ const Interventions = () => {
                                                 </p>
                                             )}
 
-                                            <div className="sd-actions" style={{ display: 'flex', gap: '12px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
+                                            <div className="sd-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
                                                 {int.file_path && (
                                                     <a
                                                         href={`http://localhost:5000/api/uploads/interventions/${int.file_path}`}
                                                         target="_blank"
                                                         rel="noreferrer"
                                                         className="sd-btn sd-btn-outline"
-                                                        style={{ padding: '6px 12px', fontSize: '12px', textDecoration: 'none' }}
                                                     >
-                                                        <FileText size={14} /> View Doc
+                                                        <FileText size={14} /> Ref Doc
                                                     </a>
                                                 )}
-                                                {int.status !== 'Completed' ? (
+
+                                                {int.submission_file_path && (
+                                                    <a
+                                                        href={`http://localhost:5000/api/uploads/interventions/submissions/${int.submission_file_path}`}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="sd-btn sd-btn-outline"
+                                                        style={{ borderColor: '#3b82f6', color: '#3b82f6' }}
+                                                    >
+                                                        <Download size={14} /> View Student Work
+                                                    </a>
+                                                )}
+
+                                                {int.submission_file_path && int.status?.toLowerCase() !== 'completed' && (
                                                     <button
                                                         className="sd-btn sd-btn-primary"
-                                                        style={{ padding: '6px 12px', fontSize: '12px', marginLeft: 'auto' }}
+                                                        style={{ marginLeft: 'auto', background: '#10b981' }}
                                                         onClick={() => updateStatus(int.id, 'Completed')}
                                                     >
-                                                        Mark Done
+                                                        Approve Submission
                                                     </button>
-                                                ) : (
-                                                    <div style={{ marginLeft: 'auto', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '600' }}>
-                                                        <CheckCircle size={14} /> Resolved
-                                                    </div>
                                                 )}
+
+                                                {['pending', 'in progress'].includes(int.status?.toLowerCase()) && !int.submission_file_path ? (
+                                                    <div style={{ marginLeft: 'auto', color: '#f59e0b', fontSize: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Clock size={14} /> Incomplete
+                                                    </div>
+                                                ) : int.status?.toLowerCase() === 'completed' ? (
+                                                    <div style={{ marginLeft: 'auto', color: '#10b981', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '600' }}>
+                                                        <CheckCircle size={14} /> Resolved & Approved
+                                                    </div>
+                                                ) : null}
                                             </div>
                                         </div>
                                     </div>

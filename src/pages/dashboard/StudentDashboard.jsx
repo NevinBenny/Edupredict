@@ -45,31 +45,31 @@ const StudentDashboard = () => {
     const riskClass = summary?.risk_level?.toLowerCase() || 'low';
 
     return (
-        <div className="dash-container minimal">
+        <div className="dash-page">
             {/* Welcome Banner */}
             <div className="student-welcome-banner">
                 <div className="welcome-text">
-                    <p>Welcome back,</p>
-                    <h2>{summary?.name || 'Student'}</h2>
-                </div>
-                <div style={{ marginTop: '1.5rem', display: 'flex', gap: '2rem' }}>
-                    <div>
-                        <span style={{ opacity: 0.7, fontSize: '0.8rem', textTransform: 'uppercase', display: 'block' }}>Department</span>
-                        <span style={{ fontWeight: 600 }}>{summary?.department}</span>
-                    </div>
-                    <div>
-                        <span style={{ opacity: 0.7, fontSize: '0.8rem', textTransform: 'uppercase', display: 'block' }}>Current Semester</span>
-                        <span style={{ fontWeight: 600 }}>Semester {summary?.semester}</span>
+                    <p className="welcome-eyebrow">Student Portal</p>
+                    <h2>Hello, {summary?.name || 'Student'}</h2>
+                    <div style={{ marginTop: '24px', display: 'flex', gap: '32px' }}>
+                        <div>
+                            <span style={{ opacity: 0.7, fontSize: '11px', textTransform: 'uppercase', display: 'block', fontWeight: 700, letterSpacing: '1px' }}>Department</span>
+                            <span style={{ fontWeight: 700 }}>{summary?.department}</span>
+                        </div>
+                        <div>
+                            <span style={{ opacity: 0.7, fontSize: '11px', textTransform: 'uppercase', display: 'block', fontWeight: 700, letterSpacing: '1px' }}>Current Semester</span>
+                            <span style={{ fontWeight: 700 }}>Semester {summary?.semester}</span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             {/* Risk Alert */}
             <div className={`student-risk-banner ${riskClass}`}>
-                {riskClass === 'high' ? <AlertTriangle size={20} /> : <CheckCircle size={20} />}
+                {riskClass === 'high' ? <AlertTriangle size={24} /> : <CheckCircle size={24} />}
                 <div>
                     Status: <span style={{ textTransform: 'capitalize' }}>{summary?.risk_level} Risk Profile</span>
-                    {riskClass === 'high' && <span style={{ marginLeft: '8px', opacity: 0.8, fontWeight: 400 }}>• We recommend reviewing your interventions.</span>}
+                    {riskClass === 'high' && <span style={{ marginLeft: '12px', opacity: 0.8, fontWeight: 500 }}>• We recommend reviewing your interventions.</span>}
                 </div>
             </div>
 
@@ -80,7 +80,7 @@ const StudentDashboard = () => {
                     value={summary?.sgpa || '0.0'}
                     unit="SGPA"
                     icon={<GraduationCap size={20} />}
-                    color="var(--accent-blue)"
+                    color="var(--c-accent-primary)"
                     trend="up"
                     trendValue="Latest"
                 />
@@ -89,27 +89,27 @@ const StudentDashboard = () => {
                     value={`${summary?.avg_attendance || 0}%`}
                     unit="Overall"
                     icon={<Calendar size={20} />}
-                    color={summary?.avg_attendance < 75 ? "var(--risk-high)" : "var(--risk-low)"}
+                    color={summary?.avg_attendance < 75 ? "var(--c-status-danger)" : "var(--c-status-safe)"}
                 />
                 <MetricCard
                     label="Active Backlogs"
                     value={summary?.backlogs || 0}
                     unit="Papers"
                     icon={<Book size={20} />}
-                    color={summary?.backlogs > 0 ? "var(--risk-high)" : "var(--text-muted)"}
+                    color={summary?.backlogs > 0 ? "var(--c-status-danger)" : "var(--c-text-tertiary)"}
                 />
                 <MetricCard
                     label="Risk Score"
                     value={summary?.risk_score || 0}
                     unit="Index"
                     icon={<TrendingUp size={20} />}
-                    color={riskClass === 'high' ? 'var(--risk-high)' : (riskClass === 'medium' ? 'var(--risk-medium)' : 'var(--risk-low)')}
+                    color={riskClass === 'high' ? 'var(--c-status-danger)' : (riskClass === 'medium' ? 'var(--c-status-warn)' : 'var(--c-status-safe)')}
                 />
             </div>
 
             <div className="course-section-title">
                 <h3>My Enrolled Courses</h3>
-                <span className="course-count-badge" style={{ background: '#f1f5f9', padding: '4px 12px', borderRadius: '20px', fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>
+                <span className="status-badge low">
                     {courses.length} Active
                 </span>
             </div>
@@ -118,8 +118,8 @@ const StudentDashboard = () => {
 
             <div className="student-course-grid">
                 {courses.length === 0 && !loading && (
-                    <div className="empty-state" style={{ gridColumn: '1/-1' }}>
-                        <p>No courses assigned for this semester yet.</p>
+                    <div className="metric-card" style={{ gridColumn: '1/-1', textAlign: 'center', padding: '60px' }}>
+                        <p style={{ color: 'var(--c-text-secondary)', fontWeight: 600 }}>No courses assigned for this semester yet.</p>
                     </div>
                 )}
 
@@ -130,8 +130,8 @@ const StudentDashboard = () => {
                                 <h4>{course.subject_name}</h4>
                                 <span className="course-code-badge">{course.course_code}</span>
                             </div>
-                            <div className="course-icon" style={{ background: '#eff6ff', padding: '10px', borderRadius: '10px', color: 'var(--accent-blue)' }}>
-                                <Book size={20} />
+                            <div className="metric-icon" style={{ borderRadius: '14px' }}>
+                                <Book size={20} color="var(--c-accent-primary)" />
                             </div>
                         </div>
 
@@ -146,11 +146,11 @@ const StudentDashboard = () => {
                             </div>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto', paddingTop: '1rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: '#64748b' }}>
-                                <CheckCircle size={14} color={course.attendance_percentage >= 75 ? 'var(--risk-low)' : 'var(--risk-high)'} />
+                        <div className="metric-footer" style={{ marginTop: 'auto', paddingTop: '24px', borderTop: '1px solid var(--c-border-subtle)' }}>
+                            <CheckCircle size={16} color={course.attendance_percentage >= 75 ? 'var(--c-status-safe)' : 'var(--c-status-danger)'} />
+                            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--c-text-secondary)' }}>
                                 {course.attendance_percentage >= 75 ? 'Eligible for Exams' : 'Low Attendance'}
-                            </div>
+                            </span>
                         </div>
                     </div>
                 ))}
