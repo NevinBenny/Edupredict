@@ -20,13 +20,26 @@ const request = async (endpoint, options = {}) => {
   const response = await fetch(`${API_BASE}${endpoint}`, {
     ...options,
     headers,
-    credentials: 'include', // Important for sending session cookies
+    credentials: 'include',
   })
 
-  const data = await response.json()
+  // Handle non-JSON responses (like Nginx errors)
+  const contentType = response.headers.get('content-type')
+  let data = {}
+  
+  if (contentType && contentType.includes('application/json')) {
+    data = await response.json()
+  } else {
+    // If not JSON, it's likely an Nginx error page (HTML)
+    const text = await response.text()
+    if (!response.ok) {
+      throw new Error(`Server Error (${response.status}): The backend is unreachable or crashed.`)
+    }
+    return text // Fallback for plain text success
+  }
 
   if (!response.ok) {
-    throw new Error(data.message || data.error || 'API request failed')
+    throw new Error(data.message || data.error || `Error ${response.status}: API request failed`)
   }
 
   return data
