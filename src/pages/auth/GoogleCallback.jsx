@@ -20,7 +20,7 @@ const GoogleCallback = () => {
                     login({
                         id: data.id || 0,
                         email: data.email,
-                        role: data.role || 'USER',
+                        role: data.role || 'STUDENT',
                         ...data.profile,
                     })
 

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './DashboardHome.css';
 import MetricCard from './MetricCard';
 import StatDonutChart from './StatDonutChart';
-import StudentTable from './StudentTable';
+
 import AddStudentModal from './AddStudentModal';
 import RiskDrillDownModal from './RiskDrillDownModal';
 import { Users, Clock, GraduationCap, AlertTriangle, UserPlus, Play, FileUp } from 'lucide-react';
@@ -12,6 +12,7 @@ const DashboardHome = () => {
   const [summary, setSummary] = useState(null);
   const [distribution, setDistribution] = useState(null);
   const [students, setStudents] = useState([]);
+  const [facultyProfile, setFacultyProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedRiskLevel, setSelectedRiskLevel] = useState(null);
@@ -19,10 +20,11 @@ const DashboardHome = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [summaryRes, distRes, studentsRes] = await Promise.all([
+      const [summaryRes, distRes, studentsRes, profileRes] = await Promise.all([
         fetch('http://localhost:5000/api/dashboard/summary', { credentials: 'include' }).then(res => res.json()),
         fetch('http://localhost:5000/api/dashboard/risk-distribution', { credentials: 'include' }).then(res => res.json()),
-        fetch('http://localhost:5000/api/students', { credentials: 'include' }).then(res => res.json())
+        fetch('http://localhost:5000/api/students', { credentials: 'include' }).then(res => res.json()),
+        fetch('http://localhost:5000/api/dashboard/faculty-profile', { credentials: 'include' }).then(res => res.json())
       ]);
 
       if (summaryRes.error) {
@@ -37,12 +39,12 @@ const DashboardHome = () => {
         setDistribution(distRes);
       }
 
-      // Guard: only set students if we got a valid response
       if (studentsRes && Array.isArray(studentsRes.students)) {
         setStudents(studentsRes.students);
-      } else if (studentsRes?.error) {
-        console.warn('Students fetch failed:', studentsRes.error);
-        // Don't toast here — user may not have students yet or role differs
+      }
+
+      if (profileRes && !profileRes.error) {
+        setFacultyProfile(profileRes);
       }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -56,6 +58,51 @@ const DashboardHome = () => {
     fetchData();
   }, []);
 
+  const handleRunPrediction = async () => {
+    const loader = toast.loading('AI Engine warming up...');
+    try {
+      const res = await fetch('http://localhost:5000/api/ai/predict', { credentials: 'include' });
+      const data = await res.json();
+
+      if (data.error) throw new Error(data.error);
+
+      toast.success('Risk Analysis Updated!', { id: loader });
+      // Refresh to show newly calculated risk weights
+      fetchData();
+
+      if (data.insights && data.insights.length > 0) {
+        toast(data.insights[0], { icon: '💡', duration: 6000 });
+      }
+    } catch (error) {
+      toast.error('Prediction Engine failed: ' + error.message, { id: loader });
+    }
+  };
+
+  const handleImportCSV = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const loader = toast.loading('Importing students...');
+    try {
+      const res = await fetch('http://localhost:5000/api/students/import', {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Import failed');
+
+      toast.success(data.message, { id: loader });
+      fetchData();
+    } catch (error) {
+      toast.error(error.message, { id: loader });
+    }
+  };
+
   if (loading) {
     return (
       <div className="dash-loading">
@@ -65,28 +112,39 @@ const DashboardHome = () => {
   }
 
   return (
-    <div className="dash-container minimal">
+    <div className="dash-page">
+      {/* Welcome Banner */}
+      <div className="faculty-welcome-banner">
+        <div className="welcome-text">
+          <p className="welcome-eyebrow">Dashboard Overview</p>
+          <h2 className="welcome-greeting">Welcome back, {facultyProfile?.name || 'Faculty Member'}</h2>
+          <p className="welcome-sub">
+            Monitoring the <span className="highlight">{facultyProfile?.department || 'N/A'}</span> department performance and risk trends.
+          </p>
+        </div>
+      </div>
+
       {/* 1. Top Summary Cards */}
-      <div className="stats-grid single-row">
+      <div className="kpi-row">
         <MetricCard
           label="Total Students"
           value={summary?.total_students}
-          icon={<Users size={16} />}
-          color="#3b82f6"
+          icon={<Users size={20} />}
+          color="var(--c-accent-primary)"
         />
         <MetricCard
           label="Avg Attendance"
           value={summary?.avg_attendance}
           unit="%"
-          icon={<Clock size={16} />}
+          icon={<Clock size={20} />}
           trend="up"
           trendValue="+1.2%"
-          color="#10b981"
+          color="var(--c-status-safe)"
         />
         <MetricCard
           label="Avg SGPA"
           value={summary?.avg_sgpa}
-          icon={<GraduationCap size={16} />}
+          icon={<GraduationCap size={20} />}
           trend="up"
           trendValue="+0.15"
           color="#6366f1"
@@ -94,43 +152,41 @@ const DashboardHome = () => {
         <MetricCard
           label="High Risk"
           value={summary?.high_risk_students}
-          icon={<AlertTriangle size={16} />}
+          icon={<AlertTriangle size={20} />}
           trend="down"
           trendValue="-2"
-          color="#ef4444"
+          color="var(--c-status-danger)"
         />
       </div>
 
       {/* 2. Faculty Actions Area */}
       <div className="faculty-actions-bar">
         <div className="action-group">
-          <button className="btn-action pulse">
-            <Play size={16} />
+          <button className="btn-primary" onClick={handleRunPrediction}>
+            <Play size={18} fill="currentColor" />
             Run Risk Prediction
           </button>
         </div>
         <div className="action-group">
-          <button className="btn-secondary-action">
-            <FileUp size={16} />
+          <input
+            type="file"
+            id="csv-import"
+            hidden
+            accept=".csv"
+            onChange={handleImportCSV}
+          />
+          <button className="btn-secondary-action" onClick={() => document.getElementById('csv-import').click()}>
+            <FileUp size={18} />
             Import CSV
           </button>
           <button className="btn-secondary-action" onClick={() => setShowAddModal(true)}>
-            <UserPlus size={16} />
+            <UserPlus size={18} />
             Add Student
           </button>
         </div>
       </div>
 
-      <div className="main-content-split">
-        {/* 4. Student Records Table (Primary Focus) */}
-        <div className="primary-section">
-          <div className="section-header">
-            <h3>Student Academic Records</h3>
-            <p>Managing {students.length} students for the current semester</p>
-          </div>
-          <StudentTable students={students} />
-        </div>
-
+      <div className="dashboard-content-grid">
         {/* 3. Risk Visualization (Secondary) */}
         <div className="secondary-section">
           <div className="section-header">
@@ -139,13 +195,16 @@ const DashboardHome = () => {
           <div className="risk-chart-box">
             <StatDonutChart
               data={distribution || []}
-              centerText={`${summary?.total_students}`}
+              centerText={`${summary?.total_students || 0}`}
               onSegmentClick={(level) => setSelectedRiskLevel(level)}
             />
             <p className="chart-sub">Click a segment to view students</p>
           </div>
         </div>
+
+
       </div>
+
 
       {showAddModal && (
         <AddStudentModal

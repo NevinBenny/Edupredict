@@ -14,8 +14,9 @@ import DashboardRouter from './pages/dashboard/DashboardRouter'
 import StudentsPage from './pages/dashboard/StudentsPage'
 import AIRiskPrediction from './pages/dashboard/AIRiskPrediction'
 import Reports from './pages/dashboard/Reports'
-import Interventions from './pages/dashboard/Interventions'
+import InterventionsRouter from './pages/dashboard/InterventionsRouter'
 import UserAccount from './pages/UserAccount'
+import MyCourses from './pages/dashboard/MyCourses'
 import AdminLayout from './pages/admin/AdminLayout'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import UserManagement from './pages/admin/UserManagement'
@@ -82,7 +83,7 @@ function App() {
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute requiredRole="USER">
+            <ProtectedRoute requiredRole="STUDENT">
               <DashboardLayout />
             </ProtectedRoute>
           }
@@ -90,10 +91,11 @@ function App() {
           <Route index element={<DashboardRouter />} />
           <Route path="students" element={<StudentsPage />} />
           <Route path="ai-risk" element={<AIRiskPrediction />} />
-          <Route path="interventions" element={<Interventions />} />
+          <Route path="interventions" element={<InterventionsRouter />} />
           <Route path="reports" element={<Reports />} />
           <Route path="settings" element={<Reports />} /> {/* Placeholder for now */}
           <Route path="account" element={<UserAccount />} />
+          <Route path="my-courses" element={<MyCourses />} />
         </Route>
 
         {/* Admin Panel - Protected for ADMIN role */}
@@ -112,6 +114,7 @@ function App() {
           <Route path="departments" element={<DepartmentManagement />} />
           <Route path="courses" element={<CourseManagement />} />
           <Route path="settings" element={<SystemSettings />} />
+          <Route path="account" element={<UserAccount />} />
         </Route>
 
         {/* Catch-all route */}

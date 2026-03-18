@@ -1,14 +1,20 @@
 import { useState, useEffect } from 'react'
+import {
+  Users,
+  GraduationCap,
+  AlertTriangle,
+  RefreshCw,
+  ShieldCheck,
+  Settings,
+  BookOpen,
+  UserCheck
+} from 'lucide-react'
 import StatCard from '../../components/admin/StatCard'
 import { fetchAdminStats } from '../../services/api'
 
 /**
  * AdminDashboard - Overview of system metrics and health
- * Displays:
- * - Total Students
- * - Total Faculty
- * - High Risk Students
- * - Quick action buttons
+ * Enhanced with Lucide icons and premium action cards
  */
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -42,7 +48,10 @@ const AdminDashboard = () => {
 
   const handleRefresh = () => {
     setLoading(true)
-    window.location.reload()
+    // Small timeout for visual feedback
+    setTimeout(() => {
+      window.location.reload()
+    }, 500)
   }
 
   return (
@@ -51,7 +60,13 @@ const AdminDashboard = () => {
       <section className="dashboard-section">
         <div className="section-header">
           <h2>Academic Overview</h2>
-          <button className="secondary-btn" onClick={handleRefresh} disabled={loading}>
+          <button
+            className="secondary-btn"
+            onClick={handleRefresh}
+            disabled={loading}
+            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             REFRESH
           </button>
         </div>
@@ -61,48 +76,67 @@ const AdminDashboard = () => {
             title="Total Students"
             value={loading ? '...' : stats.totalStudents}
             subtitle="Enrolled students"
+            icon={<Users size={24} />}
             variant="users"
           />
           <StatCard
             title="Total Faculty"
             value={stats.totalFaculty}
             subtitle="Academic staff"
-            variant="devices" // Reusing style but different content
+            icon={<UserCheck size={24} />}
+            variant="faculty"
           />
           <StatCard
             title="High Risk Students"
             value={stats.highRiskStudents}
             subtitle="Require intervention"
+            icon={<AlertTriangle size={24} />}
             variant="alerts"
-            trend={{ direction: stats.highRiskStudents > 0 ? 'down' : 'up', text: 'Critical' }}
+            trend={{
+              direction: stats.highRiskStudents > 0 ? 'down' : 'up',
+              text: stats.highRiskStudents > 0 ? 'Critical' : 'Stable'
+            }}
           />
-
         </div>
       </section>
 
       {/* Quick Actions Section */}
       <section className="dashboard-section">
-        <h2>Quick Actions</h2>
+        <div className="section-header">
+          <h2>Quick Actions</h2>
+        </div>
+
         <div className="actions-grid">
-          <a href="/admin/users" className="action-card">
-            <span className="action-icon">🛡️</span>
+          <a href="/admin/users" className="action-card action-admins">
+            <div className="action-icon-wrapper">
+              <ShieldCheck size={24} />
+            </div>
             <h3>Manage Admins</h3>
-            <p>Create, watch, or retire admin accounts</p>
+            <p>Create, watch, or retire admin accounts in the system.</p>
           </a>
-          <a href="/admin/faculty" className="action-card">
-            <span className="action-icon">👨‍🏫</span>
+
+          <a href="/admin/faculty" className="action-card action-faculty">
+            <div className="action-icon-wrapper">
+              <UserCheck size={24} />
+            </div>
             <h3>Manage Faculty</h3>
-            <p>Add or remove academic staff</p>
+            <p>Add or remove academic staff and assign departments.</p>
           </a>
-          <a href="/admin/students" className="action-card">
-            <span className="action-icon">🎓</span>
+
+          <a href="/admin/students" className="action-card action-students">
+            <div className="action-icon-wrapper">
+              <GraduationCap size={24} />
+            </div>
             <h3>Manage Students</h3>
-            <p>View student performance and specific details</p>
+            <p>View student performance, risks, and specific details.</p>
           </a>
-          <a href="/admin/settings" className="action-card">
-            <span className="action-icon">⚙️</span>
+
+          <a href="/admin/settings" className="action-card action-settings">
+            <div className="action-icon-wrapper">
+              <Settings size={24} />
+            </div>
             <h3>System Settings</h3>
-            <p>Configure grade thresholds and preferences</p>
+            <p>Configure thresholds, grade scales, and system presets.</p>
           </a>
         </div>
       </section>

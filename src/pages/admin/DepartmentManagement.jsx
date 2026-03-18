@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DataTable from '../../components/admin/DataTable'
 import Modal from '../../components/admin/Modal'
-import { getDepartments, renameDepartment } from '../../services/api'
+import { getDepartments, renameDepartment, addDepartment } from '../../services/api'
 import toast from 'react-hot-toast'
 import { confirmToast } from '../../utils/confirmToast'
 import { RefreshCw, Users, BookOpen, GraduationCap, Pencil, Search } from 'lucide-react'
@@ -15,6 +15,8 @@ const DepartmentManagement = () => {
     // Rename Modal State
     const [isRenameModalOpen, setIsRenameModalOpen] = useState(false)
     const [renameData, setRenameData] = useState({ oldName: '', newName: '' })
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+    const [newDepName, setNewDepName] = useState('')
     const [submitting, setSubmitting] = useState(false)
 
     const fetchDeps = async () => {
@@ -32,6 +34,27 @@ const DepartmentManagement = () => {
     useEffect(() => {
         fetchDeps()
     }, [])
+
+    const handleAddSubmit = async (e) => {
+        e.preventDefault()
+        if (!newDepName.trim()) {
+            toast.error('Please enter a department name')
+            return
+        }
+
+        setSubmitting(true)
+        try {
+            await addDepartment(newDepName)
+            toast.success('Department added successfully')
+            setIsAddModalOpen(false)
+            setNewDepName('')
+            fetchDeps()
+        } catch (err) {
+            toast.error(err.message || 'Failed to add department')
+        } finally {
+            setSubmitting(false)
+        }
+    }
 
     const openRenameModal = (oldName) => {
         setRenameData({ oldName, newName: oldName })
@@ -70,31 +93,28 @@ const DepartmentManagement = () => {
         {
             key: 'faculty_count',
             label: 'Faculty',
+            align: 'center',
+            width: '100px',
             render: (count) => (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Users size={16} color="#6b7280" />
-                    {count}
-                </div>
+                <span className="pill-badge pill-info">{count}</span>
             )
         },
         {
             key: 'student_count',
             label: 'Students',
+            align: 'center',
+            width: '100px',
             render: (count) => (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <GraduationCap size={16} color="#6b7280" />
-                    {count}
-                </div>
+                <span className="pill-badge pill-success">{count}</span>
             )
         },
         {
             key: 'course_count',
             label: 'Courses',
+            align: 'center',
+            width: '100px',
             render: (count) => (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <BookOpen size={16} color="#6b7280" />
-                    {count}
-                </div>
+                <span className="pill-badge pill-warning">{count}</span>
             )
         }
     ]
@@ -119,11 +139,14 @@ const DepartmentManagement = () => {
                     <button className="secondary-btn" onClick={fetchDeps}>
                         <RefreshCw size={16} /> Refresh
                     </button>
+                    <button className="primary-btn" onClick={() => setIsAddModalOpen(true)}>
+                        + Add Department
+                    </button>
                 </div>
             </section>
 
             <div className="alert alert-info" style={{ marginBottom: '1.5rem', background: '#e0f2fe', border: '1px solid #bae6fd', color: '#0369a1', borderRadius: '8px', padding: '12px 16px' }}>
-                <strong>Note:</strong> Departments are aggregated dynamically based on user and subject data. Renaming a department affects all associated records globally.
+                <strong>Note:</strong> Departments are now managed centrally. You can add new departments or rename existing ones.
             </div>
 
             <section className="page-controls">
@@ -155,13 +178,13 @@ const DepartmentManagement = () => {
                 title="Rename Department globally"
                 onClose={() => setIsRenameModalOpen(false)}
             >
-                <form onSubmit={handleRenameSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem' }}>Current Name</label>
-                        <input className="form-input" disabled value={renameData.oldName} style={{ background: '#f1f5f9' }} />
+                <form onSubmit={handleRenameSubmit} className="modal-form">
+                    <div className="form-field">
+                        <label>Current Name</label>
+                        <input className="form-input" disabled value={renameData.oldName} />
                     </div>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem' }}>New Name *</label>
+                    <div className="form-field" style={{ marginTop: '1rem' }}>
+                        <label>New Name *</label>
                         <input
                             className="form-input"
                             required
@@ -171,10 +194,36 @@ const DepartmentManagement = () => {
                             placeholder="e.g. Master of Computer Applications"
                         />
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                    <div className="form-footer">
                         <button type="button" className="secondary-btn" onClick={() => setIsRenameModalOpen(false)}>Cancel</button>
                         <button type="submit" className="primary-btn" disabled={submitting}>
                             {submitting ? 'Renaming...' : 'Rename Global References'}
+                        </button>
+                    </div>
+                </form>
+            </Modal>
+
+            <Modal
+                isOpen={isAddModalOpen}
+                title="Add New Department"
+                onClose={() => setIsAddModalOpen(false)}
+            >
+                <form onSubmit={handleAddSubmit} className="modal-form">
+                    <div className="form-field">
+                        <label>Department Name *</label>
+                        <input
+                            className="form-input"
+                            required
+                            autoFocus
+                            value={newDepName}
+                            onChange={e => setNewDepName(e.target.value)}
+                            placeholder="e.g. Data Science"
+                        />
+                    </div>
+                    <div className="form-footer">
+                        <button type="button" className="secondary-btn" onClick={() => setIsAddModalOpen(false)}>Cancel</button>
+                        <button type="submit" className="primary-btn" disabled={submitting}>
+                            {submitting ? 'Adding...' : 'Create Department'}
                         </button>
                     </div>
                 </form>

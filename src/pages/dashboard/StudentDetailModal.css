@@ -243,40 +243,49 @@
 }
 
 .sd-btn {
-    padding: 14px;
-    border-radius: 10px;
+    padding: 12px 20px;
+    border-radius: 12px;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
     cursor: pointer;
-    transition: all 0.2s;
-    border: none;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid transparent;
 }
 
 .sd-btn-outline {
     background: white;
-    border: 1px solid #cbd5e1;
-    color: #475569;
+    border: 1px solid var(--c-border-strong);
+    color: var(--c-text-secondary);
 }
 
 .sd-btn-outline:hover {
-    background: #f8fafc;
-    border-color: #94a3b8;
-    color: #0f172a;
+    background: var(--c-surface-muted);
+    border-color: var(--c-accent-primary);
+    color: var(--c-accent-primary);
+    transform: translateY(-1px);
 }
 
 .sd-btn-primary {
-    background: #0f172a;
+    background: var(--c-accent-primary);
     color: white;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+    box-shadow: 0 4px 12px rgba(25, 106, 229, 0.2);
 }
 
 .sd-btn-primary:hover {
-    background: #1e293b;
+    background: var(--c-accent-hover);
     transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(25, 106, 229, 0.3);
+}
+
+.sd-btn-primary:disabled {
+    background: var(--c-border-strong);
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 @keyframes fadeIn {
@@ -302,31 +311,31 @@
 /* Tabs */
 .sd-tabs {
     display: flex;
-    gap: 8px;
+    gap: 24px;
     padding: 0 32px;
     background: #ffffff;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid var(--c-border-subtle);
 }
 
 .sd-tab {
-    padding: 12px 16px;
+    padding: 12px 4px;
     font-size: 14px;
-    font-weight: 600;
-    color: #64748b;
+    font-weight: 700;
+    color: var(--c-text-tertiary);
     border: none;
     background: transparent;
     cursor: pointer;
-    border-bottom: 2px solid transparent;
+    border-bottom: 3px solid transparent;
     transition: all 0.2s;
 }
 
 .sd-tab:hover {
-    color: #0f172a;
+    color: var(--c-text-primary);
 }
 
 .sd-tab.active {
-    color: #3b82f6;
-    border-bottom-color: #3b82f6;
+    color: var(--c-accent-primary);
+    border-bottom-color: var(--c-accent-primary);
 }
 
 /* History Items */

@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { handleLogin } from '../../services/api'
 import { validateUserInput } from '../../utils/validation'
+import { Eye, EyeOff } from 'lucide-react'
 
 const AdminLoginPage = () => {
     const navigate = useNavigate()
@@ -11,6 +12,7 @@ const AdminLoginPage = () => {
     const [errors, setErrors] = useState({})
     const [status, setStatus] = useState(null)
     const [submitting, setSubmitting] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
 
     const onInput = (e) => {
         const { name, value } = e.target
@@ -76,12 +78,21 @@ const AdminLoginPage = () => {
                     <input
                         id="password"
                         name="password"
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
+                        className={showPassword ? 'password-input' : ''}
                         placeholder="Enter admin password"
                         value={form.password}
                         onChange={onInput}
                         required
                     />
+                    <button
+                        type="button"
+                        className="password-toggle"
+                        onClick={() => setShowPassword(!showPassword)}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
                 </div>
                 {errors.password && <p className="input-error">{errors.password}</p>}
             </div>

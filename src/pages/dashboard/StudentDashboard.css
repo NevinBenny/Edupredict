@@ -1,0 +1,177 @@
+/* Student Dashboard Styles (Student Portal) */
+
+.student-welcome-banner {
+    background: linear-gradient(135deg, #0f172a, #334155);
+    border-radius: 28px;
+    padding: 60px;
+    color: white;
+    margin-bottom: 40px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.15);
+}
+
+.student-welcome-banner::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+    filter: blur(60px);
+}
+
+.welcome-text h2 {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+}
+
+.welcome-text p {
+    font-size: 16px;
+    opacity: 0.9;
+    max-width: 600px;
+    line-height: 1.6;
+}
+
+.student-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 48px;
+}
+
+.course-section-title {
+    margin-bottom: 32px;
+}
+
+.course-section-title h3 {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--c-text-primary);
+    letter-spacing: -0.5px;
+}
+
+.student-course-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 32px;
+}
+
+.course-card-premium {
+    background: var(--c-surface);
+    border: 1px solid var(--c-border-subtle);
+    border-radius: 24px;
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+}
+
+.course-card-premium:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+    border-color: var(--c-accent-primary);
+}
+
+.course-info h4 {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--c-text-primary);
+    margin: 0;
+}
+
+.course-code-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: var(--c-bg-app);
+    color: var(--c-text-secondary);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 10px;
+    margin-top: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.course-stats-mini {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding-top: 24px;
+    border-top: 1px solid var(--c-border-subtle);
+}
+
+.mini-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.mini-stat .label {
+    font-size: 11px;
+    color: var(--c-text-tertiary);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.mini-stat .value {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--c-text-primary);
+}
+
+.mini-stat.attendance.warning .value {
+    color: var(--c-status-danger);
+}
+
+.student-risk-banner {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 32px;
+    border-radius: 20px;
+    margin-bottom: 40px;
+    font-weight: 700;
+    font-size: 15px;
+}
+
+.student-risk-banner.high {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fee2e2;
+}
+
+.student-risk-banner.medium {
+    background: #fffbeb;
+    color: #92400e;
+    border: 1px solid #fef3c7;
+}
+
+.student-risk-banner.low {
+    background: #f0fdf4;
+    color: #166534;
+    border: 1px solid #dcfce7;
+}
+
+@media (max-width: 1024px) {
+    .student-welcome-banner {
+        padding: 40px;
+    }
+}
+
+@media (max-width: 640px) {
+    .student-metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .student-course-grid {
+        grid-template-columns: 1fr;
+    }
+}

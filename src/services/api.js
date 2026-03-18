@@ -199,6 +199,13 @@ export const renameDepartment = async (oldName, newName) => {
   })
 }
 
+export const addDepartment = async (name) => {
+  return request('/admin/departments', {
+    method: 'POST',
+    body: JSON.stringify({ name })
+  })
+}
+
 // --- COURSES ---
 
 export const getCourses = async () => {
@@ -225,7 +232,11 @@ export const deleteCourse = async (courseId) => {
   })
 }
 
-// --- STUDENT PORTAL ---
+// --- FACULTY/STUDENT PORTAL ---
+export const getFacultySubjects = async () => {
+  return request('/dashboard/faculty-subjects')
+}
+
 export const getMyCourses = async () => {
   return request('/dashboard/my-courses')
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import DataTable from '../../components/admin/DataTable'
 import Modal from '../../components/admin/Modal'
-import { getCourses, addCourse, updateCourse, deleteCourse, getFaculties } from '../../services/api'
+import { getCourses, addCourse, updateCourse, deleteCourse, getFaculties, getDepartments } from '../../services/api'
 import toast from 'react-hot-toast'
 import { confirmToast } from '../../utils/confirmToast'
 import { RefreshCw, Plus, Pencil, Trash2, Search, Filter } from 'lucide-react'
@@ -10,6 +10,7 @@ import './AdminPanel.css'
 const CourseManagement = () => {
     const [courses, setCourses] = useState([])
     const [faculties, setFaculties] = useState([])
+    const [allDepartments, setAllDepartments] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [deptFilter, setDeptFilter] = useState('')
@@ -30,12 +31,14 @@ const CourseManagement = () => {
     const fetchAllData = async () => {
         try {
             setLoading(true)
-            const [courseData, facultyData] = await Promise.all([
+            const [courseData, facultyData, deptData] = await Promise.all([
                 getCourses(),
-                getFaculties()
+                getFaculties(),
+                getDepartments()
             ])
             setCourses(courseData.courses || [])
             setFaculties(facultyData.faculties || [])
+            setAllDepartments(deptData.departments || [])
         } catch (err) {
             toast.error(err.message || 'Failed to load data')
         } finally {
@@ -50,7 +53,13 @@ const CourseManagement = () => {
     const openCreate = () => {
         setEditingId(null)
         setFacultySearch('')
-        setFormData({ code: '', name: '', department: 'MCA', semester: '1', faculty_ids: [] })
+        setFormData({
+            code: '',
+            name: '',
+            department: allDepartments[0]?.department || '',
+            semester: '1',
+            faculty_ids: []
+        })
         setIsModalOpen(true)
     }
 
@@ -114,16 +123,29 @@ const CourseManagement = () => {
     )
 
     const columns = [
-        { key: 'code', label: 'Course Code', width: '120px' },
-        { key: 'name', label: 'Course Name' },
-        { key: 'faculty_names', label: 'Assigned Faculty', render: (names) => <span style={{ fontSize: '0.875rem', color: names === 'Unassigned' ? 'var(--c-text-secondary)' : 'inherit' }}>{names}</span> },
+        {
+            key: 'name',
+            label: 'Course',
+            render: (name, row) => (
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontWeight: 600, color: 'var(--c-accent-primary)' }}>{row.code}</span>
+                    <span className="sub-detail">{name} • {row.faculty_names || 'Unassigned'}</span>
+                </div>
+            )
+        },
         {
             key: 'department',
             label: 'Department',
             width: '150px',
-            render: (dept) => <span className="status-badge" style={{ background: '#f1f5f9', color: '#475569' }}>{dept}</span>
+            render: (dept) => <span className="status-badge status-neutral">{dept}</span>
         },
-        { key: 'semester', label: 'Semester', width: '100px' },
+        {
+            key: 'semester',
+            label: 'Semester',
+            width: '100px',
+            align: 'center',
+            render: (sem) => <span className="pill-badge pill-info">{sem}</span>
+        },
     ]
 
     const actions = [
@@ -178,8 +200,8 @@ const CourseManagement = () => {
                         onChange={(e) => setDeptFilter(e.target.value)}
                     >
                         <option value="">All Departments</option>
-                        {departments.map(dept => (
-                            <option key={dept} value={dept}>{dept}</option>
+                        {allDepartments.map(d => (
+                            <option key={d.department} value={d.department}>{d.department}</option>
                         ))}
                     </select>
                 </div>
@@ -202,74 +224,136 @@ const CourseManagement = () => {
                 title={editingId ? "Edit Course" : "Create New Course"}
                 onClose={() => setIsModalOpen(false)}
             >
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Course Code *</label>
-                            <input className="form-input" required value={formData.code} onChange={e => setFormData({ ...formData, code: e.target.value })} placeholder="e.g. CS101" />
+                <form onSubmit={handleSubmit} className="modal-form">
+                    <div className="form-grid">
+                        <div className="form-field">
+                            <label>Course Code *</label>
+                            <input
+                                className="form-input"
+                                required
+                                value={formData.code}
+                                onChange={e => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+                                placeholder="e.g. 23INMCA302"
+                            />
                         </div>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Course Name *</label>
-                            <input className="form-input" required value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} placeholder="e.g. Introduction to Programming" />
+                        <div className="form-field">
+                            <label>Semester *</label>
+                            <input
+                                className="form-input"
+                                type="number"
+                                min="1"
+                                max="8"
+                                required
+                                value={formData.semester}
+                                onChange={e => setFormData({ ...formData, semester: e.target.value })}
+                            />
                         </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Department *</label>
-                            <input className="form-input" required value={formData.department} onChange={e => setFormData({ ...formData, department: e.target.value })} placeholder="e.g. MCA" />
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Semester *</label>
-                            <input className="form-input" required type="number" min="1" max="10" value={formData.semester} onChange={e => setFormData({ ...formData, semester: e.target.value })} />
-                        </div>
-                        <div style={{ gridColumn: '1 / -1', marginTop: '0.5rem' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Assign Faculty (Optional)</label>
+                    <div className="form-field" style={{ marginTop: '1rem' }}>
+                        <label>Course Name *</label>
+                        <input
+                            className="form-input"
+                            required
+                            value={formData.name}
+                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                            placeholder="e.g. Software Engineering"
+                        />
+                    </div>
 
-                            {/* Inner Modal Search */}
-                            <div className="search-box" style={{ marginBottom: '0.75rem', minWidth: '100%' }}>
-                                <Search className="search-icon" size={14} />
+                    <div className="form-field" style={{ marginTop: '1rem' }}>
+                        <label>Department *</label>
+                        <select
+                            className="form-input"
+                            required
+                            value={formData.department}
+                            onChange={e => setFormData({ ...formData, department: e.target.value })}
+                        >
+                            <option value="">Select Dept</option>
+                            {allDepartments.map(d => (
+                                <option key={d.department} value={d.department}>{d.department}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="form-field" style={{ marginTop: '1.5rem' }}>
+                        <label>Assign Faculty Members</label>
+                        <div className="faculty-selector">
+                            <div className="search-box mini">
+                                <Search size={14} className="search-icon" />
                                 <input
+                                    type="text"
+                                    placeholder="Search faculty..."
                                     className="search-input"
-                                    style={{ padding: '6px 12px 6px 32px !important', fontSize: '13px' }}
-                                    placeholder="Filter faculty list..."
                                     value={facultySearch}
                                     onChange={(e) => setFacultySearch(e.target.value)}
                                 />
                             </div>
 
-                            <div className="form-input" style={{ maxHeight: '150px', overflowY: 'auto', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                {faculties.length === 0 ? (
-                                    <span style={{ color: 'var(--c-text-secondary)', fontSize: '0.9rem' }}>No faculty available.</span>
-                                ) : (
-                                    faculties
-                                        .filter(f => !facultySearch || f.name.toLowerCase().includes(facultySearch.toLowerCase()) || f.department?.toLowerCase().includes(facultySearch.toLowerCase()))
-                                        .map(faculty => (
-                                            <label key={faculty.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={formData.faculty_ids.includes(faculty.id)}
-                                                    onChange={(e) => {
-                                                        const currentIds = formData.faculty_ids;
-                                                        if (e.target.checked) {
-                                                            setFormData({ ...formData, faculty_ids: [...currentIds, faculty.id] })
-                                                        } else {
-                                                            setFormData({ ...formData, faculty_ids: currentIds.filter(id => id !== faculty.id) })
-                                                        }
-                                                    }}
-                                                />
-                                                {faculty.name} ({faculty.department})
-                                            </label>
-                                        ))
+                            {formData.faculty_ids.length > 0 && (
+                                <div className="selected-badges">
+                                    {formData.faculty_ids.map(id => {
+                                        const faculty = faculties.find(f => f.id === id);
+                                        return faculty ? (
+                                            <span key={id} className="faculty-badge">
+                                                {faculty.name}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setFormData({
+                                                        ...formData,
+                                                        faculty_ids: formData.faculty_ids.filter(fid => fid !== id)
+                                                    })}
+                                                >
+                                                    <Trash2 size={10} />
+                                                </button>
+                                            </span>
+                                        ) : null;
+                                    })}
+                                </div>
+                            )}
+
+                            <div className="faculty-options-list">
+                                {faculties
+                                    .filter(f => f.name.toLowerCase().includes(facultySearch.toLowerCase()))
+                                    .slice(0, 5)
+                                    .map(f => (
+                                        <div
+                                            key={f.id}
+                                            className={`faculty-option ${formData.faculty_ids.includes(f.id) ? 'selected' : ''}`}
+                                            onClick={() => {
+                                                const exists = formData.faculty_ids.includes(f.id);
+                                                if (exists) {
+                                                    setFormData({
+                                                        ...formData,
+                                                        faculty_ids: formData.faculty_ids.filter(id => id !== f.id)
+                                                    });
+                                                } else {
+                                                    setFormData({
+                                                        ...formData,
+                                                        faculty_ids: [...formData.faculty_ids, f.id]
+                                                    });
+                                                }
+                                            }}
+                                        >
+                                            <div className="faculty-info">
+                                                <span className="name">{f.name}</span>
+                                                <span className="dept">{f.department} • {f.designation}</span>
+                                            </div>
+                                            {formData.faculty_ids.includes(f.id) && <RefreshCw size={14} className="check-icon" />}
+                                        </div>
+                                    ))
+                                }
+                                {faculties.filter(f => f.name.toLowerCase().includes(facultySearch.toLowerCase())).length === 0 && (
+                                    <div className="no-options">No faculty found</div>
                                 )}
                             </div>
                         </div>
                     </div>
 
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                    <div className="form-footer">
                         <button type="button" className="secondary-btn" onClick={() => setIsModalOpen(false)}>Cancel</button>
                         <button type="submit" className="primary-btn" disabled={submitting}>
-                            {submitting ? 'Saving...' : 'Save Course'}
+                            {submitting ? 'Saving...' : (editingId ? 'Update Course' : 'Add Course')}
                         </button>
                     </div>
                 </form>

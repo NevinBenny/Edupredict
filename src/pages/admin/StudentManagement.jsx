@@ -5,12 +5,13 @@ import PasswordRevealModal from '../../components/admin/PasswordRevealModal'
 import { Upload, Download, RefreshCw, Key, CheckSquare, Pencil, Trash2, Search, Filter } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { confirmToast } from '../../utils/confirmToast'
-import { getStudents, addSingleStudent, updateStudent, deleteStudent, batchUploadStudents, resetStudentPassword as resetApi, getCourses } from '../../services/api'
+import { getStudents, addSingleStudent, updateStudent, deleteStudent, batchUploadStudents, resetStudentPassword as resetApi, getCourses, getDepartments } from '../../services/api'
 import './AdminPanel.css'
 
 const StudentManagement = () => {
     const [students, setStudents] = useState([])
     const [courses, setCourses] = useState([])
+    const [allDepartments, setAllDepartments] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [searchTerm, setSearchTerm] = useState('')
@@ -25,7 +26,7 @@ const StudentManagement = () => {
     const [isSingleModalOpen, setIsSingleModalOpen] = useState(false)
     const [editingStudentId, setEditingStudentId] = useState(null)
     const [singleStudentData, setSingleStudentData] = useState({
-        name: '', email: '', department: 'MCA', semester: '1', sgpa: '', backlogs: 0, subject_ids: []
+        name: '', email: '', department: '', semester: '1', sgpa: '', backlogs: 0
     })
 
     const [uploading, setUploading] = useState(false)
@@ -42,12 +43,14 @@ const StudentManagement = () => {
     const fetchStudents = async () => {
         try {
             setLoading(true)
-            const [studentsData, coursesData] = await Promise.all([
+            const [studentsData, coursesData, deptData] = await Promise.all([
                 getStudents(),
-                getCourses()
+                getCourses(),
+                getDepartments()
             ])
             setStudents(studentsData.students || [])
             setCourses(coursesData.courses || [])
+            setAllDepartments(deptData.departments || [])
             setError(null)
         } catch (err) {
             setError(err.message)
@@ -84,7 +87,14 @@ const StudentManagement = () => {
     const openCreateModal = () => {
         setEditingStudentId(null)
         setCourseSearch('')
-        setSingleStudentData({ name: '', email: '', department: 'MCA', semester: '1', sgpa: '', backlogs: 0, subject_ids: [] })
+        setSingleStudentData({
+            name: '',
+            email: '',
+            department: allDepartments[0]?.department || '',
+            semester: '1',
+            sgpa: '',
+            backlogs: 0
+        })
         setIsSingleModalOpen(true)
     }
 
@@ -97,21 +107,13 @@ const StudentManagement = () => {
             department: student.department,
             semester: student.semester?.toString() || '1',
             sgpa: student.sgpa?.toString() || '',
-            backlogs: student.backlogs || 0,
-            subject_ids: [] // We should ideally fetch their current subjects or pass them if available
+            backlogs: student.backlogs || 0
         })
         setIsSingleModalOpen(true)
     }
 
     const handleSingleSubmit = async (e) => {
         e.preventDefault()
-        if (singleStudentData.subject_ids.length === 0 && !editingStudentId) {
-            // If editing, maybe they don't want to change courses? 
-            // Actually, my backend update deletes then inserts. So they MUST select courses or I should preserve them.
-            // For now, let's require it.
-            toast.error("Please select at least one course.")
-            return
-        }
         setUploading(true)
         try {
             if (editingStudentId) {
@@ -123,7 +125,7 @@ const StudentManagement = () => {
                 const data = await addSingleStudent(singleStudentData)
                 fetchStudents()
                 setIsSingleModalOpen(false)
-                setSingleStudentData({ name: '', email: '', department: 'MCA', semester: '1', sgpa: '', backlogs: 0, subject_ids: [] })
+                setSingleStudentData({ name: '', email: '', department: 'MCA', semester: '1', sgpa: '', backlogs: 0 })
                 // Show the password reveal modal with CSV option
                 setRevealModal({
                     open: true,
@@ -181,11 +183,35 @@ const StudentManagement = () => {
     )
 
     const columns = [
-        { key: 'student_id', label: 'ID', width: '120px' },
-        { key: 'name', label: 'Name', width: '200px' },
+        {
+            key: 'name',
+            label: 'Student',
+            width: '250px',
+            render: (name, row) => (
+                <div className="user-info-cell">
+                    <div className="user-avatar-sm">{name[0]}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ fontWeight: 600 }}>{name}</span>
+                        <span className="sub-detail">{row.student_id}</span>
+                    </div>
+                </div>
+            )
+        },
         { key: 'email', label: 'Email', width: '200px' },
-        { key: 'department', label: 'Department', width: '100px' },
-        { key: 'semester', label: 'Semester', width: '100px' },
+        {
+            key: 'department',
+            label: 'Dept',
+            width: '100px',
+            align: 'center',
+            render: (dept) => <span className="status-badge status-neutral">{dept}</span>
+        },
+        {
+            key: 'semester',
+            label: 'Sem',
+            width: '80px',
+            align: 'center',
+            render: (sem) => <span className="pill-badge pill-info">{sem}</span>
+        },
     ]
 
     const handleDeleteStudent = async (student) => {
@@ -263,8 +289,8 @@ const StudentManagement = () => {
                         onChange={(e) => setDeptFilter(e.target.value)}
                     >
                         <option value="">All Departments</option>
-                        {departments.map(dept => (
-                            <option key={dept} value={dept}>{dept}</option>
+                        {allDepartments.map(d => (
+                            <option key={d.department} value={d.department}>{d.department}</option>
                         ))}
                     </select>
                 </div>
@@ -288,21 +314,27 @@ const StudentManagement = () => {
                 onClose={() => setIsUploadModalOpen(false)}
             >
                 {!credentials ? (
-                    <form onSubmit={handleFileUpload} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                        <p style={{ color: 'var(--c-text-secondary)' }}>
-                            Upload a CSV file with columns: <b>name, department, semester, email, sgpa, backlogs</b>.
-                            The backend will automatically create secure random passwords for each new student.
-                        </p>
-                        <input
-                            type="file"
-                            accept=".csv"
-                            required
-                            onChange={e => setCsvFile(e.target.files[0])}
-                        />
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+                    <form onSubmit={handleFileUpload} className="modal-form">
+                        <div className="form-field">
+                            <p className="text-muted" style={{ marginBottom: '1rem' }}>
+                                Upload a CSV file with columns: <b>name, department, semester, email, sgpa, backlogs</b>.
+                                The backend will automatically create secure random passwords for each new student.
+                            </p>
+                            <input
+                                type="file"
+                                accept=".csv"
+                                className="form-input"
+                                style={{ padding: '8px' }}
+                                required
+                                onChange={e => setCsvFile(e.target.files[0])}
+                            />
+                        </div>
+                        <div className="form-footer">
                             <button type="button" className="secondary-btn" onClick={() => setIsUploadModalOpen(false)}>Cancel</button>
                             <button type="submit" className="primary-btn" disabled={uploading}>
-                                {uploading ? 'Processing...' : 'Upload & Provision'}
+                                {uploading ? 'Processing...' : (
+                                    <><Upload size={16} /> Upload & Provision</>
+                                )}
                             </button>
                         </div>
                     </form>
@@ -311,15 +343,15 @@ const StudentManagement = () => {
                         <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Key size={32} color="#22c55e" />
                         </div>
-                        <h3 style={{ margin: 0 }}>Provisioning Complete</h3>
+                        <h3 style={{ margin: 0, fontWeight: 800 }}>Provisioning Complete</h3>
                         <p style={{ textAlign: 'center', color: 'var(--c-text-secondary)' }}>
                             Successfully created {credentials.length} new student accounts.
                             Please download the auto-generated passwords now — you will not be able to see them again!
                         </p>
-                        <button className="primary-btn" onClick={downloadCredentialsCSV} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                        <button className="primary-btn" onClick={downloadCredentialsCSV} style={{ width: '100%', justifyContent: 'center' }}>
                             <Download size={18} /> Download Passwords CSV
                         </button>
-                        <button className="secondary-btn" onClick={() => { setCredentials(null); setIsUploadModalOpen(false); setIsSingleModalOpen(false); }} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                        <button className="secondary-btn" onClick={() => { setCredentials(null); setIsUploadModalOpen(false); setIsSingleModalOpen(false); }} style={{ width: '100%', justifyContent: 'center' }}>
                             Done
                         </button>
                     </div>
@@ -331,76 +363,45 @@ const StudentManagement = () => {
                 title={editingStudentId ? `Edit Student: ${editingStudentId}` : "Add Single Student"}
                 onClose={() => setIsSingleModalOpen(false)}
             >
-                <form onSubmit={handleSingleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem' }}>Full Name *</label>
+                <form onSubmit={handleSingleSubmit} className="modal-form">
+                    <div className="form-field">
+                        <label>Full Name *</label>
                         <input className="form-input" required value={singleStudentData.name} onChange={e => setSingleStudentData({ ...singleStudentData, name: e.target.value })} placeholder="e.g. Rahul Kumar" />
                     </div>
-                    <div>
-                        <label style={{ display: 'block', marginBottom: '0.5rem' }}>Email Address *</label>
-                        <input className="form-input" type="email" required disabled={!!editingStudentId} value={singleStudentData.email} onChange={e => setSingleStudentData({ ...singleStudentData, email: e.target.value })} placeholder="student@ajce.edu.in" style={editingStudentId ? { background: '#f1f5f9' } : {}} />
-                        {editingStudentId && <small style={{ color: 'var(--c-text-tertiary)' }}>Email cannot be changed after creation.</small>}
+                    <div className="form-field">
+                        <label>Email Address *</label>
+                        <input className="form-input" type="email" required disabled={!!editingStudentId} value={singleStudentData.email} onChange={e => setSingleStudentData({ ...singleStudentData, email: e.target.value })} placeholder="student@ajce.edu.in" />
+                        {editingStudentId && <small className="text-muted">Email cannot be changed after creation.</small>}
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Department *</label>
-                            <input className="form-input" required value={singleStudentData.department} onChange={e => setSingleStudentData({ ...singleStudentData, department: e.target.value })} placeholder="MCA" />
+                    <div className="form-grid">
+                        <div className="form-field">
+                            <label>Department *</label>
+                            <select
+                                className="form-input"
+                                required
+                                value={singleStudentData.department}
+                                onChange={e => setSingleStudentData({ ...singleStudentData, department: e.target.value })}
+                            >
+                                <option value="">Select Dept</option>
+                                {allDepartments.map(d => (
+                                    <option key={d.department} value={d.department}>{d.department}</option>
+                                ))}
+                            </select>
                         </div>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Semester *</label>
+                        <div className="form-field">
+                            <label>Semester *</label>
                             <input className="form-input" required type="number" min="1" max="8" value={singleStudentData.semester} onChange={e => setSingleStudentData({ ...singleStudentData, semester: e.target.value })} />
                         </div>
-                        <div style={{ gridColumn: '1 / -1' }}>
-                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Assign Courses *</label>
-
-                            {/* Course search in modal */}
-                            <div className="search-box" style={{ marginBottom: '0.75rem', minWidth: '100%' }}>
-                                <Search className="search-icon" size={14} />
-                                <input
-                                    className="search-input"
-                                    style={{ padding: '6px 12px 6px 32px !important', fontSize: '13px' }}
-                                    placeholder="Filter courses..."
-                                    value={courseSearch}
-                                    onChange={(e) => setCourseSearch(e.target.value)}
-                                />
-                            </div>
-
-                            <div className="form-input" style={{ maxHeight: '150px', overflowY: 'auto', padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                                {courses.length === 0 ? (
-                                    <span style={{ color: 'var(--c-text-secondary)', fontSize: '0.9rem' }}>No courses available. Please add courses first.</span>
-                                ) : (
-                                    courses
-                                        .filter(course => !courseSearch || course.name.toLowerCase().includes(courseSearch.toLowerCase()) || course.course_code?.toLowerCase().includes(courseSearch.toLowerCase()))
-                                        .map(course => (
-                                            <label key={course.id} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={singleStudentData.subject_ids.includes(course.id)}
-                                                    onChange={(e) => {
-                                                        const currentIds = singleStudentData.subject_ids;
-                                                        if (e.target.checked) {
-                                                            setSingleStudentData({ ...singleStudentData, subject_ids: [...currentIds, course.id] })
-                                                        } else {
-                                                            setSingleStudentData({ ...singleStudentData, subject_ids: currentIds.filter(id => id !== course.id) })
-                                                        }
-                                                    }}
-                                                />
-                                                {course.name} ({course.course_code}) - Sem {course.semester}
-                                            </label>
-                                        ))
-                                )}
-                            </div>
-                        </div>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Previous SGPA</label>
+                        <div className="form-field">
+                            <label>Previous SGPA</label>
                             <input className="form-input" type="number" step="0.01" min="0" max="10" value={singleStudentData.sgpa} onChange={e => setSingleStudentData({ ...singleStudentData, sgpa: e.target.value })} placeholder="e.g. 7.5" />
                         </div>
-                        <div>
-                            <label style={{ display: 'block', marginBottom: '0.5rem' }}>Active Backlogs</label>
+                        <div className="form-field">
+                            <label>Active Backlogs</label>
                             <input className="form-input" type="number" min="0" value={singleStudentData.backlogs} onChange={e => setSingleStudentData({ ...singleStudentData, backlogs: e.target.value })} placeholder="0" />
                         </div>
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem' }}>
+                    <div className="form-footer">
                         <button type="button" className="secondary-btn" onClick={() => setIsSingleModalOpen(false)}>Cancel</button>
                         <button type="submit" className="primary-btn" disabled={uploading}>
                             {uploading ? 'Processing...' : (editingStudentId ? 'Update Student' : 'Create Student')}

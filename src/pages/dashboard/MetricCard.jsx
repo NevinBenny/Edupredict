@@ -1,9 +1,8 @@
 import React from 'react';
-import './DashboardComponents.css';
 
 const MetricCard = ({ label, value, unit, icon, trend, trendValue, color }) => {
     return (
-        <div className="metric-card minimal">
+        <div className="metric-card">
             <div className="metric-header">
                 <span className="metric-label">{label}</span>
                 <span className="metric-icon" style={{ color: color }}>{icon}</span>

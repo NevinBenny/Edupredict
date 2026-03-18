@@ -22,7 +22,7 @@ const AddStudentModal = ({ onClose, onStudentAdded }) => {
         const fetchSubjects = async () => {
             try {
                 const response = await fetch('http://localhost:5000/api/faculty-subjects', {
-                    headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+                    credentials: 'include'
                 });
                 if (response.ok) {
                     const data = await response.json();
@@ -50,14 +50,13 @@ const AddStudentModal = ({ onClose, onStudentAdded }) => {
         setError('');
 
         try {
-            const token = localStorage.getItem('token');
             const response = await fetch('http://localhost:5000/api/students', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify(formData),
+                credentials: 'include'
             });
 
             if (!response.ok) {
