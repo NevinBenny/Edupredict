@@ -8,47 +8,58 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
-          username: ubuntu # Default for Ubuntu EC2 instances
+          username: ubuntu
           key: ${{ secrets.SSH_KEY }}
           script: |
-            # 1. Update Node.js to v22 (fixes the Vite EBADENGINE error)
-            curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-            sudo apt-get install -y nodejs python3-venv
-            
-            # 2. Install PM2 globally (fixes "pm2: command not found")
-            sudo npm install -g pm2
-            
-            # Make sure pm2 is in the current SSH shell PATH
+            set -e
+
+            # ── 1. Ensure Node.js 22 is installed ──────────────────────────
+            if ! node -v 2>/dev/null | grep -q "v22"; then
+              curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+              sudo apt-get install -y nodejs
+            fi
+
+            # ── 2. Ensure Python3 + venv is installed ──────────────────────
+            sudo apt-get install -y python3 python3-venv python3-pip --no-install-recommends
+
+            # ── 3. Ensure PM2 is installed ─────────────────────────────────
+            if ! command -v pm2 &> /dev/null; then
+              sudo npm install -g pm2
+            fi
             export PATH=$PATH:/usr/bin:/usr/local/bin
-            
-            # 3. Navigate to your repo (the one you cloned manually with your .env)
+
+            # ── 4. Pull latest code ────────────────────────────────────────
             cd ~/Edupredict
-            
-            # Pull the latest code
             git pull origin main
-            
-            # --- BACKEND ---
-            cd server/backend
+
+            # ── 5. Backend: Python / Flask ─────────────────────────────────
+            cd ~/Edupredict/server/backend
             if [ ! -d "venv" ]; then
               python3 -m venv venv
             fi
             source venv/bin/activate
-            pip3 install -r requirements.txt
-            
-            # Restart backend using PM2
-            pm2 restart backend || pm2 start app.py --name "backend" --interpreter python3
-            
-            # --- FRONTEND ---
-            cd ../..
-            npm install
-            npm run build
-            
-            # Restart frontend
-            pm2 restart frontend || pm2 serve dist/ 3000 --name "frontend" --spa
+            pip install -r requirements.txt --quiet
+            deactivate
 
+            pm2 restart backend 2>/dev/null || \
+              pm2 start app.py \
+                --name "backend" \
+                --interpreter ~/Edupredict/server/backend/venv/bin/python3 \
+                --cwd ~/Edupredict/server/backend
+
+            # ── 6. Frontend: Vite build → serve with PM2 ──────────────────
+            cd ~/Edupredict
+            npm install --legacy-peer-deps
+            npm run build        # picks up .env.production automatically
+
+            pm2 restart frontend 2>/dev/null || \
+              pm2 serve dist/ 3000 --name "frontend" --spa
+
+            # ── 7. Persist PM2 across reboots ──────────────────────────────
+            pm2 save
