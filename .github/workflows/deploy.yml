@@ -83,12 +83,12 @@ jobs:
             pip install -r requirements.txt --quiet
             deactivate
 
-            # Safely recreate PM2 backend to ensure Python interpreter is strictly applied
+            # Aggressively kill any existing backend processes to clear sticky config
             pm2 delete backend 2>/dev/null || true
-            pm2 start app.py \
-              --name "backend" \
-              --interpreter ~/Edupredict/server/backend/venv/bin/python3 \
-              --cwd ~/Edupredict/server/backend
+            pm2 kill || true 
+            
+            # Start backend using a single command string (more reliable with some PM2 versions)
+            pm2 start "venv/bin/python3 app.py" --name "backend" --cwd ~/Edupredict/server/backend
 
             # ── E. Save PM2 state ──────────────────────────────────────────
             pm2 save
