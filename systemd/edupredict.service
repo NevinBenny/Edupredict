@@ -1,0 +1,14 @@
+[Unit]
+Description=EduPredict Flask Backend
+After=network.target mysql.service
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/Edupredict/server/backend
+Environment="PATH=/home/ubuntu/Edupredict/server/backend/venv/bin"
+ExecStart=/home/ubuntu/Edupredict/server/backend/venv/bin/python3 app.py
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

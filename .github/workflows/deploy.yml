@@ -1,4 +1,4 @@
-name: Build and Deploy to EC2 with Nginx
+name: Build and Deploy to EC2 with Nginx & Systemd
 
 on:
   push:
@@ -33,7 +33,7 @@ jobs:
           target: "~/Edupredict"
           overwrite: true
 
-      - name: Setup Nginx & Backend on EC2
+      - name: Purge PM2 & Setup Systemd/Nginx on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
@@ -42,53 +42,41 @@ jobs:
           script: |
             set -e
 
-            # ── A. Ensure Nginx, Python + PM2 are installed ────────────────
+            # ── 1. Purge PM2 (Cleanup) ────────────────────────────────────
+            echo "Purging PM2..."
+            pm2 delete all 2>/dev/null || true
+            pm2 kill 2>/dev/null || true
+            sudo npm uninstall -g pm2 2>/dev/null || true
+            rm -rf ~/.pm2
+
+            # ── 2. Ensure Dependencies are installed ──────────────────────
             sudo apt-get update -y
             sudo apt-get install -y nginx python3 python3-venv python3-pip --no-install-recommends
-            if ! command -v pm2 &> /dev/null; then
-              sudo npm install -g pm2
-            fi
-            export PATH=$PATH:/usr/bin:/usr/local/bin
 
-            # ── B. Clean Up Old "Frontend" PM2 Process (Prevents Collisions)
-            pm2 delete frontend 2>/dev/null || true
-
-            # ── C. Configure Nginx ─────────────────────────────────────────
-            # Move the frontend build to the standard /var/www folder giving Nginx permissions
+            # ── 3. Configure Nginx ─────────────────────────────────────────
             sudo rm -rf /var/www/edupredict
             sudo cp -r ~/Edupredict/dist /var/www/edupredict
             sudo chown -R www-data:www-data /var/www/edupredict
             sudo chmod -R 755 /var/www/edupredict
-
-            # Remove the default nginx config to prevent port 80 collisions
             sudo rm -f /etc/nginx/sites-enabled/default
-
-            # Copy our custom Nginx config from the repo
             sudo cp ~/Edupredict/nginx/edupredict.conf /etc/nginx/sites-available/edupredict
-            
-            # Enable the site
             sudo ln -sf /etc/nginx/sites-available/edupredict /etc/nginx/sites-enabled/edupredict
-            
-            # Test & Restart Nginx
-            sudo nginx -t
             sudo systemctl restart nginx
 
-            # ── D. Restart Backend: Python / Flask ─────────────────────────
+            # ── 4. Setup Python Virtual Environment ────────────────────────
             cd ~/Edupredict/server/backend
             if [ ! -d "venv" ]; then
               python3 -m venv venv
             fi
             source venv/bin/activate
-            # Only install Python dependencies (much lighter on RAM)
             pip install -r requirements.txt --quiet
             deactivate
 
-            # Aggressively kill any existing backend processes to clear sticky config
-            pm2 delete backend 2>/dev/null || true
-            pm2 kill || true 
-            
-            # Start backend using a single command string (more reliable with some PM2 versions)
-            pm2 start "venv/bin/python3 app.py" --name "backend" --cwd ~/Edupredict/server/backend
+            # ── 5. Configure Systemd Service ──────────────────────────────
+            echo "Configuring Systemd service..."
+            sudo cp ~/Edupredict/systemd/edupredict.service /etc/systemd/system/edupredict.service
+            sudo systemctl daemon-reload
+            sudo systemctl enable edupredict
+            sudo systemctl restart edupredict
 
-            # ── E. Save PM2 state ──────────────────────────────────────────
-            pm2 save
+            echo "Deployment Successful! App is running as a Systemd service."
