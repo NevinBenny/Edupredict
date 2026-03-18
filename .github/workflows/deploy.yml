@@ -1,4 +1,4 @@
-name: Build and Deploy to EC2
+name: Build and Deploy to EC2 with Nginx
 
 on:
   push:
@@ -10,24 +10,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Check out the latest code onto the GitHub runner
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 2. Set up Node.js on the GitHub runner
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '22'
 
-      # 3. Build the Frontend ON GITHUB (Not EC2 - saves EC2 RAM)
       - name: Install Dependencies and Build Frontend
         run: |
           npm install --legacy-peer-deps
           npm run build
-        # It will automatically use the .env.production file we added to the repo for the EC2 IP
 
-      # 4. Copy the entire codebase + built dist folder to EC2
       - name: Copy files via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -38,8 +33,7 @@ jobs:
           target: "~/Edupredict"
           overwrite: true
 
-      # 5. SSH into EC2 to restart the backend and serve the frontend
-      - name: Restart Services on EC2
+      - name: Setup Nginx & Backend on EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.HOST }}
@@ -48,14 +42,32 @@ jobs:
           script: |
             set -e
 
-            # ── A. Ensure Python + PM2 are installed on EC2 ────────────────
-            sudo apt-get install -y python3 python3-venv python3-pip --no-install-recommends
+            # ── A. Ensure Nginx, Python + PM2 are installed ────────────────
+            sudo apt-get update -y
+            sudo apt-get install -y nginx python3 python3-venv python3-pip --no-install-recommends
             if ! command -v pm2 &> /dev/null; then
               sudo npm install -g pm2
             fi
             export PATH=$PATH:/usr/bin:/usr/local/bin
 
-            # ── B. Backend: Python / Flask ─────────────────────────────────
+            # ── B. Clean Up Old "Frontend" PM2 Process (Prevents Collisions)
+            pm2 delete frontend 2>/dev/null || true
+
+            # ── C. Configure Nginx ─────────────────────────────────────────
+            # Remove the default nginx config to prevent port 80 collisions
+            sudo rm -f /etc/nginx/sites-enabled/default
+
+            # Copy our custom Nginx config from the repo
+            sudo cp ~/Edupredict/nginx/edupredict.conf /etc/nginx/sites-available/edupredict
+            
+            # Enable the site
+            sudo ln -sf /etc/nginx/sites-available/edupredict /etc/nginx/sites-enabled/edupredict
+            
+            # Test & Restart Nginx
+            sudo nginx -t
+            sudo systemctl restart nginx
+
+            # ── D. Restart Backend: Python / Flask ─────────────────────────
             cd ~/Edupredict/server/backend
             if [ ! -d "venv" ]; then
               python3 -m venv venv
@@ -65,16 +77,12 @@ jobs:
             pip install -r requirements.txt --quiet
             deactivate
 
-            pm2 restart backend 2>/dev/null || \
-              pm2 start app.py \
-                --name "backend" \
-                --interpreter ~/Edupredict/server/backend/venv/bin/python3 \
-                --cwd ~/Edupredict/server/backend
+            # Safely recreate PM2 backend to ensure Python interpreter is strictly applied
+            pm2 delete backend 2>/dev/null || true
+            pm2 start app.py \
+              --name "backend" \
+              --interpreter ~/Edupredict/server/backend/venv/bin/python3 \
+              --cwd ~/Edupredict/server/backend
 
-            # ── C. Frontend: Serve the PRE-BUILT dist folder ──────────────
-            cd ~/Edupredict
-            pm2 restart frontend 2>/dev/null || \
-              pm2 serve dist/ 3000 --name "frontend" --spa
-
-            # ── D. Save PM2 state ──────────────────────────────────────────
+            # ── E. Save PM2 state ──────────────────────────────────────────
             pm2 save
