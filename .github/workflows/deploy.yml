@@ -1,0 +1,50 @@
+name: Deploy to AWS EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ubuntu # Default for Ubuntu EC2 instances
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            # If the directory doesn't exist, clone the repo first (for the very first run)
+            if [ ! -d "~/EduPredict" ]; then
+              git clone https://github.com/${{ github.repository }}.git ~/EduPredict
+            fi
+            
+            # Navigate to the project directory
+            cd ~/EduPredict
+            
+            # Pull the latest code
+            git pull origin main
+            
+            # --- BACKEND ---
+            cd server/backend
+            # Make sure you have python3-venv installed on your EC2
+            if [ ! -d "venv" ]; then
+              python3 -m venv venv
+            fi
+            source venv/bin/activate
+            pip3 install -r requirements.txt
+            
+            # Restarting the Python backend using PM2 (a fantastic process manager)
+            pm2 restart backend || pm2 start app.py --name "backend" --interpreter python3
+            
+            # --- FRONTEND ---
+            cd ../..
+            npm install
+            npm run build
+            
+            # For a production app, the 'dist' folder should be served by Nginx.
+            # But you can also serve it using PM2 directly like this:
+            pm2 restart frontend || pm2 serve dist/ 3000 --name "frontend" --spa

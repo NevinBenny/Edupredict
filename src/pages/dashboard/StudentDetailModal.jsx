@@ -62,7 +62,7 @@ const StudentDetailModal = ({ student, onClose }) => {
         }
 
         try {
-            const response = await fetch('http://localhost:5000/api/interventions', {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/interventions`, {
                 method: 'POST',
                 body: formData
             });

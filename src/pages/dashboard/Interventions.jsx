@@ -30,11 +30,11 @@ const Interventions = () => {
     const fetchData = async () => {
         try {
             setLoading(true)
-            const studentRes = await fetch('http://localhost:5000/api/students', { credentials: 'include' })
+            const studentRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/students`, { credentials: 'include' })
             const studentData = await studentRes.json()
             if (studentData.students) setStudents(studentData.students)
 
-            const intRes = await fetch('http://localhost:5000/api/interventions', { credentials: 'include' })
+            const intRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/interventions`, { credentials: 'include' })
             const intData = await intRes.json()
             if (intData.interventions) setInterventions(intData.interventions)
 
@@ -59,7 +59,7 @@ const Interventions = () => {
         }
 
         try {
-            const response = await fetch('http://localhost:5000/api/interventions', {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/interventions`, {
                 method: 'POST',
                 body: formData, // No Content-Type header needed, browser sets it
                 credentials: 'include'
