@@ -54,6 +54,12 @@ jobs:
             pm2 delete frontend 2>/dev/null || true
 
             # ── C. Configure Nginx ─────────────────────────────────────────
+            # Move the frontend build to the standard /var/www folder giving Nginx permissions
+            sudo rm -rf /var/www/edupredict
+            sudo cp -r ~/Edupredict/dist /var/www/edupredict
+            sudo chown -R www-data:www-data /var/www/edupredict
+            sudo chmod -R 755 /var/www/edupredict
+
             # Remove the default nginx config to prevent port 80 collisions
             sudo rm -f /etc/nginx/sites-enabled/default
 
