@@ -27,12 +27,10 @@ jobs:
             # Make sure pm2 is in the current SSH shell PATH
             export PATH=$PATH:/usr/bin:/usr/local/bin
             
-            # 3. Setup Project Repository
-            if [ ! -d "~/EduPredict" ]; then
-              git clone https://github.com/${{ github.repository }}.git ~/EduPredict
-            fi
+            # 3. Navigate to your repo (the one you cloned manually with your .env)
+            cd ~/Edupredict
             
-            cd ~/EduPredict
+            # Pull the latest code
             git pull origin main
             
             # --- BACKEND ---
@@ -53,3 +51,4 @@ jobs:
             
             # Restart frontend
             pm2 restart frontend || pm2 serve dist/ 3000 --name "frontend" --spa
+
