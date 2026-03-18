@@ -14,7 +14,7 @@ const AIRiskPrediction = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/ai/predict`, { credentials: 'include' });
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}"}/ai/predict`, { credentials: 'include' });
       if (!response.ok) throw new Error('Failed to fetch analysis');
       const result = await response.json();
       setData(result);

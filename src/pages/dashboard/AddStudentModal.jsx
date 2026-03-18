@@ -21,7 +21,7 @@ const AddStudentModal = ({ onClose, onStudentAdded }) => {
         // Fetch subjects assigned to this faculty member for the dropdown
         const fetchSubjects = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/faculty-subjects`, {
+                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}"}/faculty-subjects`, {
                     credentials: 'include'
                 });
                 if (response.ok) {
@@ -50,7 +50,7 @@ const AddStudentModal = ({ onClose, onStudentAdded }) => {
         setError('');
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/students`, {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}"}/students`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

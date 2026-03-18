@@ -21,10 +21,10 @@ const DashboardHome = () => {
     setLoading(true);
     try {
       const [summaryRes, distRes, studentsRes, profileRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/dashboard/summary`, { credentials: 'include' }).then(res => res.json()),
-        fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/dashboard/risk-distribution`, { credentials: 'include' }).then(res => res.json()),
-        fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/students`, { credentials: 'include' }).then(res => res.json()),
-        fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/dashboard/faculty-profile`, { credentials: 'include' }).then(res => res.json())
+        fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}"}/dashboard/summary`, { credentials: 'include' }).then(res => res.json()),
+        fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}"}/dashboard/risk-distribution`, { credentials: 'include' }).then(res => res.json()),
+        fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}"}/students`, { credentials: 'include' }).then(res => res.json()),
+        fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}"}/dashboard/faculty-profile`, { credentials: 'include' }).then(res => res.json())
       ]);
 
       if (summaryRes.error) {
@@ -61,7 +61,7 @@ const DashboardHome = () => {
   const handleRunPrediction = async () => {
     const loader = toast.loading('AI Engine warming up...');
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/ai/predict`, { credentials: 'include' });
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}"}/ai/predict`, { credentials: 'include' });
       const data = await res.json();
 
       if (data.error) throw new Error(data.error);
@@ -87,7 +87,7 @@ const DashboardHome = () => {
 
     const loader = toast.loading('Importing students...');
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/students/import`, {
+      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}"}/students/import`, {
         method: 'POST',
         body: formData,
         credentials: 'include'

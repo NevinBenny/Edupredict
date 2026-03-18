@@ -14,7 +14,7 @@ const StudentInterventions = () => {
     const fetchInterventions = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/interventions`, { credentials: 'include' });
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}"}/interventions`, { credentials: 'include' });
             const data = await response.json();
             if (data.interventions) {
                 setInterventions(data.interventions);
@@ -35,7 +35,7 @@ const StudentInterventions = () => {
                 formData.append('file', file);
             }
 
-            const response = await fetch(`http://localhost:5000/api/interventions/${id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}/interventions/${id}`, {
                 method: 'PUT',
                 body: formData,
                 credentials: 'include'
@@ -147,7 +147,7 @@ const InterventionCard = ({ task, onUpdate }) => {
                 </div>
                 {task.file_path && (
                     <a
-                        href={`http://localhost:5000/api/uploads/interventions/${task.file_path}`}
+                        href={`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}/uploads/interventions/${task.file_path}`}
                         target="_blank"
                         rel="noreferrer"
                         className="download-btn"
@@ -171,7 +171,7 @@ const InterventionCard = ({ task, onUpdate }) => {
                         {isCompleted ? "Your Submission (Approved)" : "Your Submission (Pending Approval)"}
                     </div>
                     <a
-                        href={`http://localhost:5000/api/uploads/interventions/submissions/${task.submission_file_path}`}
+                        href={`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}/uploads/interventions/submissions/${task.submission_file_path}`}
                         target="_blank"
                         rel="noreferrer"
                         className="download-btn"

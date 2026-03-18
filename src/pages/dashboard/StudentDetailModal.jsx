@@ -35,7 +35,7 @@ const StudentDetailModal = ({ student, onClose }) => {
     const fetchHistory = async () => {
         try {
             setLoadingHistory(true);
-            const response = await fetch(`http://localhost:5000/api/interventions?student_id=${student.student_id}`);
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}/interventions?student_id=${student.student_id}`);
             const data = await response.json();
             if (data.interventions) {
                 setHistoryData(data.interventions);
@@ -62,7 +62,7 @@ const StudentDetailModal = ({ student, onClose }) => {
         }
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/interventions`, {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}"}/interventions`, {
                 method: 'POST',
                 body: formData
             });

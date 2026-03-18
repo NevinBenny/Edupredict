@@ -17,27 +17,33 @@ jobs:
           username: ubuntu # Default for Ubuntu EC2 instances
           key: ${{ secrets.SSH_KEY }}
           script: |
-            # If the directory doesn't exist, clone the repo first (for the very first run)
+            # 1. Update Node.js to v22 (fixes the Vite EBADENGINE error)
+            curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+            sudo apt-get install -y nodejs python3-venv
+            
+            # 2. Install PM2 globally (fixes "pm2: command not found")
+            sudo npm install -g pm2
+            
+            # Make sure pm2 is in the current SSH shell PATH
+            export PATH=$PATH:/usr/bin:/usr/local/bin
+            
+            # 3. Setup Project Repository
             if [ ! -d "~/EduPredict" ]; then
               git clone https://github.com/${{ github.repository }}.git ~/EduPredict
             fi
             
-            # Navigate to the project directory
             cd ~/EduPredict
-            
-            # Pull the latest code
             git pull origin main
             
             # --- BACKEND ---
             cd server/backend
-            # Make sure you have python3-venv installed on your EC2
             if [ ! -d "venv" ]; then
               python3 -m venv venv
             fi
             source venv/bin/activate
             pip3 install -r requirements.txt
             
-            # Restarting the Python backend using PM2 (a fantastic process manager)
+            # Restart backend using PM2
             pm2 restart backend || pm2 start app.py --name "backend" --interpreter python3
             
             # --- FRONTEND ---
@@ -45,6 +51,5 @@ jobs:
             npm install
             npm run build
             
-            # For a production app, the 'dist' folder should be served by Nginx.
-            # But you can also serve it using PM2 directly like this:
+            # Restart frontend
             pm2 restart frontend || pm2 serve dist/ 3000 --name "frontend" --spa

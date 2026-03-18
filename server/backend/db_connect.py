@@ -10,7 +10,9 @@ from dotenv import load_dotenv
 import mysql.connector
 from mysql.connector import pooling
 
-load_dotenv()
+# Ensure we strictly load the .env file located in this exact directory
+env_path = os.path.join(os.path.dirname(__file__), ".env")
+load_dotenv(dotenv_path=env_path)
 
 
 def get_pool():

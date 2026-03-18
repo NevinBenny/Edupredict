@@ -24,7 +24,7 @@ const Reports = () => {
     const fileName = type === 'risk' ? 'Risk_Report' : 'Academic_Summary'
 
     try {
-      const response = await fetch(`http://localhost:5000${endpoint}`)
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}${endpoint}`)
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.error || 'Failed to generate report')

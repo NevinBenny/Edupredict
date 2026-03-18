@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Users, BookOpen, UserCheck, Plus, Trash2, X, ChevronRight, UserPlus, GraduationCap } from 'lucide-react'
 import '../dashboard/Dashboard.css'
 
-const API = 'http://localhost:5000'
+const API = `${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}`
 
 const ClassManagement = () => {
   const [classes, setClasses] = useState([])
