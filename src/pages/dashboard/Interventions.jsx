@@ -30,11 +30,11 @@ const Interventions = () => {
     const fetchData = async () => {
         try {
             setLoading(true)
-            const studentRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}"}/students`, { credentials: 'include' })
+            const studentRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/students`, { credentials: 'include' })
             const studentData = await studentRes.json()
             if (studentData.students) setStudents(studentData.students)
 
-            const intRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}"}/interventions`, { credentials: 'include' })
+            const intRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/interventions`, { credentials: 'include' })
             const intData = await intRes.json()
             if (intData.interventions) setInterventions(intData.interventions)
 
@@ -59,7 +59,7 @@ const Interventions = () => {
         }
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}"}/interventions`, {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/interventions`, {
                 method: 'POST',
                 body: formData, // No Content-Type header needed, browser sets it
                 credentials: 'include'
@@ -88,7 +88,7 @@ const Interventions = () => {
 
     const updateStatus = async (id, newStatus) => {
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}/interventions/${id}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/interventions/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus }),
@@ -236,7 +236,7 @@ const Interventions = () => {
                                             <div className="sd-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', borderTop: '1px solid #f1f5f9', paddingTop: '12px' }}>
                                                 {int.file_path && (
                                                     <a
-                                                        href={`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}/uploads/interventions/${int.file_path}`}
+                                                        href={`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/uploads/interventions/${int.file_path}`}
                                                         target="_blank"
                                                         rel="noreferrer"
                                                         className="sd-btn sd-btn-outline"
@@ -247,7 +247,7 @@ const Interventions = () => {
 
                                                 {int.submission_file_path && (
                                                     <a
-                                                        href={`${import.meta.env.VITE_API_BASE_URL || "${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api"}/uploads/interventions/submissions/${int.submission_file_path}`}
+                                                        href={`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/uploads/interventions/submissions/${int.submission_file_path}`}
                                                         target="_blank"
                                                         rel="noreferrer"
                                                         className="sd-btn sd-btn-outline"
