@@ -15,7 +15,7 @@ const StudentDashboard = () => {
             try {
                 setLoading(true);
                 // 1. Fetch summary from the new endpoint
-                const summaryRes = await fetch('http://localhost:5000/api/dashboard/my-summary', { credentials: 'include' });
+                const summaryRes = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/dashboard/my-summary`, { credentials: 'include' });
                 if (summaryRes.ok) {
                     const summaryData = await summaryRes.json();
                     setSummary(summaryData);

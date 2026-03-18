@@ -14,7 +14,7 @@ const StudentInterventions = () => {
     const fetchInterventions = async () => {
         try {
             setLoading(true);
-            const response = await fetch('http://localhost:5000/api/interventions', { credentials: 'include' });
+            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"}/interventions`, { credentials: 'include' });
             const data = await response.json();
             if (data.interventions) {
                 setInterventions(data.interventions);
