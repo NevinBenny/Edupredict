@@ -6,9 +6,13 @@ After=network.target mysql.service
 User=ubuntu
 Group=www-data
 WorkingDirectory=/home/ubuntu/Edupredict/server/backend
+EnvironmentFile=/home/ubuntu/Edupredict/server/backend/.env
 Environment="PATH=/home/ubuntu/Edupredict/server/backend/venv/bin"
+# Ensure OAuth insecure transport is allowed if not in .env
+Environment="OAUTHLIB_INSECURE_TRANSPORT=1"
 ExecStart=/home/ubuntu/Edupredict/server/backend/venv/bin/python3 app.py
 Restart=always
+RestartSec=5
 
 [Install]
 WantedBy=multi-user.target

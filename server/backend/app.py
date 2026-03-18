@@ -42,6 +42,9 @@ GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/userinfo.profile",
 ]
 
+print(f"--- SERVER STARTING ---")
+print(f"GOOGLE_REDIRECT_URI: {os.environ.get('GOOGLE_REDIRECT_URI')}")
+
 def get_cors_origins():
   raw = os.environ.get("CORS_ORIGIN", "http://localhost:5173")
   # Allow comma-separated origins, trim whitespace
