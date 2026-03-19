@@ -278,14 +278,14 @@
 .form-item label {
     font-size: 12px;
     font-weight: 700;
-    color: var(--text-secondary);
+    color: var(--c-text-secondary);
     text-transform: uppercase;
 }
 
 .form-item input,
 .form-item select {
     padding: 10px 12px;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--c-border-strong);
     border-radius: 6px;
     font-size: 14px;
     outline: none;
@@ -293,7 +293,7 @@
 
 .form-item input:focus,
 .form-item select:focus {
-    border-color: var(--accent-blue);
+    border-color: var(--c-accent-primary);
 }
 
 .form-error {
@@ -557,7 +557,7 @@
 
 .modal-actions .btn-primary {
     flex: 1;
-    background: var(--text-primary);
+    background: var(--c-accent-primary);
     color: white;
     border: none;
     padding: 12px;
@@ -569,8 +569,8 @@
 .modal-actions .btn-secondary {
     flex: 1;
     background: white;
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
+    color: var(--c-text-primary);
+    border: 1px solid var(--c-border-strong);
     padding: 12px;
     border-radius: 6px;
     font-weight: 600;

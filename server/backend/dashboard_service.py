@@ -215,32 +215,42 @@ def get_students():
 @dashboard_bp.route("/api/students", methods=["POST"])
 def add_student():
     data = request.json
-    required_fields = ["student_id", "name", "subject_id", "attendance_percentage"]
-    
+    required_fields = ["student_id", "name"]
     for field in required_fields:
-        if field not in data:
+        if not data.get(field):
             return jsonify({"error": f"Missing required field: {field}"}), 400
             
+    sid = data.get("student_id")
+    name = data.get("name")
+    sub_id = data.get("subject_id")
+    att = data.get("attendance_percentage", 0)
+    
     conn = None
     try:
         conn = get_connection()
         cur = conn.cursor(dictionary=True)
         
-        # 1. Validate subject_id exists
-        cur.execute("SELECT id FROM subjects WHERE id=%s", (data['subject_id'],))
-        if not cur.fetchone():
-            return jsonify({"error": "Invalid subject_id. The selected subject does not exist."}), 404
+        # 1. Validate subject_id exists (if provided)
+        if sub_id:
+            cur.execute("SELECT id FROM subjects WHERE id=%s", (sub_id,))
+            if not cur.fetchone():
+                return jsonify({"error": "Invalid subject_id. The selected subject does not exist."}), 404
             
         # 2. Ensure student exists in base table
         cur.execute("SELECT id FROM students WHERE student_id=%s", (data['student_id'],))
         existing_student = cur.fetchone()
         
         if not existing_student:
+            # Get faculty department for context
+            cur.execute("SELECT department FROM faculties WHERE email = (SELECT email FROM users WHERE id = %s)", (session.get("user_id"),))
+            f_row = cur.fetchone()
+            dept = f_row['department'] if f_row and f_row['department'] else ''
+            
             # Create base student record
             cur.execute("""
                 INSERT INTO students (student_id, name, department, semester) 
                 VALUES (%s, %s, %s, %s)
-            """, (data['student_id'], data['name'], '', '1'))
+            """, (sid, name, dept, '1'))
             student_db_id = cur.lastrowid
         else:
             student_db_id = existing_student['id']
@@ -249,29 +259,18 @@ def add_student():
         internal_marks = data.get("internal_marks", 0)
         assignment_score = data.get("assignment_score", 0)
         
-        # 3. Check if academic record already exists for this subject
-        cur.execute("""
-            SELECT id FROM student_academic_records 
-            WHERE student_id=%s AND subject_id=%s
-        """, (student_db_id, data['subject_id']))
-        existing_record = cur.fetchone()
-        
-        if existing_record:
-            # Update existing record
+        # 3. Create or Update academic record (ONLY if subject exists)
+        if sub_id:
             cur.execute("""
-                UPDATE student_academic_records 
-                SET attendance_percentage=%s, internal_marks=%s, assignment_score=%s
-                WHERE id=%s
-            """, (data['attendance_percentage'], internal_marks, assignment_score, existing_record['id']))
-        else:
-            # Insert new record
-            cur.execute("""
-                INSERT INTO student_academic_records (
-                    student_id, subject_id, attendance_percentage, 
-                    internal_marks, assignment_score
-                ) VALUES (%s, %s, %s, %s, %s)
-            """, (student_db_id, data['subject_id'], data['attendance_percentage'], internal_marks, assignment_score))
-            
+                INSERT INTO student_academic_records 
+                (student_id, subject_id, attendance_percentage, internal_marks, assignment_score)
+                VALUES (%s, %s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE 
+                attendance_percentage=%s, internal_marks=%s, assignment_score=%s
+            """, (student_db_id, sub_id, att, internal_marks, assignment_score,
+                att, internal_marks, assignment_score))
+                
+        conn.commit()
         cur.close()
         return jsonify({"message": "Student record saved successfully"}), 201
         

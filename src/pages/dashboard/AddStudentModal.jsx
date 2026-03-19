@@ -19,20 +19,7 @@ const AddStudentModal = ({ onClose, onStudentAdded }) => {
     const [error, setError] = useState('');
 
     useEffect(() => {
-        // Fetch subjects assigned to this faculty member for the dropdown
-        const fetchSubjects = async () => {
-            try {
-                const data = await getFacultySubjects();
-                setSubjects(data.subjects || []);
-                if (data.subjects && data.subjects.length > 0) {
-                    setFormData(prev => ({ ...prev, subject_id: data.subjects[0].id }));
-                }
-            } catch (err) {
-                console.error('Failed to fetch subjects:', err);
-                setError('Failed to load classes.');
-            }
-        };
-        fetchSubjects();
+        // Dropdown removed as per user request
     }, []);
 
     const handleChange = (e) => {
@@ -90,20 +77,6 @@ const AddStudentModal = ({ onClose, onStudentAdded }) => {
                                 placeholder="e.g. Arjun Kumar"
                                 required
                             />
-                        </div>
-                        <div className="form-item" style={{ gridColumn: 'span 2' }}>
-                            <label>Subject / Course</label>
-                            <select name="subject_id" value={formData.subject_id} onChange={handleChange} required>
-                                {subjects.length === 0 ? (
-                                    <option value="">No subjects assigned</option>
-                                ) : (
-                                    subjects.map(sub => (
-                                        <option key={sub.id} value={sub.id}>
-                                            {sub.code} - {sub.name} ({sub.department}, Sem {sub.semester})
-                                        </option>
-                                    ))
-                                )}
-                            </select>
                         </div>
                         <div className="form-item">
                             <label>Attendance (%)</label>
