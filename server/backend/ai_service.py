@@ -21,7 +21,7 @@ if os.path.exists(MODEL_PATH) and os.path.exists(SCALER_PATH):
     except Exception as e:
         print(f"Error loading AI models: {e}")
 
-@ai_bp.route('/api/ai/predict', methods=['GET'])
+@ai_bp.route('/api/ai/predict', methods=['GET', 'POST'])
 def predict_risk():
     """
     Advanced AI analysis engine that computes weighted risk scores and 
