@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, UserPlus, Save } from 'lucide-react';
 import './DashboardComponents.css';
+import { getFacultySubjects, addStudent } from '../../services/api';
 
 const AddStudentModal = ({ onClose, onStudentAdded }) => {
     const [formData, setFormData] = useState({
@@ -21,15 +22,10 @@ const AddStudentModal = ({ onClose, onStudentAdded }) => {
         // Fetch subjects assigned to this faculty member for the dropdown
         const fetchSubjects = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/faculty-subjects`, {
-                    credentials: 'include'
-                });
-                if (response.ok) {
-                    const data = await response.json();
-                    setSubjects(data.subjects || []);
-                    if (data.subjects && data.subjects.length > 0) {
-                        setFormData(prev => ({ ...prev, subject_id: data.subjects[0].id }));
-                    }
+                const data = await getFacultySubjects();
+                setSubjects(data.subjects || []);
+                if (data.subjects && data.subjects.length > 0) {
+                    setFormData(prev => ({ ...prev, subject_id: data.subjects[0].id }));
                 }
             } catch (err) {
                 console.error('Failed to fetch subjects:', err);
@@ -50,20 +46,7 @@ const AddStudentModal = ({ onClose, onStudentAdded }) => {
         setError('');
 
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/students`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(formData),
-                credentials: 'include'
-            });
-
-            if (!response.ok) {
-                const data = await response.json();
-                throw new Error(data.error || 'Failed to add student');
-            }
-
+            await addStudent(formData);
             onStudentAdded();
             onClose();
         } catch (err) {

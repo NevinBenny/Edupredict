@@ -280,3 +280,10 @@ export const importStudents = async (formData) => {
     body: formData
   })
 }
+
+export const addStudent = async (studentData) => {
+  return request('/students', {
+    method: 'POST',
+    body: JSON.stringify(studentData)
+  })
+}
