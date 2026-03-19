@@ -1,3 +1,6 @@
+import { useState, useEffect } from 'react'
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts'
+import { AlertTriangle, TrendingUp, Users, CheckCircle, RefreshCw } from 'lucide-react'
 import { runRiskPrediction } from '../../services/api'
 import StudentDetailModal from './StudentDetailModal'
 import './Dashboard.css'
