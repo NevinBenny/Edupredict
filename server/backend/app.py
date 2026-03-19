@@ -12,6 +12,9 @@ Security highlights:
 import os
 import traceback
 import hashlib
+
+# Allow HTTP for OAuth during development/IP-based testing
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 import secrets
 from datetime import datetime, timedelta, timezone
 import bcrypt
