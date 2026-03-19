@@ -7,6 +7,14 @@ import AddStudentModal from './AddStudentModal';
 import RiskDrillDownModal from './RiskDrillDownModal';
 import { Users, Clock, GraduationCap, AlertTriangle, UserPlus, Play, FileUp } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { 
+  getDashboardSummary, 
+  getRiskDistribution, 
+  getDashboardStudents, 
+  getFacultyProfile, 
+  runRiskPrediction, 
+  importStudents 
+} from '../../services/api';
 
 const DashboardHome = () => {
   const [summary, setSummary] = useState(null);
@@ -21,31 +29,20 @@ const DashboardHome = () => {
     setLoading(true);
     try {
       const [summaryRes, distRes, studentsRes, profileRes] = await Promise.all([
-        fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/dashboard/summary`, { credentials: 'include' }).then(res => res.json()),
-        fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/dashboard/risk-distribution`, { credentials: 'include' }).then(res => res.json()),
-        fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/students`, { credentials: 'include' }).then(res => res.json()),
-        fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/dashboard/faculty-profile`, { credentials: 'include' }).then(res => res.json())
+        getDashboardSummary(),
+        getRiskDistribution(),
+        getDashboardStudents(),
+        getFacultyProfile()
       ]);
 
-      if (summaryRes.error) {
-        console.error('Summary error:', summaryRes.error);
-      } else {
-        setSummary(summaryRes);
-      }
-
-      if (Array.isArray(distRes)) {
-        setDistribution(distRes);
-      } else if (distRes && !distRes.error) {
-        setDistribution(distRes);
-      }
-
+      setSummary(summaryRes);
+      setDistribution(Array.isArray(distRes) ? distRes : []);
+      
       if (studentsRes && Array.isArray(studentsRes.students)) {
         setStudents(studentsRes.students);
       }
 
-      if (profileRes && !profileRes.error) {
-        setFacultyProfile(profileRes);
-      }
+      setFacultyProfile(profileRes);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
       toast.error('Failed to load dashboard data.');
@@ -61,10 +58,7 @@ const DashboardHome = () => {
   const handleRunPrediction = async () => {
     const loader = toast.loading('AI Engine warming up...');
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/ai/predict`, { credentials: 'include' });
-      const data = await res.json();
-
-      if (data.error) throw new Error(data.error);
+      const data = await runRiskPrediction();
 
       toast.success('Risk Analysis Updated!', { id: loader });
       // Refresh to show newly calculated risk weights
@@ -87,14 +81,7 @@ const DashboardHome = () => {
 
     const loader = toast.loading('Importing students...');
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/students/import`, {
-        method: 'POST',
-        body: formData,
-        credentials: 'include'
-      });
-      const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || 'Import failed');
+      const data = await importStudents(formData);
 
       toast.success(data.message, { id: loader });
       fetchData();

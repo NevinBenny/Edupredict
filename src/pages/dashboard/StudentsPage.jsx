@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import StudentTable from './StudentTable';
 import './DashboardHome.css';
+import { getDashboardStudents } from '../../services/api';
 
 const StudentsPage = () => {
     const [students, setStudents] = useState([]);
@@ -10,10 +11,7 @@ const StudentsPage = () => {
     useEffect(() => {
         const fetchStudents = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}/api/students`, {
-                    credentials: 'include'    // ← required for session cookies
-                });
-                const data = await response.json();
+                const data = await getDashboardStudents();
 
                 if (data.error) {
                     setError(data.error);

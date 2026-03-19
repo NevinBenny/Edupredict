@@ -253,3 +253,30 @@ export const getFacultySubjects = async () => {
 export const getMyCourses = async () => {
   return request('/dashboard/my-courses')
 }
+
+export const getDashboardSummary = async () => {
+  return request('/dashboard/summary')
+}
+
+export const getRiskDistribution = async () => {
+  return request('/dashboard/risk-distribution')
+}
+
+export const getFacultyProfile = async () => {
+  return request('/dashboard/faculty-profile')
+}
+
+export const getDashboardStudents = async () => {
+  return request('/students')
+}
+
+export const runRiskPrediction = async () => {
+  return request('/ai/predict', { method: 'POST' })
+}
+
+export const importStudents = async (formData) => {
+  return request('/students/import', {
+    method: 'POST',
+    body: formData
+  })
+}

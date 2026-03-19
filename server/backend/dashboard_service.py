@@ -312,6 +312,10 @@ def get_faculty_subjects():
 
 @dashboard_bp.route("/api/students/import", methods=["POST"])
 def import_students():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+        
     if 'file' not in request.files:
         return jsonify({"error": "No file provided"}), 400
     
@@ -319,54 +323,95 @@ def import_students():
     if file.filename == '':
         return jsonify({"error": "Empty filename"}), 400
 
-    # Basic CSV parsing logic (simulated for now, can use pandas later)
     import csv
     import io
+    import random
     
-    stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
-    csv_reader = csv.DictReader(stream)
-    
-    conn = None
     try:
+        # 1. Get faculty's department for auto-assignment
         conn = get_connection()
-        cur = conn.cursor()
+        cur = conn.cursor(dictionary=True)
+        cur.execute("SELECT department FROM faculties WHERE email = (SELECT email FROM users WHERE id = %s)", (user_id,))
+        f_row = cur.fetchone()
+        f_dept = f_row['department'] if f_row and f_row['department'] else None
         
+        # 2. Parse CSV
+        content = file.stream.read().decode("utf-8-sig") # Handle BOM
+        stream = io.StringIO(content)
+        csv_reader = csv.DictReader(stream)
+        
+        # Robust helper for column mapping
+        def get_val(row_dict, *keys):
+            headers = {str(k).lower().strip(): v for k, v in row_dict.items() if k is not None}
+            for k in keys:
+                if k.lower() in headers:
+                    return str(headers[k.lower()]).strip()
+            return ""
+
         imported_count = 0
         for row in csv_reader:
-            # Required: student_id, name, subject_id, attendance
-            # This is a simplified import
-            student_id = row.get('student_id')
-            name = row.get('name')
-            subject_id = row.get('subject_id')
-            att = row.get('attendance', 0)
+            sid = get_val(row, 'student_id', 'id', 'student id')
+            name = get_val(row, 'name', 'full name', 'student name')
+            sub_id = get_val(row, 'subject_id', 'subject', 'course_id')
+            att_str = get_val(row, 'attendance', 'attendance_percentage', 'att')
+            dept = get_val(row, 'department', 'dept') or f_dept
+            sem = get_val(row, 'semester', 'sem') or '1'
+            sgpa_str = get_val(row, 'sgpa')
+            backlogs_str = get_val(row, 'backlogs')
             
-            if not student_id or not subject_id: continue
+            if not sid or not name: continue
             
-            # 1. Ensure student exists
-            cur.execute("SELECT id FROM students WHERE student_id=%s", (student_id,))
+            try:
+                att = float(att_str) if att_str else 0.0
+                sgpa = float(sgpa_str) if sgpa_str else 0.0
+                backlogs = int(backlogs_str) if backlogs_str else 0
+            except:
+                att, sgpa, backlogs = 0.0, 0.0, 0
+            
+            # Risk calculation
+            risk_score = 0
+            if att < 75: risk_score += 40
+            if sgpa < 6.5: risk_score += 30
+            if backlogs > 0: risk_score += 30
+            risk_level = "High" if risk_score >= 60 else ("Medium" if risk_score >= 30 else "Low")
+
+            # 3. Upsert Student
+            cur.execute("SELECT id FROM students WHERE student_id=%s", (sid,))
             res = cur.fetchone()
             if not res:
-                cur.execute("INSERT INTO students (student_id, name) VALUES (%s, %s)", (student_id, name))
+                cur.execute("""
+                    INSERT INTO students (student_id, name, department, semester, sgpa, backlogs, risk_score, risk_level)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """, (sid, name, dept, sem, sgpa, backlogs, risk_score, risk_level))
                 s_db_id = cur.lastrowid
             else:
-                s_db_id = res[0]
+                s_db_id = res['id']
+                cur.execute("""
+                    UPDATE students 
+                    SET name=%s, department=%s, semester=%s, sgpa=%s, backlogs=%s, risk_score=%s, risk_level=%s
+                    WHERE id=%s
+                """, (name, dept, sem, sgpa, backlogs, risk_score, risk_level, s_db_id))
             
-            # 2. Upsert academic record
-            cur.execute("""
-                INSERT INTO student_academic_records (student_id, subject_id, attendance_percentage)
-                VALUES (%s, %s, %s)
-                ON DUPLICATE KEY UPDATE attendance_percentage=%s
-            """, (s_db_id, subject_id, att, att))
+            # 4. Upsert academic record (only if subject_id provided)
+            if sub_id:
+                cur.execute("""
+                    INSERT INTO student_academic_records (student_id, subject_id, attendance_percentage)
+                    VALUES (%s, %s, %s)
+                    ON DUPLICATE KEY UPDATE attendance_percentage=%s
+                """, (s_db_id, sub_id, att, att))
+                
             imported_count += 1
             
         conn.commit()
         cur.close()
         return jsonify({"message": f"Successfully imported {imported_count} records"}), 200
     except Exception as err:
-        if conn: conn.rollback()
+        if 'conn' in locals() and conn: conn.rollback()
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(err)}), 500
     finally:
-        if conn:
+        if 'conn' in locals() and conn:
             conn.close()
 
 @dashboard_bp.route("/api/dashboard/my-summary", methods=["GET"])
