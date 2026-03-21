@@ -20,14 +20,27 @@ const Reports = () => {
   const downloadReport = async (type) => {
     setLoading(type)
     setError(null)
-    const endpoint = type === 'risk' ? '/api/reports/risk' : '/api/reports/performance'
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api"
+    // Remove the leading '/api' since baseUrl already contains it
+    const endpoint = type === 'risk' ? '/reports/risk' : '/reports/performance'
     const fileName = type === 'risk' ? 'Risk_Report' : 'Academic_Summary'
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5000"}${endpoint}`)
+      const response = await fetch(`${baseUrl}${endpoint}`, {
+        credentials: 'include',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+        }
+      })
+      
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to generate report')
+        const contentType = response.headers.get('content-type')
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to generate report')
+        } else {
+          throw new Error(`Server Error (${response.status}): The backend is unreachable or crashed.`)
+        }
       }
 
       const blob = await response.blob()
