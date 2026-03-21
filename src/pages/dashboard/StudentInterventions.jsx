@@ -44,12 +44,21 @@ const StudentInterventions = () => {
                 toast.success(`Task marked as ${nextStatus}`);
                 fetchInterventions();
             } else {
-                const data = await response.json();
-                toast.error(data.error || "Failed to update task status");
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const data = await response.json();
+                    toast.error(data.error || "Failed to update task status");
+                } else {
+                    if (response.status === 413) {
+                        toast.error("File is too large. Please upload a smaller file.");
+                    } else {
+                        toast.error(`Server Error (${response.status}): Failed to update task`);
+                    }
+                }
             }
         } catch (error) {
             console.error("Error updating status:", error);
-            toast.error("Failed to update task status");
+            toast.error("Network error: Failed to reach the server");
         }
     };
 
