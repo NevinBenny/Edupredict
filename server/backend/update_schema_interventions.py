@@ -24,9 +24,11 @@ def update_schema():
             student_id VARCHAR(50) NOT NULL,
             title VARCHAR(255) NOT NULL,
             description TEXT,
-            status ENUM('Pending', 'In Progress', 'Completed') DEFAULT 'Pending',
+            status ENUM('Pending', 'In Progress', 'Submitted', 'Completed') DEFAULT 'Pending',
             assigned_date DATE DEFAULT (CURRENT_DATE),
             due_date DATE,
+            file_path VARCHAR(255),
+            submission_file_path VARCHAR(255),
             FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
         """)
