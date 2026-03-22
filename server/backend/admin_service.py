@@ -9,6 +9,19 @@ import bcrypt
 import os
 import random
 
+def get_val(row_dict, *keys):
+    """Robust helper to find column values (BOM-safe, case-insensitive, trimmed)"""
+    for k, v in row_dict.items():
+        if k is None: continue
+        ck = str(k).lower().strip().replace('\ufeff', '')
+        if ck in keys:
+            return str(v).strip() if v is not None else ""
+        # Support for common cut-offs like "Departmen" or "Designati"
+        for target in keys:
+            if len(target) > 5 and target[:7] in ck:
+                return str(v).strip() if v is not None else ""
+    return ""
+
 admin_bp = Blueprint("admin", __name__)
 
 def check_admin():
@@ -237,31 +250,62 @@ def batch_upload_faculties():
 
     conn = get_connection()
     try:
-        stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
-        csv_input = csv.DictReader(stream)
-        
+        # Using utf-8-sig to automatically handle BOM if present
+        content = file.stream.read().decode("utf-8-sig", errors="ignore")
+        if not content.strip():
+            return jsonify({"error": "The uploaded file is empty."}), 400
+
+        # Delimiter detection: Excel in some regions uses ';' instead of ','
+        sep = ','
+        first_line = content.split('\n')[0]
+        if ';' in first_line and (',' not in first_line or first_line.count(';') > first_line.count(',')):
+            sep = ';'
+        elif '\t' in first_line:
+            sep = '\t'
+
+        stream = io.StringIO(content, newline=None)
+        csv_input = csv.DictReader(stream, delimiter=sep)
+        rows = list(csv_input)
+
+        print(f"\n--- [DEBUG] Batch Faculty Upload Started ---")
+        print(f"Delimiter: '{sep}'")
+        print(f"Total Rows: {len(rows)}")
+        if rows:
+            headers = [str(k).strip() for k in rows[0].keys() if k is not None]
+            print(f"Detected Headers: {headers}")
+
         cur = conn.cursor()
         credentials_list = []
+        processed_count = 0
         
-        for row in csv_input:
-            email = row.get("email", "").strip()
-            name = row.get("name", "").strip()
-            dept = row.get("department", "").strip()
-            designation = row.get("designation", "").strip()
+        for i, row in enumerate(rows):
+            # Log raw row for debugging if needed (mask password/hash)
+            # print(f"Row {i+2} raw keys: {list(row.keys())}")
+
+            email = get_val(row, "email")
+            name = get_val(row, "name", "full name")
+            dept = get_val(row, "department", "dept")
+            designation = get_val(row, "designation", "role")
             
             if not email or not name:
+                print(f"Row {i+2}: SKIPPED (email='{email}', name='{name}')")
                 continue
+
+            print(f"Row {i+2}: Processing {email} ({name})")
 
             # Check existing
             cur.execute("SELECT id FROM users WHERE email=%s", (email,))
             if cur.fetchone():
-                continue # Skip existing users
+                print(f"  User already exists, skipping.")
+                continue 
                 
-            # Create User
+            # Create User (Consistent with single add_faculty)
             temp_pwd = generate_random_password()
             hashed_pwd = hash_password(temp_pwd)
-            cur.execute("INSERT INTO users (email, password_hash, role, must_change_password) VALUES (%s, %s, 'FACULTY', TRUE)",
-                        (email, hashed_pwd))
+            cur.execute(
+                "INSERT INTO users (email, password_hash, role, provider, must_change_password) VALUES (%s, %s, 'FACULTY', 'password', TRUE)",
+                (email, hashed_pwd)
+            )
             
             cur.execute("""
                 INSERT INTO faculties (name, email, department, designation)
@@ -269,8 +313,10 @@ def batch_upload_faculties():
             """, (name, email, dept, designation))
             
             credentials_list.append({"email": email, "password": temp_pwd})
+            processed_count += 1
 
         conn.commit()
+        print(f"--- [DEBUG] Batch Faculty Upload Complete. Processed: {processed_count} ---")
         return jsonify({"message": "Batch processed successfully", "credentials": credentials_list})
     except Exception as e:
         conn.rollback()
@@ -330,14 +376,7 @@ def batch_upload_students():
         #     count = cur.fetchone()['count']
         #     if count == 0:
         #         return jsonify({"error": f"Row {row_num} specifies Department '{dept}' and Semester '{sem}', but no courses exist for this combination. Upload blocked."}), 400
-        # Robust helper to find column values (BOM-safe, case-insensitive, trimmed)
-        def get_val(row_dict, *keys):
-            for k, v in row_dict.items():
-                if k is None: continue
-                ck = str(k).lower().strip().replace('\ufeff', '')
-                if ck in keys:
-                    return str(v).strip() if v is not None else ""
-            return ""
+        # Robust global get_val is used below
 
         print(f"\n--- [DEBUG] Batch Student Upload Started ---")
         print(f"Total Rows: {len(rows)}")
