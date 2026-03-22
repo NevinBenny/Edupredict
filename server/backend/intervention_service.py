@@ -149,10 +149,37 @@ def update_intervention_status(id):
             if not cur.fetchone():
                 return jsonify({"error": "Forbidden"}), 403
 
-        if submission_path:
-            cur.execute("UPDATE interventions SET status=%s, submission_file_path=%s WHERE id=%s", (status, submission_path, id))
-        else:
-            cur.execute("UPDATE interventions SET status=%s WHERE id=%s", (status, id))
+        try:
+            if submission_path:
+                cur.execute("UPDATE interventions SET status=%s, submission_file_path=%s WHERE id=%s", (status, submission_path, id))
+            else:
+                cur.execute("UPDATE interventions SET status=%s WHERE id=%s", (status, id))
+        except mysql.connector.Error as err:
+            # Error 1265: Data truncated (ENUM mismatch)
+            # Error 1054: Unknown column (missing submission_file_path)
+            if err.errno in [1265, 1054]:
+                print(f"--- [DEBUG] Auto-fixing interventions table (Error {err.errno}) ---")
+                try:
+                    # 1. Expand Enum
+                    cur.execute("ALTER TABLE interventions MODIFY COLUMN status ENUM('Pending', 'In Progress', 'Submitted', 'Completed') DEFAULT 'Pending'")
+                    # 2. Add submission_file_path if it was the cause of 1054
+                    try:
+                        cur.execute("ALTER TABLE interventions ADD COLUMN submission_file_path VARCHAR(255) AFTER file_path")
+                    except mysql.connector.Error as col_err:
+                        if col_err.errno != 1060: # Duplicate column is fine
+                            raise col_err
+                    
+                    # Retry the original update
+                    if submission_path:
+                        cur.execute("UPDATE interventions SET status=%s, submission_file_path=%s WHERE id=%s", (status, submission_path, id))
+                    else:
+                        cur.execute("UPDATE interventions SET status=%s WHERE id=%s", (status, id))
+                    print("--- [DEBUG] Auto-fix and retry successful ---")
+                except Exception as fix_err:
+                    print(f"--- [DEBUG] Auto-fix failed: {fix_err} ---")
+                    raise err 
+            else:
+                raise err
             
         conn.commit()
         cur.close()
